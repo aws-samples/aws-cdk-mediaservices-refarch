@@ -169,7 +169,7 @@ The following optional additional parameters are available:
 
 ### Manual deployment: 
   - deploy:
-    1. `git clone "https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/LILO"`
+    1. `git clone "https://github.com/aws-samples/aws-cdk-mediaservices-refarch"`
     1. `cd aws-cdk-mediaservices-refarch/`   
     1. `LILOPATH=${pwd}`
     1. `mkdir $LILOPATH/app`
