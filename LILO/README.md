@@ -13,13 +13,13 @@ The sample code; software libraries; command line tools; proofs of concept; temp
 
 ## Table of content
 - [Solution overview](#solution)
-- [Use case](#use case)
+- [Use case](#use_case)
 - [Architecture](#architecture)
 - [CDK structure](#cdk)
 - [Deployment](#deployment)
-- [Best practice](#best practice)
-- [Known issues](#known issues)
-- [File structure](#files structure)
+- [Best practice](#best_practice)
+- [Known issues](#known_issues)
+- [File structure](#files_structure)
 - [License](#license)
 
 
@@ -37,7 +37,7 @@ While deploying this code you will be making use of the following services which
   - [CloudFormation (CFN)](https://aws.amazon.com/cloudformation/pricing/)
 
 
-<a name="use case"></a>
+<a name="use_case"></a>
 ## Use case
 - Audience:
   - Any AWS account owner with technical and non technical skills interested in exploring/deploying streaming services
@@ -184,7 +184,7 @@ The following optional additional parameters are available:
     1. `cdk destroy -f`
 
 
-<a name="bestpractice"></a>
+<a name="best_practice"></a>
 ## Best practice
 * **Security**:
 
@@ -208,7 +208,7 @@ The following optional additional parameters are available:
 &nbsp;&nbsp;&nbsp;Make use of bandwidth optimized control rate such as QVBR to save bandwidth on CDN usage when possible.
 
 
-<a name="known issues"></a>
+<a name="known_issues"></a>
 ## Known Issues 
 ### Operation:
 Please make sure the associated channel is in idle state before running the destroy command. 
