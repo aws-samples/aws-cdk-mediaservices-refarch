@@ -1,17 +1,17 @@
-#LILO: Live encoding loop
-##Log
+# LILO: Live encoding loop
+## Log
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
 | 15/11/2021  | created | 0.0.1   | initial release of the application  | 
 
 
-##Disclaimer 
+## Disclaimer 
 
 The sample code; software libraries; command line tools; proofs of concept; templates; or other related technology is provided to you as AWS Content under the AWS Customer Agreement, or the relevant written agreement between you and AWS (whichever applies). You are responsible for testing, securing, and optimizing the AWS Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards. You should not use this AWS Content in your production accounts, or on production or other critical data. Deploying AWS Content may incur AWS charges for creating or using AWS chargeable resources, such as running AWS Elemental Live Channels or using AWS Elemental MediaPackage.
 
 
 
-##Table of content
+## Table of content
 - [Solution overview](#solution)
 - [Use case](#use case)
 - [Architecture](#architecture)
@@ -24,7 +24,7 @@ The sample code; software libraries; command line tools; proofs of concept; temp
 
 
 <a name="solution"></a>
-##Solution
+## Solution
 The live encoding loop solution is intended to provide you with ready to use application that will build a live channel.
 
 The generated channel can then be used for testing and debugging purposes and allowing you to familiarise yourself with building and writing media infrastructure as code.
@@ -38,7 +38,7 @@ While deploying this code you will be making use of the following services which
 
 
 <a name="use case"></a>
-##Use case
+## Use case
 - Audience:
   - Any AWS account owner with technical and non technical skills interested in exploring/deploying streaming services
 
@@ -60,7 +60,7 @@ While deploying this code you will be making use of the following services which
 
 
 <a name="architecture"></a>
-##Architecture
+## Architecture
 Here is the architecture diagram for this application
 ![Live to archive architecture](images/LILO.png)
 - assets: 
@@ -82,7 +82,7 @@ Here is the architecture diagram for this application
 
 
 <a name="cdk"></a>
-##CDK 
+## CDK 
 Visit our [AWS cloud Development Kit](https://aws.amazon.com/cdk/) for more information on CDK
 Get hands-on with CDK running the [CDK introduction workshop](https://cdkworkshop.com/30-python.html)
 
@@ -105,8 +105,8 @@ The other stacks will be nested to the core stack and have their own domain of s
 More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/guide/best-practices.html#best-practices-apps) can be found on AWS website. 
 
 <a name="deploy"></a>
-##Deployment
-###Customize your script
+## Deployment
+### Customize your script
 
 Pick up the region where you want to run the solution
   - Save the S3 path to your content, example:
@@ -130,7 +130,7 @@ The following optional additional parameters are available:
   - Auto start: allow the channel to start as soon as resources are provisioned 
 
 
-###Process
+### Process
   - scripted
     - deploy:
       1. clone the repository
@@ -156,7 +156,7 @@ The following optional additional parameters are available:
       1. destroy the application by running the CDK destroy command
 
 
-###Scripted for bash terminal
+### Scripted for bash terminal
   - deploy:
     1. `git clone "https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/LILO"`
     1. `bash ./LILO/run.sh -a deploy`
@@ -164,7 +164,7 @@ The following optional additional parameters are available:
     1. `bash ./app/run.sh -a destroy`
 
 
-###Manual deployment: 
+### Manual deployment: 
   - deploy:
     1. `git clone "https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/LILO"`
     1. `LILOPATH=${pwd}`
@@ -185,7 +185,7 @@ The following optional additional parameters are available:
 
 
 <a name="bestpractice"></a>
-##Best practice
+## Best practice
 * **Security**:
 
 &nbsp;&nbsp;&nbsp;Content security is key to the success of a streaming platform. So make sure to make use of encryption at rest for your assets with the bucket encryption capabilities and secure the transport of your content with https or s3ssl protocols. 
@@ -209,8 +209,8 @@ The following optional additional parameters are available:
 
 
 <a name="known issues"></a>
-##Known Issues 
-###Operation:
+## Known Issues 
+### Operation:
 Please make sure the associated channel is in idle state before running the destroy command. 
 
 You can check your channel status by logging in to your AWS console ==> MediaLive ==> Channel
@@ -220,7 +220,7 @@ Once on the MediaLive Channel dashboard identify your channel and tick the box o
 Then click on the button stop and wait for the channel to be in idle state before you proceed with the destroy command. 
 
 <a name="files"></a>
-##Files structure
+## Files structure
 
 The Live encoding loop solution consist of: 
 
@@ -242,19 +242,6 @@ The Live encoding loop solution consist of:
 
 
 <a name="license"></a>
-##License
+## License
 
-Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify,
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+This library is licensed under the MIT-0 License. See the LICENSE file.
