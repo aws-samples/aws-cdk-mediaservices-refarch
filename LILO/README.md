@@ -134,12 +134,14 @@ The following optional additional parameters are available:
   - scripted
     - deploy:
       1. clone the repository
+      1. move in created folder   
       1. run the deployment script with the deploy option
     - destroy 
       1. run the deployment script with the destroy option
   - manual: 
     - deploy:
       1. clone the repository 
+      1. move in created folder   
       1. create environment variable   
       1. create a new folder that will contain your app
       1. move into the newly created app folder
@@ -158,7 +160,8 @@ The following optional additional parameters are available:
 
 ### Scripted for bash terminal
   - deploy:
-    1. `git clone "https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/LILO"`
+    1. `git clone "https://github.com/aws-samples/aws-cdk-mediaservices-refarch"`
+    1. `cd aws-cdk-mediaservices-refarch/`   
     1. `bash ./LILO/run.sh -a deploy`
   - destroy:
     1. `bash ./app/run.sh -a destroy`
@@ -167,6 +170,7 @@ The following optional additional parameters are available:
 ### Manual deployment: 
   - deploy:
     1. `git clone "https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/LILO"`
+    1. `cd aws-cdk-mediaservices-refarch/`   
     1. `LILOPATH=${pwd}`
     1. `mkdir $LILOPATH/app`
     1. `cd $LILOPATH/app`
