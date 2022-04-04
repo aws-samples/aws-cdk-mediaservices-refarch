@@ -19,17 +19,8 @@ setuptools.setup(
     packages=setuptools.find_packages(where="lilo"),
 
     install_requires=[
-        "aws-cdk.core==1.116.0",
-        "aws_cdk.aws_medialive==1.116.0",
-        "aws_cdk.aws_iam==1.116.0",
-        "aws-cdk.aws-lambda==1.116.0",
-        "aws_cdk.aws_events==1.116.0",
-        "aws_cdk.aws_lambda_event_sources==1.116.0",
-        "aws_cdk.aws_events_targets==1.116.0",
-        "aws_cdk.aws_codepipeline==1.116.0",
-        "aws_cdk.aws_codepipeline_actions==1.116.0",
-        "aws_cdk.pipelines==1.116.0",
-        "aws_cdk.aws_codecommit==1.116.0",
+        "aws-cdk-lib>=2.0.0",
+        "constructs>=10.0.0",
         "boto3",
     ],
 

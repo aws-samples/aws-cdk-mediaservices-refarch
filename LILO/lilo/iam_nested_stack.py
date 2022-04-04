@@ -5,19 +5,20 @@
 # email:        ethevee@amazon.com
 # description:  This is file hold the code to deploy the IAM roles and policies required for the application to run
 # created:      17/05/2021 (dd/mm/yyyy)
-# modified:     30/08/2021 (dd/mm/yyyy)
+# modified:     04/04/2022 (dd/mm/yyyy)
 # filename:     iam_nested_stack.py
 
+from constructs import Construct
 from aws_cdk import (
-    core as cdk,
+    NestedStack,
     aws_iam as iam,
 )
 
-class iam_nested_stack(cdk.NestedStack):
+class iam_nested_stack(NestedStack):
 
     def __init__(
             self,
-            scope: cdk.Construct,
+            scope: Construct,
             construct_id: str,
             stack: str,
             **kwargs) -> None:

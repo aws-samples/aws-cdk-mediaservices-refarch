@@ -5,10 +5,11 @@
 # description:  This is the core file of the LILO application
 #               This file contain the logic and code to build the LILO application
 # created:      17/05/2021 (dd/mm/yyyy)
-# modified:     30/08/2021 (dd/mm/yyyy)
+# modified:     04/04/2022 (dd/mm/yyyy)
 # filename:     app.py
 
-from aws_cdk import core as cdk
+# from aws_cdk import core as cdk
+from aws_cdk import App, Stack
 from lilo.lilo_stack import LiloStack
 from lilo.iam_nested_stack import iam_nested_stack
 from lilo.medialive_nested_stack import medialive_nested_stack
@@ -31,7 +32,7 @@ destination = "127.0.0.1"
 # destination port number
 port = 5000
 
-lilo = cdk.App()
+lilo = App()
 core = LiloStack(
   lilo,
   my_stack_name + my_customer_name,

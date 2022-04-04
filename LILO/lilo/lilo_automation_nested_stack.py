@@ -6,22 +6,24 @@
 # description:  This is file hold the code to deploy eventbridge triggers as well as lambda functions used for the
 #               automation of the LILO application
 # created:      31/05/2021 (dd/mm/yyyy)
-# modified:     30/08/2021 (dd/mm/yyyy)
+# modified:     04/04/2022 (dd/mm/yyyy)
 # filename:     lilo_automation_nested_stack.py
 
+from constructs import Construct
 from aws_cdk import (
-    core as cdk,
+    NestedStack,
+    Duration,
     aws_iam as iam,
     aws_lambda as _lambda,
     aws_events as events,
     aws_events_targets as targets,
 )
 
-class lilo_automation_nested_stack(cdk.NestedStack):
+class lilo_automation_nested_stack(NestedStack):
 
     def __init__(
             self,
-            scope: cdk.Construct,
+            scope: Construct,
             construct_id: str,
             role: iam.Role,
             auto_start: bool,
@@ -34,11 +36,12 @@ class lilo_automation_nested_stack(cdk.NestedStack):
             self.medialive_channel_start_function = _lambda.Function(
                 self, f"{stack_name}_medialive_channel_start_function",
                 runtime=_lambda.Runtime.PYTHON_3_8,
-                code=_lambda.Code.asset('lilo/lambda'),
+                # code=_lambda.Code.asset('lilo/lambda'),
+                code=_lambda.Code.from_asset('lilo/lambda'),
                 handler='medialive_channel_start_function.medialive_channel_start_function',
                 role=role,
                 function_name=f"{stack_name}_medialive_channel_start_function",
-                timeout=cdk.Duration.seconds(125),
+                timeout=Duration.seconds(125),
             )
 
             # EventBridge rule definition

@@ -3,6 +3,7 @@
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
 | 15/11/2021  | created | 0.0.1   | initial release of the application  | 
+| 04/04/2022  | created | 0.0.2   | upgrade to cdk v2  | 
 
 
 ## Disclaimer 

@@ -5,15 +5,16 @@
 # email:        ethevee@amazon.com
 # description:  This is file hold the code to deploy the media infrasctructure required for the LILO application
 # created:      31/05/2021 (dd/mm/yyyy)
-# modified:     30/08/2021 (dd/mm/yyyy)
+# modified:     04/04/2022 (dd/mm/yyyy)
 # filename:     medialive_nested_stack.py
 
+from constructs import Construct
 from aws_cdk import (
-    core as cdk,
+    NestedStack,
     aws_medialive as eml,
     aws_iam as iam,
 )
-class medialive_nested_stack(cdk.NestedStack):
+class medialive_nested_stack(NestedStack):
 
     @property
     def get_channel_id(self):
@@ -21,7 +22,7 @@ class medialive_nested_stack(cdk.NestedStack):
 
     def __init__(
             self,
-            scope: cdk.Construct,
+            scope: Construct,
             construct_id: str,
             source: str,
             destination: str,
