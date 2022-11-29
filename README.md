@@ -9,7 +9,7 @@
 
 <a name="introduction"></a>
 ## Introduction
-The aim of this project is to provide a broader understanding of the media services as well as how to implement them to build media supply chain, media infrastructure and media application workflow
+The aim of this project is to provide a broader understanding of the media services as well as how to implement them to build media supply chain, media infrastructure and media application workflow.
 <a name="services"></a>
 ## Services
 This project will provide you with deployment samples for the following AWS services:
@@ -25,7 +25,7 @@ This project will provide you with deployment samples for the following AWS serv
 * AWS Elemental Secure Packager and Encoder Key Exchange  (SPEKE) 
 * Amazon Interactive Video Service (IVS) 
 
-And demonstrate their integration with other AWS services through detailed use cases
+Some examples will also demonstrate the integration of MediaServices with other AWS services through detailed use cases.
   
 <a name="prerequisites"></a>
 ## Prerequisites
@@ -34,22 +34,27 @@ Before you start with this project make sure you are familiar with the following
 * AWS CDK
 * AWS SDK for Python
 
+
 <a name="refarch"></a>
-# Reference Architectures
-- Foundational
-  - [live encoding loop (LILO)](LILO/README.md)
-  - Social Network Publication (SNP)
-  - Static packaging/origination (ORG)
-  - Just in time packaging (JITP)
-  - Feeder (FDR)
-  - Subscriber local (SBRL)
-  - Subscriber remote (SBRR)
-- Advanced
-  - Live to archive workflow (L2A)
-  - Live broadcast workflow (BSCT)
-  - Live OTT workflow (OTT)
-  - Ad insertion workflow (SSAI)
-  - Ad replacement workflow (SSAR)
+## Reference Architectures
+
+| Example | Type | Description |
+|---------|------|-------------|
+| [live encoding loop (LILO)](LILO/README.md) | Foundational | The live encoding loop example is intended to provide a live channel from a video file. |
+| [Social Network Publication (SNP)] | Foundational | This example is intended to provide a live channel to publish directly to social network platform using RTMP output. |
+| [Static packaging/origination (ORG)] | Foundational |  |
+| [Social Network Publication (SNP)] | Foundational |  |
+| [Just in time packaging (JITP)] | Foundational |  |
+| [Feeder (FDR)] | Foundational |  |
+| [Subscriber local (SBRL)] | Foundational |  |
+| [Subscriber remote (SBRR)] | Foundational |  |
+| [Live to archive workflow (L2A)] | Advanced |   |
+| [Live broadcast workflow (BSCT)] | Advanced |   |
+| [Live OTT workflow (OTT)](OTT/README.md) | Advanced | Creating a highly configurable Live OTT streaming using MediaLive, MediaPackage and CloudFront.  |
+| [Live OTT workflow (OTT_SECURE)] | Advanced | Creating a highly configurable Live OTT streaming using MediaLive, MediaPackage and CloudFront using Secure Media Delivery at the Edge Solution. |
+| [Ad insertion workflow (SSAI)] | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. MediaLive will be triggered to inserte SCTE35 markers using the Schedule API. |
+| [Ad replacement workflow (SSAR)] | Advanced | Provide an end to end workflow using Dynamic Ad Insertion using MediaTailor from an input feed with SCTE35 markers to provide ad replacement.  |
+| [Ad insertion workflow (SSAI_SECURE)] | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. This example provides an integration with the Secure Media Delivery at the Edge solution for a secure streaming. |
 
 <a name="license"></a>
 ## License
