@@ -160,7 +160,7 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 ### Deployment Instructions
 1. Create a new directory, navigate to that directory in a terminal and clone the GitHub repository:
 ```bash
-git clone https://raw.githubusercontent.com/aws-samples/aws-cdk-mediaservices-refarch
+git clone https://github.com/aws-samples/aws-cdk-mediaservices-refarch 
 ```
 2. Change directory to the pattern directory:
 ```bash
