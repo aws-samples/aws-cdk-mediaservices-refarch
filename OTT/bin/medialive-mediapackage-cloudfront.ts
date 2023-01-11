@@ -2,18 +2,17 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { Aws} from "aws-cdk-lib";
-import { App, Aspects } from 'aws-cdk-lib';
-
-import { AwsSolutionsChecks } from 'cdk-nag';
-
 import { MedialiveMediapackageCloudfrontStack } from '../lib/medialive-mediapackage-cloudfront-stack';
-const stackNameValue='MediaServicesRefArch-OTT'
-const description = "AWS CDK MediaServices Reference Architectures: Live OTT workflow. CDK demo using AWS MediaLive, MediaPackage and Amazon CloudFront."
+import { AwsSolutionsChecks } from 'cdk-nag';
+import { Aspects } from 'aws-cdk-lib';
 
 const app = new cdk.App();
+const stackName=app.node.tryGetContext('stackName')
+const description=app.node.tryGetContext('stackDescription')
+
 //Aspects.of(app).add(new AwsSolutionsChecks());
 new MedialiveMediapackageCloudfrontStack(app, 'MedialiveMediapackageCloudfrontStack', {
-  stackName: stackNameValue,
+  stackName: stackName,
   env: {
     region: `${Aws.REGION}`,
     account: `${Aws.ACCOUNT_ID}`,

@@ -37,6 +37,8 @@
     "@aws-cdk/core:target-partitions": [
       "aws",
       "aws-cn"
-    ]
+    ], 
+    "stackName": "MediaServicesRefArch-OTT",
+    "stackDescription": "AWS CDK MediaServices Reference Architectures: Live OTT workflow. CDK demo using AWS MediaLive, MediaPackage and Amazon CloudFront."
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
@@ -11,22 +11,39 @@
  *  and limitations under the License.
  */
 
- import {
+import {
   aws_medialive as medialive,
   aws_iam as iam,
   Aws,
+  CfnOutput, 
+  Fn
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { NagSuppressions } from 'cdk-nag';
 
+interface MediaLiveParameterReaderProps {
+  
+  "autoStart": boolean,
+  "streamName": string,
+  "channelClass" : string, 
+  "inputType" : string,
+  "sourceEndBehavior" : string,
+  "codec": string,
+  "encodingProfile" : string,
+  "priLink": string,
+  "secLink" : string,
+  "inputCidr": string,
+  "priUrl": string,
+  "secUrl" : string,
+  "priFlow" : string,
+  "secFlow" : string 
+}
+
 export class MediaLive extends Construct {
   public readonly channelLive: medialive.CfnChannel;
   public readonly channelInput: medialive.CfnInput;
-  public readonly myChannelArn: string;
-  public readonly myChannelName: string;
-  public readonly myChannelInput: string;
 
-  constructor(scope: Construct, id: string, configuration: any, mediaPackageChannelId: string) {
+  constructor(scope: Construct, id: string, configuration: MediaLiveParameterReaderProps , mediaPackageChannelId: string) {
     super(scope, id);
     const myMediaLiveChannelName=Aws.STACK_NAME + "_EML-CDK"
 
@@ -77,7 +94,6 @@ export class MediaLive extends Construct {
             "mediapackage:DescribeChannel",
           ],
         }),
-        
       ],
     });
 
@@ -88,12 +104,7 @@ export class MediaLive extends Construct {
       },
       assumedBy: new iam.ServicePrincipal("medialive.amazonaws.com"),
     });
-    NagSuppressions.addResourceSuppressions(role, [
-      {
-        id: 'AwsSolutions-IAM5',
-        reason: 'Remediated through property override.',
-      },
-    ]);
+
     /*
     * Second step: Create Security Groups 👇
     */
@@ -221,17 +232,17 @@ export class MediaLive extends Construct {
       case "HD-1080p":
         params.resolution = "HD";
         params.maximumBitrate = "MAX_20_MBPS";
-        params.encoderSettings = require("../config/encoding-profiles/hd-1080p");
+        params.encoderSettings = require("../config/encoding-profiles/hd-1080p-30fps");
         break;
       case "HD-720p":
         params.resolution = "HD";
         params.maximumBitrate = "MAX_10_MBPS";
-        params.encoderSettings = require("../config/encoding-profiles/hd-720p");
+        params.encoderSettings = require("../config/encoding-profiles/hd-720p-25fps");
         break;
       case "SD-540p":
         params.resolution = "SD";
         params.maximumBitrate = "MAX_10_MBPS";
-        params.encoderSettings = require("../config/encoding-profiles/sd-540p");
+        params.encoderSettings = require("../config/encoding-profiles/sd-540p-30fps");
         break;
       default:
         throw new Error(
@@ -269,13 +280,48 @@ export class MediaLive extends Construct {
         params.encoderSettings as medialive.CfnChannel.EncoderSettingsProperty,
     });
 
+    this.channelLive=channelLive;
+    this.channelInput=mediaLiveInput
     /*
     * Final step: Exporting Varibales for Cfn Outputs 👇
     */
-    this.myChannelName=myMediaLiveChannelName;
-    this.myChannelArn=channelLive.attrArn;
-    this.myChannelInput=inputName;
-    this.channelInput=mediaLiveInput;  
+    new CfnOutput(this, "MyMediaLiveChannelArn", {
+      value: this.channelLive.attrArn,
+      exportName: Aws.STACK_NAME + "mediaLiveChannelArn",
+      description: "The Arn of the MediaLive Channel",
+    });
+    new CfnOutput(this, "MyMediaLiveChannelInputName", {
+      value: inputName,
+      exportName: Aws.STACK_NAME + "mediaLiveChannelInputName",
+      description: "The Input Name of the MediaLive Channel",
+    });
+    if (["UDP_PUSH", "RTP_PUSH", "RTMP_PUSH"].includes(configuration['inputType'])) {
+      if (configuration['channelClass'] == "STANDARD"){
+        new CfnOutput(this, "MyMediaLiveChannelDestPri", {
+          value: Fn.join('', [ Fn.select(0, this.channelInput.attrDestinations) ] ),
+          exportName: Aws.STACK_NAME + "mediaLiveChannelDestPri",
+          description: "Primary MediaLive input Url",
+        }); 
+        new CfnOutput(this, "MyMediaLiveChannelDestSec", {
+          value: Fn.join('', [ Fn.select(1, this.channelInput.attrDestinations) ] ),
+          exportName: Aws.STACK_NAME + "mediaLiveChannelDestSec",
+          description: "Seconday MediaLive input Url",
+        });  
+      }else{
+        new CfnOutput(this, "MyMediaLiveChannelDestPri", {
+          value: Fn.join('', [ Fn.select(0, this.channelInput.attrDestinations) ] ),
+          exportName: Aws.STACK_NAME + "mediaLiveChannelDestPri",
+          description: "Primary MediaLive input Url",
+        }); 
+      }
+    }
+
+    NagSuppressions.addResourceSuppressions(role, [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Remediated through property override.',
+      },
+    ]);
 
   }
 }

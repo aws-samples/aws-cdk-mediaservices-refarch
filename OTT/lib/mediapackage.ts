@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
@@ -11,29 +11,64 @@
  *  and limitations under the License.
  */
 
- import { 
+import { 
   Aws,
   aws_iam as iam,
   Duration,
   CfnOutput,
   aws_mediapackage as mediapackage } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { Secrets } from "./secrets_mediapackage";
+import { Secrets } from "./mediapackage_secrets";
+import { CmafOutputValue } from "./custom_ressources/mediapackage-cmaf-output";
+import { NagSuppressions } from 'cdk-nag';
+
+interface MediaPackageParameterReaderProps {
+  ad_markers:string,
+  hls_segment_duration_seconds: number,
+  hls_playlist_window_seconds: number,
+  hls_max_video_bits_per_second: number,
+  hls_min_video_bits_per_second: number,
+  hls_stream_order: string,
+  hls_include_I_frame:boolean,
+  hls_audio_rendition_group: boolean,
+  hls_program_date_interval:number,
+  dash_period_triggers: string,
+  dash_profile: string,
+  dash_segment_duration_seconds: number,
+  dash_segment_template: string,
+  dash_manifest_window_seconds: number,
+  dash_max_video_bits_per_second: number,
+  dash_min_video_bits_per_second: number,
+  dash_stream_order: string,
+  cmaf_segment_duration_seconds: number,
+  cmaf_include_I_frame:boolean,
+  cmaf_program_date_interval:number,
+  cmaf_max_video_bits_per_second: number,
+  cmaf_min_video_bits_per_second: number,
+  cmaf_stream_order: string,
+  cmaf_playlist_window_seconds: number,
+  mss_segment_duration_seconds: number,
+  mss_manifest_window_seconds: number,
+  mss_max_video_bits_per_second: number,
+  mss_min_video_bits_per_second: number,
+  mss_stream_order: string
+}
 
 export class MediaPackageCdnAuth extends Construct {
   public readonly myChannel: mediapackage.CfnChannel;
   public readonly myChannelEndpointHls: mediapackage.CfnOriginEndpoint;
   public readonly myChannelEndpointDash: mediapackage.CfnOriginEndpoint;
   public readonly myChannelEndpointCmaf: mediapackage.CfnOriginEndpoint;
+  public readonly myChannelEndpointCmafUrl: string;
+  
   
   public readonly secret: Secrets;
   public readonly myChannelName: string;
   
 
-  constructor(scope: Construct, id: string, configuration: any ){
+  constructor(scope: Construct, id: string, configuration: MediaPackageParameterReaderProps ){
     super(scope, id);
     const myMediaPackageChannelName=Aws.STACK_NAME + "_EMP-CDK"
-    //const configuration = loadMediaPackageconfiguration();
     
     /*
     * First step: Preparing Secrets + IAM 👇
@@ -150,64 +185,108 @@ export class MediaPackageCdnAuth extends Construct {
         },
       }
     );
-
     dashEndpoint.node.addDependency(this.myChannel);
-  //👇 CMAF Packaging & endpoint with CDN authorization
 
-  const cmafPackage: mediapackage.CfnOriginEndpoint.CmafPackageProperty = {
+    //👇 CMAF Packaging & endpoint with CDN authorization
+    const cmafPackage: mediapackage.CfnOriginEndpoint.CmafPackageProperty = {
 
-    hlsManifests: [{
-      id: Aws.STACK_NAME + "-cmaf-" + this.myChannel.id,
-      // the properties below are optional
-      adMarkers: configuration['ad_markers'],
-      adTriggers: adTrigger,
-      includeIframeOnlyStream: configuration['cmaf_include_I_frame'],
-      manifestName: 'index',
-      playlistWindowSeconds: configuration['cmaf_playlist_window_seconds'],
-      programDateTimeIntervalSeconds: configuration['cmaf_program_date_interval'],
-      url: 'url',
-    }],
-    segmentDurationSeconds: configuration['cmaf_segment_duration_seconds'],
-    segmentPrefix: 'cmaf',
-    streamSelection: {
-      minVideoBitsPerSecond: configuration['cmaf_min_video_bits_per_second'],
-      maxVideoBitsPerSecond: configuration['cmaf_max_video_bits_per_second'],
-      streamOrder: configuration['cmaf_stream_order'],
-    },
-  };
-
-  const cmafEndpoint = new mediapackage.CfnOriginEndpoint(
-    this,
-    "cmafEndpoint",
-    {
-      channelId: this.myChannel.id,
-      id: Aws.STACK_NAME + "-cmaf-" + this.myChannel.id,
-      cmafPackage,
-      // the properties below are optional
-      authorization: {
-        cdnIdentifierSecret: secret.cdnSecret.secretArn,
-        secretsRoleArn: role4mediapackage.roleArn,
+      hlsManifests: [{
+        id: Aws.STACK_NAME + "-cmaf-" + this.myChannel.id,
+        // the properties below are optional
+        adMarkers: configuration['ad_markers'],
+        adTriggers: adTrigger,
+        includeIframeOnlyStream: configuration['cmaf_include_I_frame'],
+        manifestName: 'index',
+        playlistWindowSeconds: configuration['cmaf_playlist_window_seconds'],
+        programDateTimeIntervalSeconds: configuration['cmaf_program_date_interval'],
+        url: 'url',
+      }],
+      segmentDurationSeconds: configuration['cmaf_segment_duration_seconds'],
+      segmentPrefix: 'cmaf',
+      streamSelection: {
+        minVideoBitsPerSecond: configuration['cmaf_min_video_bits_per_second'],
+        maxVideoBitsPerSecond: configuration['cmaf_max_video_bits_per_second'],
+        streamOrder: configuration['cmaf_stream_order'],
       },
-    }
-  );
-  cmafEndpoint.node.addDependency(this.myChannel);
+    };
+    const cmafEndpoint = new mediapackage.CfnOriginEndpoint(
+      this,
+      "cmafEndpoint",
+      {
+        channelId: this.myChannel.id,
+        id: Aws.STACK_NAME + "-cmaf-" + this.myChannel.id,
+        cmafPackage,
+        // the properties below are optional
+        authorization: {
+          cdnIdentifierSecret: secret.cdnSecret.secretArn,
+          secretsRoleArn: role4mediapackage.roleArn,
+        },
+      }
+    );
+    cmafEndpoint.node.addDependency(this.myChannel);
+
+   
 
 
-
+    // It is not possible to get the CMAF output URL direclty from the attrUrl. 
+    // A custom ressource for CMAF Output is needed to get the CMAF URL  👇    
+    const resource = new CmafOutputValue(this, 'CmafEndpoint', {
+      "cmafEndpointId":cmafEndpoint.id,
+    });
+    NagSuppressions.addResourceSuppressions(
+      resource,
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Remediated through property override.',
+          appliesTo: ['Action::ssm:GetParameter*'], 
+        },
+      ],
+      true
+    );
+    NagSuppressions.addResourceSuppressions(
+      resource,
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Remediated through property override.',
+          appliesTo: ['Resource::*'], 
+        },
+      ],
+      true
+    );
+    NagSuppressions.addResourceSuppressions(
+      resource,
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Remediated through property override.',
+          appliesTo: ['Action::mediapackage:*'], 
+        },
+      ],
+      true
+    );
     /*
-    * Final step: Exporting Varibales for Cfn Outputs 👇
+    * Final step: Exporting Varibales  👇
     */
+
+    this.myChannelName=myMediaPackageChannelName;
+    this.myChannelEndpointHls=hlsEndpoint;
+    this.myChannelEndpointDash=dashEndpoint;
+    this.myChannelEndpointCmaf=cmafEndpoint;
+    this.myChannelEndpointCmafUrl=resource.myEndpointUrl
+ 
+    new CfnOutput(this, "MyMediaPackageChannelName", {
+      value: this.myChannelName,
+      exportName: Aws.STACK_NAME + "mediaPackageName",
+      description: "The name of the MediaPackage Channel",
+    });
+      
     new CfnOutput(this, "MyMediaPackageChannelRole", {
       value: role4mediapackage.roleArn,
       exportName: Aws.STACK_NAME + "mediaPackageRoleName",
       description: "The role of the MediaPackage Channel",
     });
 
-    this.myChannelName=myMediaPackageChannelName;
-    this.myChannelEndpointHls=hlsEndpoint;
-    this.myChannelEndpointDash=dashEndpoint;
-    this.myChannelEndpointCmaf=cmafEndpoint;
-    
-    
-  }
+    }
 }

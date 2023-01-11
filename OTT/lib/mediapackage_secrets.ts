@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
@@ -35,14 +35,6 @@ export class Secrets extends Construct {
       },
     });
     this.cdnSecret = cdnSecret;
-    NagSuppressions.addResourceSuppressions(cdnSecret, [
-      {
-        id: 'AwsSolutions-SMG4',
-        reason: 'Remediated through property override.',
-      },
-    ]);
-
-
 
     new CfnOutput(this, "cdnSecret", {
       value: cdnSecret.secretName,
@@ -50,6 +42,11 @@ export class Secrets extends Construct {
       description: "The name of the cdnSecret",
     });
 
-
+    NagSuppressions.addResourceSuppressions(cdnSecret, [
+      {
+        id: 'AwsSolutions-SMG4',
+        reason: 'Remediated through property override.',
+      },
+    ]);
   }
 }
