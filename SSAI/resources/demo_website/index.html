@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="img/favicon.ico"/>
+    <title> Demo Live Ad insertion workflow </title>
+
+    <!-- Bootstrap core CSS -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <!-- Custom styles for this template -->
+    <link href="css/app.css" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <header>
+
+      <div class="navbar navbar-dark bg-dark box-shadow">
+        <div class="container d-flex justify-content-between">
+          <a href="#" class="navbar-brand d-flex align-items-center">
+            <img class="header-logo mx-2" src="img/smile.png" alt="logo">
+            <strong>Demo Live Ad insertion workflow </strong>
+          </a>
+
+        </div>
+      </div>
+    </header>
+
+
+
+    <section class="header-section text-center">
+      <div class=" mt-4 container">
+        <h1 class="jumbotron-heading">End to End Live Streaming demo using ad insertion</h1>
+        <p class="lead text-muted">This is a demo website for an End to End Live Streaming implementation that can be used for testing and troubleshooting.</p>
+        <p class="lead text-muted">This is only for demo purposes and should not be used in production.</a></p>
+        <p>
+
+        </p>
+      </div>
+    </section>
+
+    <div class="album py-5 bg-light" id="result">
+
+      <section class="header-section text-center">
+        <div class="row justify-content-center">
+          <div role="alert">
+            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+              <label class="btn btn-secondary my-btn active">
+                <input type="radio" name="options" id="hls" autocomplete="off"> HLS
+              </label>
+              <label class="btn btn-secondary my-btn">
+                <input type="radio" name="options" id="dash" autocomplete="off"> DASH
+              </label>
+
+            </div>
+          </div>
+        </div>
+
+      </section>
+      <hr>
+      <div class="container">
+
+
+
+        <div class="row"></div>
+
+        <div class="row" id="video_div">
+          <div class="col-md-12 " >
+
+            <div class="card box-shadow">
+              <div class="d-flex justify-content-center bg-dark" >
+                <video id="my_video" controls width="800" height="600" muted autoplay>
+                  <button id="unmuteButton"></button>
+                </video>
+
+            </div>
+              <div class="card-body">
+                <h5 class="card-title" id="stream_type"></h5>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header">
+                    Playback URL
+                  </div>
+                  <div class="card-body">
+                    <p class="card-text" id="playback_url_value">AA.BB.CC</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="row">
+          <div class="col-md-12 ">
+          <div id="errorAsset" class="alert alert-danger d-none text-center" role="alert">
+          </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+
+
+
+    <!-- Bootstrap core JavaScript
+      ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js"
+      integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+      crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"
+      integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+      crossorigin="anonymous"></script>
+
+
+
+      <script src="https://cdn.dashjs.org/v4.4.1/dash.all.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+
+  </body>
+
+  <script src="js/main.js"></script>
+
+
+</html>
