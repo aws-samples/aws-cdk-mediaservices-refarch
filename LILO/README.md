@@ -242,7 +242,7 @@ The Live encoding loop solution consist of:
 |   |- lambda                             
 |   |   |- medialive_channel_start_function.py    [ Python code to automatically start the MediaLive channel upon successful create ]
 |- images
-    |- LILO.png                          [ Architecture diagram ]
+|    |- LILO.png                          [ Architecture diagram ]
 </pre>
 
 
