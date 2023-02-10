@@ -1,0 +1,13 @@
+*.js
+!jest.config.js
+!resources/demo_website/js/*
+*.d.ts
+node_modules
+cdk-exports.json
+package-lock.json
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+cdk.context.json

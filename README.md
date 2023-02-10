@@ -55,6 +55,7 @@ Before you start with this project make sure you are familiar with the following
 | [Live Ad insertion workflow (SSAI)](SSAI/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. MediaLive will be triggered to inserte SCTE35 markers using the Schedule API. |
 | Ad replacement workflow (SSAR) | Advanced | Provide an end to end workflow using Dynamic Ad Insertion using MediaTailor from an input feed with SCTE35 markers to provide ad replacement.  |
 | Ad insertion workflow (SSAI_SECURE) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. This example provides an integration with the Secure Media Delivery at the Edge solution for a secure streaming. |
+| [Sustainable Outputs from MediaLive (SUSTAINABILITY_LIVE)](SUSTAINABILITY_LIVE/README.md) | Professional |  Sustainable code example to cover how to share encodes across multple outputs. |
 
 <a name="license"></a>
 ## License
