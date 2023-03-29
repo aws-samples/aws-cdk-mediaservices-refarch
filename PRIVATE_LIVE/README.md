@@ -35,7 +35,7 @@ In some cases you might want to ensure that streams from MediaLive is going via 
 ### Code Sample Architecture
 For this sample, we have broken it down to be simpler and less resources deployed into your account.
 
-![Code Sample Architecture](./images/Private\ VPC\ Diagram-Code\ Demo.drawio.png)
+![Code Sample Architecture](./images/CodeDemo.png)
 
 ### Full Architecture
 
@@ -43,7 +43,7 @@ In the full architecture diagram below, there are a few improvements to be seen 
 1. The code sample only uses a single pipeline - for redudency, we recommend using a standard pipeline (across 2 AZ's)
 2. There is only 1 output stream going to an origin (for simplicity only) - we recommend building and deploying a full ABR ladder.
 
-![Full Sample Architecture](./images/Private\ VPC\ Diagram-highlevel\ Architecture.drawio.png)
+![Full Sample Architecture](./images/HighLevelArchitecture.png)
 
 <a name="cdk"></a>
 ## Prerequisite
@@ -70,7 +70,7 @@ git clone https://github.com/aws-samples/aws-cdk-mediaservices-refarch
 ```
 2. Change directory to the pattern directory:
 ```bash
-cd 
+cd PRIVATE_LIVE
 ```
 3. Install node modules:
 ```bash
