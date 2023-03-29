@@ -56,6 +56,7 @@ Before you start with this project make sure you are familiar with the following
 | Ad replacement workflow (SSAR) | Advanced | Provide an end to end workflow using Dynamic Ad Insertion using MediaTailor from an input feed with SCTE35 markers to provide ad replacement.  |
 | Ad insertion workflow (SSAI_SECURE) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. This example provides an integration with the Secure Media Delivery at the Edge solution for a secure streaming. |
 | [Sustainable Outputs from MediaLive (SUSTAINABILITY_LIVE)](SUSTAINABILITY_LIVE/README.md) | Professional |  Sustainable code example to cover how to share encodes across multple outputs. |
+| [MediaLive Private Networking Output (PRIVATE_LIVE)](PRIVATE_LIVE/README.md) | Professional |  Sample code for sending an output from MediaLive via a VPC (and a private subnet). This could be to your own Origin solution running in your VPC. |
 
 <a name="license"></a>
 ## License

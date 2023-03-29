@@ -1,8 +1,8 @@
-# Sustainable Workflow using MediaLive
+# Media Services with Private VPC Delivery
 ## Log
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
-| 24/01/2022  | created | 0.0.1   | initial release of the application  | 
+| 15/02/2023  | created | 0.0.1   | initial release of the application  | 
 
 ## Disclaimer 
 
@@ -21,29 +21,35 @@ The sample code; software libraries; command line tools; proofs of concept; temp
 
 <a name="solution"></a>
 ## Solution overview
-Media Services reference architecture to demonstrate the following:
-1. Single encode shared between 2 outputs on MediaLive - distributing to both MediaPackage and MediaConnect to show multiple outputs (but same encode)
-2. MediaLive output to MediaConnect flow using RTP-FEC - demonstrating output to MediaConnect for encode/output distribution to other destinations such as Partners, Distributors or other regions.
+This sample solution provides a practical code example for using a custom VPC and private networking with MediaLive.
+Should a customer want to deliver their content over their own predefined networking, they can use this template to help them configure how to do so.
+To do this, this demo uses MediaConnect to receive content from Elemental Live into MediaLive, MediaLive then uses VPC options to deliver content to the right subnet (in an AZ).
 
-### Use Case & Benefits
-1. Reducing the efforts and errors of configuring multiple encodes per an output with identical profiles
-2. Sustainability benefits; without this configuration separate encode processes would be running for each encode. With reuse the encode processes are reduced and with that CPU, power and cooling are saved.
-
-### Sustainability
-AWS has always been focused on improving efficiency in every aspect of our infrastructure. From the highly available infrastructure that powers our servers, to techniques we use to cool our data centers, and the innovative server designs that deliver AWS services to our customers—energy efficiency is a primary goal of our global infrastructure.
-
-AWS also provides customers with several tools to help them meet their sustainability goals. For example, the AWS customer carbon footprint tool calculates the carbon emissions generated from AWS usage, enabling customers to incorporate their AWS carbon footprint into their own sustainability reporting.
-
-For more information visit our [page on Sustainability](https://aws.amazon.com/sustainability/).
+<a name="use_case"></a>
+## Use case
+In some cases you might want to ensure that streams from MediaLive is going via your predefined networking thus not leaving your VPC. By default (without this being configured) your MediaLive output will go to the edge of the AWS network and onto a downstream systems/origins.
 
 <a name="architecture"></a>
 ## Architecture
 
 ### Code Sample Architecture
+For this sample, we have broken it down to be simpler and less resources deployed into your account.
 
-![Simplified Architecture](./images/channels.drawio.png)
+![Code Sample Architecture](./images/Private\ VPC\ Diagram-Code\ Demo.drawio.png)
+
+### Full Architecture
+
+In the full architecture diagram below, there are a few improvements to be seen versus the code sample provided:
+1. The code sample only uses a single pipeline - for redudency, we recommend using a standard pipeline (across 2 AZ's)
+2. There is only 1 output stream going to an origin (for simplicity only) - we recommend building and deploying a full ABR ladder.
+
+![Full Sample Architecture](./images/Private\ VPC\ Diagram-highlevel\ Architecture.drawio.png)
 
 <a name="cdk"></a>
+## Prerequisite
+For your ElementalLive encoder to push to the cloud you need to create an IAM User dedicated to each encoder you are using on-prem.
+Follow this [documentation](https://docs.aws.amazon.com/elemental-live/latest/ug/setup-live-contribution-to-emx-procedure.html) to create this User and policy.
+
 ## CDK deployment
 Visit our [AWS cloud Development Kit](https://aws.amazon.com/cdk/) for more information on CDK.
 Get hands-on with CDK running the [CDK introduction workshop](https://cdkworkshop.com/30-python.html).
@@ -58,34 +64,30 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 * Language used: *Typescript*
 * Framework: *AWS CDK*
 ### Deployment Instructions
-
 1. Create a new directory, navigate to that directory in a terminal and clone the GitHub repository:
 ```bash
 git clone https://github.com/aws-samples/aws-cdk-mediaservices-refarch
 ```
-
 2. Change directory to the pattern directory:
 ```bash
 cd 
 ```
-
 3. Install node modules:
 ```bash
 npm install
 ```
 
-4. Create a bucket in your account, and upload a file to be used as input on the workflow
+4. Please ensure that you configure for your environment by overriding values in the `config.ts` file before deploying this solution.
 
-5. Update your configuration in `config.ts` to work in your account - you will need to provide the bucket name and file name created/uploaded in the previous step.
 
-6. Build CDK App
+5. Deploy Networking Stack
 ```bash
-npm run build
+npm run cdk deploy MediaServicesRefArch-private-network-stack
 ```
 
-7. Deploy Media Stack
+6. Deploy Media Stack
 ```bash
-npm run cdk deploy MediaServicesRefArch-sustainable-workflow
+npm run cdk deploy MediaServicesRefArch-private-media-stack
 ```
 
 ## Running the solution
@@ -94,12 +96,41 @@ Once your system is deployed and configured correctly with the right downstream 
 - MediaConnect flow
 - MediaLive channel
 
-### Cleanup
-1. Stop MediaLive channel
+### Testing
+1. Once you have defined your downstream system (i.e. an Origin solution) you will be able to see streams/data being received from MediaLive (upstream).
 
-2. Stop MediaConnect Flows
+### Help
+- If you delete the network stack, but want to redeploy the solution - ensure you reset the VPC configuration in `cdk.context.json` otherwise it will pick up old configuration (old infrastructure ID's)
+```
+npm run cdk context --clear
+```
+If this command doesn't remove the context as expected, manually delete the context content and leave an empty json object, such as:
+```
+{ }
+```
+This will ensure that you your VPC and Media stacks will pick up the correct configuration.
+
+### Cleanup
+1. Stop Media Live channel
+
+2. Stop MediaConnect Flow
 
 3. Delete the stack
+    a. Delete Media Stack first
+```
+npm run cdk destroy MediaServicesRefArch-private-media-stack
+```
+    b. Delete Networking stack second, you may have to manually delete a Network Interface for the subnets to be cleared up properly
+```
+npm run cdk destroy MediaServicesRefArch-private-network-stack
+```
+
+<a name="known_issues"></a>
+## Known Issues 
+1. VPC has an issue where AZ isn't being substitued from dummy1a,dummy1b,dummy1c. This is the implemented workaround, until it is patched https://github.com/aws/aws-cdk/issues/21690#issuecomment-1266201638
+2. Stack deletes need to happen in order - see the section above
+3. If the stack throws this error when deploying : `ROLLBACK_COMPLETE: One or both the subnets you have specified doesn't exist. Specify a subnet that exists in your VPC.`
+Manually remove the contents of `cdk.context.json` file (see Cleanup section - step 3)
 
 <a name="tutorial"></a>
 ## Tutorial
@@ -121,7 +152,7 @@ More about AWS CDK v2 reference documentation [here](https://docs.aws.amazon.com
 
 ### Best practice
 * **Security**:
-Content security is key to the success of a streaming platform. So make sure to make use of encryption at rest for your assets with the bucket encryption capabilities and secure the transport of your content with https or s3ssl protocols. Ensure you have authentication and authorization in place at a level commensurate with the sensitivity and regulatory requirements of your assets. Consider using MFA whenever possible to access your ressources. Where possible access logging should also be enabled and encrypted.
+Content security is key to the success of a streaming platform. So make sure to make use of encryption at rest for your assets with the bucket encryption capabilities and secure the transport of your content with https or s3ssl protocols. Ensure you have authentication and authorization in place at a level commensurate with the sensitivity and regulatory requirements of your assets. Consider using MFA whenever possible to access your resources. Where possible access logging should also be enabled and encrypted.
 * **Reliability**: 
 For demos and debugging purpose this solution run a single pipeline to process your content. 
 However, in a production environment make sure to remove any single point of failure by using the STANDARD mode  which allows for dual pipeline creation to process your content in the cloud. 
