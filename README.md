@@ -57,6 +57,7 @@ Before you start with this project make sure you are familiar with the following
 | Ad insertion workflow (SSAI_SECURE) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. This example provides an integration with the Secure Media Delivery at the Edge solution for a secure streaming. |
 | [Sustainable Outputs from MediaLive (SUSTAINABILITY_LIVE)](SUSTAINABILITY_LIVE/README.md) | Professional |  Sustainable code example to cover how to share encodes across multple outputs. |
 | [MediaLive Private Networking Output (PRIVATE_LIVE)](PRIVATE_LIVE/README.md) | Professional |  Sample code for sending an output from MediaLive via a VPC (and a private subnet). This could be to your own Origin solution running in your VPC. |
+| [Live2VoD workflow (LIVE2VOD)](LIVE2VOD/README.md) | Professional |  Example for demonstrating a Live2VoD workflow in CDK, which uses a REST API to initiate the Harvest with MediaPackage and EventBridge to capture the completition. |
 
 <a name="license"></a>
 ## License
