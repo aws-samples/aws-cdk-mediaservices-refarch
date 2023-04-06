@@ -2,7 +2,7 @@
 ## Log
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
-| 07/02/2022  | created | 0.0.1   | initial release of the application  | 
+| 06/04/2023  | created | 0.0.1   | initial release of the application  | 
 
 ## Disclaimer 
 
@@ -33,7 +33,7 @@ This sample solution provides a practical code example to harvest clips from a M
 
 <a name="use_case"></a>
 ## Use case
-You may want to use the MediaPackage Harvest API to save clips from a game for a highlight reel, or a broadcast show to use later in adertisements for the show.
+You may want to use the MediaPackage Harvest API to save clips from a game for a highlight reel, or a broadcast show to use later in advertisements for the show.
 For further information have a look at our [documentation](https://docs.aws.amazon.com/mediapackage/latest/ug/ltov.html).
 
 <a name="architecture"></a>
