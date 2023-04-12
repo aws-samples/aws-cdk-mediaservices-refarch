@@ -85,7 +85,7 @@
           "entropyEncoding": "CAVLC",
           "flickerAq": "ENABLED",
           "framerateControl": "SPECIFIED",
-          "framerateNumerator": 15,
+          "framerateNumerator": 30,
           "framerateDenominator": 1,
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,

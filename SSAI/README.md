@@ -243,9 +243,11 @@ Launch the demo player from the *MyCloudFrontDemoWebSiteEndpoint* url.
 You can also manually generate the playback URL using your own player this way:
 
 ```bash
-HlsSession=$(cat cdk-exports.json | grep -o '"MyCloudFrontHlsEndpoint": "[^"]*' | grep -o '[^"]*$')
-DashSession=$(cat cdk-exports.json | grep -o '"MyCloudFrontHlsEndpoint": "[^"]*' | grep -o '[^"]*$')
-HostnameDistrib=$(cat cdk-exports.json | grep -o '"MyCloudFrontDistributionDomain": "[^"]*' | grep -o '[^"]*$')
+HlsMaster=$(cat cdk-exports.json | grep "MyCloudFrontHlsEndpoint" | awk -F'"' '{print $4}')
+HlsSession=$(echo $HlsMaster | sed "s/master/session/")
+DashMaster=$(cat cdk-exports.json | grep "MyCloudFrontDashEndpoint" | awk -F'"' '{print $4}')
+DashSession=$(echo $DashMaster | sed "s/dash/session/")
+HostnameDistrib=$(cat cdk-exports.json | grep "MyCloudFrontDashEndpoint" | awk -F'"' '{print $4}' | awk -F'/' '{print $3}')
 json_hls=`curl --silent -XPOST $HlsSession -d '{"playerParams": {"segment_prefix":"hls","ad_segment_prefix":"hls"}}'`
 uri_hls=` echo $json_hls | grep -o '"manifestUrl":"[^"]*' | grep -o '[^"]*$'`
 json_dash=`curl --silent -XPOST $DashSession -d '{"playerParams": {"segment_prefix":"dash","ad_segment_prefix":"dash"}}'`

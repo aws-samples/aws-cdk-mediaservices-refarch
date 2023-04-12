@@ -86,7 +86,7 @@
           "flickerAq": "ENABLED",
           "forceFieldPictures": "DISABLED",
           "framerateControl": "SPECIFIED",
-          "framerateNumerator": 15,
+          "framerateNumerator": 25,
           "framerateDenominator": 1,
           "gopBReference": "DISABLED",
           "gopClosedCadence": 1,
