@@ -11,7 +11,7 @@ export const MEDIA_CONNECT_INPUT_WHITELIST_CIDR = "0.0.0.0/0"; // Change to lock
  *
  * https://docs.aws.amazon.com/medialive/latest/ug/origin-server-mss.html
  */
-export const MEDIA_LIVE_OUTPUT_TARGET = "http://10.0.0.6/channel1/channel1";
+export const MEDIA_LIVE_OUTPUT_TARGET = "http://<ip-address-in-private-subnet>/channel1/channel1";
 
 /**
  * Used in VPC creation and network lookups
