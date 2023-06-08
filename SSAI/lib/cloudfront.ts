@@ -51,6 +51,7 @@ export class CloudFront extends Construct {
     */
     // Creating S3 Bucket for logs 👇
     const s3Logs = new s3.Bucket(this, "LogsBucket", {
+      objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       enforceSSL: true,
@@ -65,6 +66,7 @@ export class CloudFront extends Construct {
 
     // Creating S3 Bucket for demo website 👇
     const s3hostingBucket = new s3.Bucket(this, "HostingBucket", {
+      objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
       serverAccessLogsBucket: s3Logs,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,

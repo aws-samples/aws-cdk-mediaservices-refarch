@@ -42,6 +42,7 @@ export class CloudFront extends Construct {
     * First step: Create S3 bucket for logs 👇
     */
     const s3Logs = new s3.Bucket(this, "LogsBucket", {
+      objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
