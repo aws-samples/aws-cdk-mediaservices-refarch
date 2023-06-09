@@ -47,7 +47,7 @@
         "mss_stream_order": "ORIGINAL"
   },
   "mediaTailor":{
-        "adDecisionServerUrl": "https://d2v7jbplksd24.cloudfront.net/Dev/MyADS",
+        "adDecisionServerUrl": "https://n8ljfs0h09.execute-api.us-west-2.amazonaws.com/v1/ads?duration=[session.avail_duration_secs]",
         "bumperStartUrl": "",
         "bumberEndUrl": "",
         "contentSegmentUrl": "../../../../../../..",
