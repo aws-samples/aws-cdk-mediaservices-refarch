@@ -1,0 +1,46 @@
+{
+  "name": "live-streaming-monitoring",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=14.0.0 <=18.12.0"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "watch": "tsc -w",
+    "lint": "eslint . --ext .ts",
+    "prettier:check": "prettier --check --config .prettierrc 'src/**/*.ts'",
+    "prettier:fix": "prettier --write --config .prettierrc 'src/**/*.ts'",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.2",
+    "@types/node": "10.17.27",
+    "@types/prettier": "2.6.0",
+    "@typescript-eslint/eslint-plugin": "^5.40.1",
+    "@typescript-eslint/parser": "^5.40.1",
+    "aws-cdk": "2.49.0",
+    "cdk-nag": "2.21.50",
+    "eslint": "^8.31.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-array-func": "^3.1.7",
+    "eslint-plugin-clean-code": "^0.1.12",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jest": "^27.1.2",
+    "eslint-plugin-json-format": "^2.0.1",
+    "eslint-plugin-no-loops": "^0.3.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.0",
+    "jest": "^27.5.1",
+    "prettier": "^2.8.1",
+    "ts-jest": "^27.1.4",
+    "ts-node": "10.4.0",
+    "typescript": "4.4.4"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.87.0",
+    "constructs": "^10.0.0",
+    "source-map-support": "^0.5.21"
+  }
+}
