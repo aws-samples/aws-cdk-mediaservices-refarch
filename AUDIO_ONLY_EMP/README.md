@@ -4,6 +4,7 @@
 |-------------|:-------:|:-------:|-------------------------------------|
 | 07/04/2023  | created | 0.0.1   | initial release of the application  | 
 | 07/06/2023  | update | 0.0.2   | typos in README  | 
+| 24/08/2023  | update | 0.0.3   | Change CDK app formatting  | 
 
 ## Disclaimer 
 

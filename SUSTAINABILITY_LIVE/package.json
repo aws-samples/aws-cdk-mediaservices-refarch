@@ -8,8 +8,8 @@
     "build": "rm -rf dist && tsc",
     "watch": "tsc -w",
     "lint": "eslint . --ext .ts",
-    "prettier:check": "prettier --check --config .prettierrc 'src/**/*.ts'",
-    "prettier:fix": "prettier --write --config .prettierrc 'src/**/*.ts'",
+    "prettier:check": "prettier --check --config .prettierrc 'bin/**/*.ts' 'lib/**/*.ts'",
+    "prettier:fix": "prettier --write --config .prettierrc 'bin/**/*.ts' 'lib/**/*.ts'",
     "test": "jest",
     "cdk": "cdk"
   },
@@ -21,7 +21,7 @@
     "@typescript-eslint/parser": "^5.40.1",
     "jest": "^27.5.1",
     "ts-jest": "^27.1.4",
-    "aws-cdk": "2.49.0",
+    "aws-cdk": "2.87.0",
     "cdk-nag": "2.21.50",
     "eslint": "^8.31.0",
     "eslint-config-prettier": "^8.5.0",
@@ -39,7 +39,7 @@
     "typescript": "4.4.4"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.49.0",
+    "aws-cdk-lib": "2.87.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"
   }
