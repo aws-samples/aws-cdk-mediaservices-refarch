@@ -11,9 +11,6 @@ interface H264Settings extends H264BaseSettings {
   bitrate: number;
 }
 
-/**
- * If ID is updated - the codec settings name is also updated (equivalent to CF recreated)
- */
 export class VideoH264 extends Base {
   constructor(private id: string, private resolutionProps: IVideo, private h264Props: H264Settings) {
     super(id, OPTIONS.VIDEO);
