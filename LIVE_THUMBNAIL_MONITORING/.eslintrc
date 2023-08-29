@@ -1,0 +1,49 @@
+{
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint",
+        "eslint-plugin-array-func",
+        "eslint-plugin-clean-code",
+        "eslint-plugin-filenames",
+        "eslint-plugin-no-loops",
+        "eslint-plugin-jest",
+        "eslint-plugin-json-format",
+        "eslint-plugin-promise",
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        "plugin:eslint-plugin-import/recommended",
+        "plugin:eslint-plugin-import/typescript",
+        "plugin:eslint-plugin-jest/recommended",
+        "plugin:eslint-plugin-promise/recommended",
+        "plugin:node/recommended",
+        "eslint-config-prettier",
+        "prettier",
+    ],
+    "parserOptions": {
+        "project": ["./tsconfig.json"],
+        "sourceType": "module",
+    },
+    "reportUnusedDisableDirectives": true,
+    "env": {
+        "node": true,
+      },
+    "rules": {
+        "@typescript-eslint/explicit-function-return-type": "error",
+        "node/no-unpublished-import": ["error", {
+            "allowModules": ["cdk-nag"]
+        }],
+        "no-console": 2,
+        "no-loops/no-loops": 2,
+        "node/no-missing-import": "off",
+        "node/no-unsupported-features/es-syntax": [
+            "error",
+            {
+              "ignores": ["modules"],
+            },
+        ],
+        "@typescript-eslint/restrict-template-expressions": "off"
+    },
+  }
