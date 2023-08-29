@@ -2,7 +2,7 @@ import { Stack } from "aws-cdk-lib";
 import { createMediaLive, createMediaLiveInput } from "../ms/media-live";
 import { createMediaPackage } from "../ms/media-package";
 import { createMediaConnectFlow } from "../ms/media-connect";
-import { STACK_PREFIX_NAME } from "..";
+import { STACK_PREFIX_NAME } from "../../bin";
 import { Construct } from "constructs";
 
 export class AudioOnlyEndcodingStack extends Stack {

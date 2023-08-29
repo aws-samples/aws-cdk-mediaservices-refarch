@@ -6,7 +6,7 @@ import { MpOutput } from "../encoder-settings/output";
 import { MPOutputGroupSettings } from "../encoder-settings/output-group-settings";
 import { CfnChannel as MpCfnChannel } from "aws-cdk-lib/aws-mediapackage";
 import { VideoH264 } from "../encoder-settings/video";
-import { STACK_PREFIX_NAME } from "..";
+import { STACK_PREFIX_NAME } from "../../bin";
 import { NagSuppressions } from "cdk-nag";
 
 // https://docs.aws.amazon.com/medialive/latest/ug/emx-upstream.html

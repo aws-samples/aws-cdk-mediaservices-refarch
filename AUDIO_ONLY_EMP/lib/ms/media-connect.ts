@@ -1,6 +1,6 @@
 import { CfnOutput, Stack } from "aws-cdk-lib";
 import { CfnFlow } from "aws-cdk-lib/aws-mediaconnect";
-import { STACK_PREFIX_NAME } from "..";
+import { STACK_PREFIX_NAME } from "../../bin";
 import { DEST_MEDIA_CONNECT_WHITELIST_CIDR } from "../config";
 
 /**

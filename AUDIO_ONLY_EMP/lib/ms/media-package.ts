@@ -1,6 +1,6 @@
 import { Stack } from "aws-cdk-lib";
 import { CfnChannel, CfnOriginEndpoint } from "aws-cdk-lib/aws-mediapackage";
-import { STACK_PREFIX_NAME } from "..";
+import { STACK_PREFIX_NAME } from "../../bin";
 
 export function createMediaPackage(stack: Stack): CfnChannel {
   const mp = new CfnChannel(stack, "emp-channel", {
