@@ -84,7 +84,7 @@ git clone https://github.com/aws-samples/aws-cdk-mediaservices-refarch
 ```
 2. Change directory to the pattern directory:
 ```bash
-cd 
+cd LIVE_THUMBNAIL_MONITORING
 ```
 3. Install node modules:
 ```bash
