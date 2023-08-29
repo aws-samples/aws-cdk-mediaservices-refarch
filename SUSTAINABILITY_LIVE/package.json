@@ -8,8 +8,8 @@
     "build": "rm -rf dist && tsc",
     "watch": "tsc -w",
     "lint": "eslint . --ext .ts",
-    "prettier:check": "prettier --check --config .prettierrc 'src/**/*.ts'",
-    "prettier:fix": "prettier --write --config .prettierrc 'src/**/*.ts'",
+    "prettier:check": "prettier --check --config .prettierrc 'bin/**/*.ts' 'lib/**/*.ts'",
+    "prettier:fix": "prettier --write --config .prettierrc 'bin/**/*.ts' 'lib/**/*.ts'",
     "test": "jest",
     "cdk": "cdk"
   },

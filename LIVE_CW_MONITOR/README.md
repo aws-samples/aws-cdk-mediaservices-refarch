@@ -3,6 +3,7 @@
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
 | 26/04/2023  | created | 0.0.1   | initial release of the application  | 
+| 24/08/2023  | update | 0.0.2   | Change CDK app formatting  | 
 
 ## Disclaimer 
 

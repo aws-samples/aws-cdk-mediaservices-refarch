@@ -3,6 +3,7 @@
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
 | 24/01/2022  | created | 0.0.1   | initial release of the application  | 
+| 24/08/2023  | update | 0.0.2   | Change CDK app formatting  | 
 
 ## Disclaimer 
 
@@ -121,7 +122,7 @@ More about AWS CDK v2 reference documentation [here](https://docs.aws.amazon.com
 
 ### Best practice
 * **Security**:
-Content security is key to the success of a streaming platform. So make sure to make use of encryption at rest for your assets with the bucket encryption capabilities and secure the transport of your content with https or s3ssl protocols. Ensure you have authentication and authorization in place at a level commensurate with the sensitivity and regulatory requirements of your assets. Consider using MFA whenever possible to access your ressources. Where possible access logging should also be enabled and encrypted.
+Content security is key to the success of a streaming platform. So make sure to make use of encryption at rest for your assets with the bucket encryption capabilities and secure the transport of your content with https or s3ssl protocols. Ensure you have authentication and authorization in place at a level commensurate with the sensitivity and regulatory requirements of your assets. Consider using MFA whenever possible to access your resources. Where possible access logging should also be enabled and encrypted.
 * **Reliability**: 
 For demos and debugging purpose this solution run a single pipeline to process your content. 
 However, in a production environment make sure to remove any single point of failure by using the STANDARD mode  which allows for dual pipeline creation to process your content in the cloud. 
