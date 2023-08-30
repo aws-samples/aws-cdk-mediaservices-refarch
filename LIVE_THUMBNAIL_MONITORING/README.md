@@ -48,7 +48,7 @@ For this sample, we have broken it down to be simpler with less architecture in 
 1. The API created by this sample is protected by an IAM Role - this means you'll have to view the output from the API Gateway with a tool like Postman or Insomnia.
 Simply just assumed the role (is in the output of the stack) and use the credentials to execute the API.
 
-2. For this sample to work - you need to firstly enable a channel with the thumbnail feature (not currently supported in CloudFormation so not part of this sample).
+2. For this sample to work - you need to firstly enable a channel with the thumbnail feature (currently not available in CDK so not part of this sample).
 
 General Settings > Thumbnail Configuration:
 ![thumbnail configuration](./screenshots/thumbnail-configuration.png)
