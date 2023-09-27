@@ -31,7 +31,6 @@
     "eslint-plugin-no-loops": "^0.3.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.1.0",
-    "eslint-plugin-sonarjs": "^0.16.0",
     "jest": "^27.5.1",
     "prettier": "^2.8.1",
     "ts-jest": "^27.1.4",

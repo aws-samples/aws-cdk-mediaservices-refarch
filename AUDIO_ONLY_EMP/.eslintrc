@@ -9,7 +9,6 @@
         "eslint-plugin-jest",
         "eslint-plugin-json-format",
         "eslint-plugin-promise",
-        "eslint-plugin-sonarjs",
     ],
     "extends": [
         "eslint:recommended",
