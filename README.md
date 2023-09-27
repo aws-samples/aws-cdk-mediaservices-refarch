@@ -43,6 +43,7 @@ Before you start with this project make sure you are familiar with the following
 | [live encoding loop (LILO)](LILO/README.md) | Foundational | The live encoding loop example is intended to provide a live channel from a video file. |
 | [Live OTT workflow (OTT)](OTT/README.md) | Advanced | Creating a highly configurable Live OTT streaming using MediaLive, MediaPackage and CloudFront.  |
 | [Live Ad insertion workflow (SSAI)](SSAI/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. |
+| [Live Ad insertion workflow (SSAI_CMAF_AND_DASH)](SSAI_CMAF_AND_DASH/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor with CMAF and DASH. |
 | [Sustainable Outputs from MediaLive (SUSTAINABILITY_LIVE)](SUSTAINABILITY_LIVE/README.md) | Professional |  Sustainable code example to cover how to share encodes across multple outputs. |
 | [MediaLive Private Networking Output (PRIVATE_LIVE)](PRIVATE_LIVE/README.md) | Professional |  Sample code for sending an output from MediaLive via a VPC (and a private subnet). This could be to your own Origin solution running in your VPC. |
 | [Live2VoD workflow (LIVE2VOD)](LIVE2VOD/README.md) | Professional |  Example for demonstrating a Live2VoD workflow in CDK, which uses a REST API to initiate the Harvest with MediaPackage and EventBridge to capture the completition. |
