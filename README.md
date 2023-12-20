@@ -41,7 +41,8 @@ Before you start with this project make sure you are familiar with the following
 | Example | Type | Description |
 |---------|------|-------------|
 | [live encoding loop (LILO)](LILO/README.md) | Foundational | The live encoding loop example is intended to provide a live channel from a video file. |
-| [Live OTT workflow (OTT)](OTT/README.md) | Advanced | Creating a highly configurable Live OTT streaming using MediaLive, MediaPackage and CloudFront.  |
+| [Live Low Latency OTT workflow using MediaPackage V2 (OTT_LOW_LATENCY)](OTT_LOW_LATENCY/README.md) | Advanced | Creating a highly configurable low latency and standard latency Live OTT stream using MediaLive, MediaPackage V2 and CloudFront. This supercedes the OTT project and should be used for new HLS and CMAF deployments. |
+| [Live OTT workflow (OTT)](OTT/README.md) | Advanced | Creating a highly configurable Live OTT stream using MediaLive, MediaPackage and CloudFront.  |
 | [Live Ad insertion workflow (SSAI)](SSAI/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. |
 | [Live Ad insertion workflow (SSAI_CMAF_AND_DASH)](SSAI_CMAF_AND_DASH/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor with CMAF and DASH. |
 | [Sustainable Outputs from MediaLive (SUSTAINABILITY_LIVE)](SUSTAINABILITY_LIVE/README.md) | Professional |  Sustainable code example to cover how to share encodes across multple outputs. |
