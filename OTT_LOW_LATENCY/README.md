@@ -132,44 +132,6 @@ You can easily create your own template by downloading the [custom template](htt
 [AWS Elemental MediaPackage](https://aws.amazon.com/mediapackage/) is a Just In Time Packager used to package into Adaptive Streaming format like MPEG-DASH, HLS, CMAF and SmoothStreaming.
 The CDK file to deploy EMP is located in _lib/mediapackagev2.ts_.
 
-### **MediaPackage V2 Notes**
-
-To achieve the latencies and performance requirements to support LL-HLS (Introduced by Apple in 2019) and allow us to integrate with other AWS services for authentication, throttling, encryption-at-rest, a new MediaPackage endopint API was introduced. This is knownn as EMP v2
-
-EMP v2 also introduces a new API model, with a new resource type (channel group) that simplifies CDN configuration for customers, by providing a single DNS domain for all channels created in a group. The API has many other changes, like predictable ingest and playback URLs, multiple manifests per endpoint, and forward-looking support for CMAF segments with shared HLS and DASH manifests.
-
-V2 currently only supports the following features (w.r.t. V1 parity):
-
-Ingest:
-
-- HLS/TS from Elemental Live and MediaLive
-
-Egress/packaging:
-
-- Segment containers: TS, CMAF
-- Manifests: HLS
-- Video: AVC, HEVC
-- Audio: AAC, AC-3, EAC-3 too I think?
-- WebVTT, 608/708 CC, HDR, ID3 (CMAF only I think?)
-- Manifest filtering query params
-- DRM, SCTE35 (more details below)
-
-V2 currently supports the following new features:
-
-- SigV4 auth on ingest and egress, IAM resource policies
-- LL-HLS manifests on endpoints
-- Multiple parent manifests per origin endpoint
-- SPEKE V2 DRM with key rotation (including TS segments)
-- I-frame playlists on all renditions, can be filtered via query parameters
-
-The following features are currenetly NOT supported in V2:
-
-- No DASH or MSS
-- No Speke v1
-- No Live-to-VOD Harvester
-- No CloudWatch Logs or Events
-- No raiseable Quotas
-
 #### AWS Elemental MediaPackage - Configuration Parameters
 
 The following table provides details of all the available MediaPackage configuration parameters within the [config/configuration.json](config/configuration.json) file that can be adjusted prior to deployment.
