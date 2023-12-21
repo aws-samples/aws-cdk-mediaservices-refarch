@@ -16,7 +16,6 @@ This project will provide you with deployment samples for the following AWS serv
 * AWS Elemental Connect (EMX) 
 * AWS Elemental MediaLive (EML) 
 * AWS Elemental MediaLive Statmux (EML-STX) 
-* AWS Elemental MediaLink (EMK) 
 * AWS Elemental MediaConvert (EMC) 
 * AWS Elemental MediaPackage (EMP) 
 * AWS Elemental MediaStore (EMS) 
