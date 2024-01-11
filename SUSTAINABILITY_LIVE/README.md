@@ -27,8 +27,7 @@ Media Services reference architecture to demonstrate the following:
 2. MediaLive output to MediaConnect flow using RTP-FEC - demonstrating output to MediaConnect for encode/output distribution to other destinations such as Partners, Distributors or other regions.
 
 ### Use Case & Benefits
-1. Reducing the efforts and errors of configuring multiple encodes per an output with identical profiles
-2. Sustainability benefits; without this configuration separate encode processes would be running for each encode. With reuse the encode processes are reduced and with that CPU, power and cooling are saved.
+Please see the latest blog published [here](https://aws.amazon.com/blogs/media/optimize-for-sustainability-with-video-encode-reuse-in-aws-elemental-medialive).
 
 ### Sustainability
 AWS has always been focused on improving efficiency in every aspect of our infrastructure. From the highly available infrastructure that powers our servers, to techniques we use to cool our data centers, and the innovative server designs that deliver AWS services to our customers—energy efficiency is a primary goal of our global infrastructure.
