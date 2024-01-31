@@ -61,10 +61,12 @@ export class MedialiveMediapackageCloudfrontStack extends cdk.Stack {
       2,
       Fn.split("/", mediaPackageChannel.myChannelEndpointHlsUrl),
     );
+    const s3LoggingEnabled = configuration.cloudFront.s3LoggingEnabled;
     const cloudfront = new CloudFront(
       this,
       "MyCloudFrontDistribution",
       mediaPackageHostname,
+      s3LoggingEnabled,
     );
 
     /*
@@ -128,11 +130,13 @@ export class MedialiveMediapackageCloudfrontStack extends cdk.Stack {
     });
 
     // Exporting S3 Buckets for CloudFront Logs
-    new CfnOutput(this, "MyCloudFrontS3LogBucket", {
-      value: cloudfront.s3LogsBucket.bucketName,
-      exportName: Aws.STACK_NAME + "cloudFrontS3BucketLog",
-      description: "The S3 bucket for CloudFront logs",
-    });
+    if ( s3LoggingEnabled ) {
+      new CfnOutput(this, "MyCloudFrontS3LogBucket", {
+        value: cloudfront.s3LogsBucket.bucketName,
+        exportName: Aws.STACK_NAME + "cloudFrontS3BucketLog",
+        description: "The S3 bucket for CloudFront logs",
+      });
+    }
 
     //👇Check if AutoStart is enabled in the MediaLive configuration to start MediaLive
     if (configuration.mediaLive["autoStart"]) {
@@ -218,5 +222,19 @@ export class MedialiveMediapackageCloudfrontStack extends cdk.Stack {
         },
       ],
     );
+
+    if ( ! s3LoggingEnabled ) {
+      NagSuppressions.addResourceSuppressionsByPath(
+        this,
+        "/MedialiveMediapackageCloudfrontStack/MyCloudFrontDistribution/Distribution/Resource",
+        [
+          {
+            id: "AwsSolutions-CFR3",
+            reason: "Not all regions support CloudFront distribution access logs so enabling logs has been made optional",
+          },
+        ],
+      );
+    }
+
   }
 }

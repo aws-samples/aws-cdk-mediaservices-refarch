@@ -170,10 +170,18 @@ Update the _mediaPackage_ parameter in the file _config/configuration.json_ acco
 
 By default, the solution will create HLS and CMAF outputs with SCTE35 in DATERANGE mode.
 
-### Amazon CloudFront
+## **Amazon CloudFront**
 
 [Amazon CloudFront](https://aws.amazon.com/cloudfront/) is a fast content delivery network (CDN) service that can scale to deliver high-quality streaming experiences to millions of concurrent viewers.
 A CloudFront distribution will be used to offload and secure MediaPackage Origin.
+
+#### Amazon CloudFront - Configuration Parameters
+
+The following table provides details of all the available CloudFront configuration parameters within the [config/configuration.json](config/configuration.json) file that can be adjusted prior to deployment.
+
+| Parameter                        | Description                                                               | Default Value | Documentation Reference                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| "s3LoggingEnabled"                     | Determines if the CloudFront Distribution will be configured to send access logs to an S3 bucket created by the project. If disabled no S3 bucket is created and the distribution will not have logging enabled. This configuration is required because CloudFront does not support writing access logs to S3 buckets in all regions.                | "false"   | [Amazon CloudFront Access Logs](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html#access-logs-choosing-s3-bucket)
 
 #### Origins
 

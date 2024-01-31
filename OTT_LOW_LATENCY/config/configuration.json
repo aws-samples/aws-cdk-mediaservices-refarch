@@ -28,5 +28,8 @@
     "cmaf_program_date_interval": 60,
     "cmaf_playlist_window_seconds": 60,
     "cmaf_startover_window_seconds": 1209600
+  },
+  "cloudFront": {
+    "s3LoggingEnabled": false
   }
 }
