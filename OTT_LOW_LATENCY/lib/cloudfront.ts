@@ -28,7 +28,7 @@ const ONE_DAY_IN_SECONDS = 86400;
 export class CloudFront extends Construct {
   // Defining variables
   public readonly distribution: cloudfront.Distribution;
-  public readonly s3LogsBucket: s3.Bucket;
+  public readonly s3LogsBucket: any;
   private readonly DESCRIPTIONDISTRIBUTION =
     " - CDK deployment Live Streaming Distribution";
 
@@ -36,19 +36,20 @@ export class CloudFront extends Construct {
     "aws.manifestfilter",
     "start",
     "end",
+    "time_delay",
     "_HLS_msn",
     "_HLS_part",
     "_HLS_skip",
   ];
   private mediaQueryStrings = ["m"];
 
-  constructor(scope: Construct, id: string, mediaPackageHostname: string) {
+  constructor(scope: Construct, id: string, mediaPackageHostname: string, s3LoggingEnabled: boolean) {
     super(scope, id);
 
     /*
      * First step: Create S3 bucket for logs
      */
-    const s3Logs = new s3.Bucket(this, "LogsBucket", {
+    this.s3LogsBucket = s3LoggingEnabled ? new s3.Bucket(this, "LogsBucket", {
       objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
@@ -60,8 +61,7 @@ export class CloudFront extends Construct {
         ignorePublicAcls: true,
         restrictPublicBuckets: true,
       }),
-    });
-    this.s3LogsBucket = s3Logs;
+    }) : undefined;
 
     /*
      * Second step: Create CloudFront Policies and Origins
@@ -104,7 +104,7 @@ export class CloudFront extends Construct {
           ...this.manifestQueryStrings,
         ),
         enableAcceptEncodingGzip: true,
-        enableAcceptEncodingBrotli: false,
+        enableAcceptEncodingBrotli: true,
       },
     );
 
@@ -146,7 +146,7 @@ export class CloudFront extends Construct {
         queryStringBehavior: cloudfront.CacheQueryStringBehavior.allowList(
           ...this.mediaQueryStrings,
         ),
-        enableAcceptEncodingGzip: true,
+        enableAcceptEncodingGzip: false,
         enableAcceptEncodingBrotli: false,
       },
     );
@@ -239,9 +239,9 @@ export class CloudFront extends Construct {
       comment: Aws.STACK_NAME + this.DESCRIPTIONDISTRIBUTION,
       sslSupportMethod: cloudfront.SSLMethod.SNI,
       httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
-      enableLogging: true,
-      logBucket: s3Logs,
-      logFilePrefix: "distribution-access-logs/",
+      enableLogging: s3LoggingEnabled ? true : false,
+      logBucket: s3LoggingEnabled ? this.s3LogsBucket : undefined,
+      logFilePrefix: s3LoggingEnabled ? "distribution-access-logs/" : undefined,
       defaultRootObject: "",
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_1_2016,
       errorResponses: errorResponse,
@@ -269,12 +269,14 @@ export class CloudFront extends Construct {
     });
     this.distribution = distribution;
 
-    NagSuppressions.addResourceSuppressions(s3Logs, [
-      {
-        id: "AwsSolutions-S1",
-        reason: "Remediated through property override.",
-      },
-    ]);
+    if ( s3LoggingEnabled ) {
+      NagSuppressions.addResourceSuppressions(this.s3LogsBucket, [
+        {
+          id: "AwsSolutions-S1",
+          reason: "Remediated through property override.",
+        },
+      ]);
+    }
 
     NagSuppressions.addResourceSuppressions(distribution, [
       {
