@@ -40,6 +40,7 @@ Before you start with this project make sure you are familiar with the following
 | Example | Type | Description |
 |---------|------|-------------|
 | [live encoding loop (LILO)](LILO/README.md) | Foundational | The live encoding loop example is intended to provide a live channel from a video file. |
+| [Live Event Framework (LEF)](LEF/README.md) | Advanced | Sample Live Event Framework supporting the deployment of multiple concurrent MediaPackage V2 live events (or 24x7 channel) with or without MediaTailor Ad Insertion. |
 | [Live Low Latency OTT workflow using MediaPackage V2 (OTT_LOW_LATENCY)](OTT_LOW_LATENCY/README.md) | Advanced | Creating a highly configurable low latency and standard latency Live OTT stream using MediaLive, MediaPackage V2 and CloudFront. This supercedes the OTT project and should be used for new HLS and CMAF deployments. |
 | [Live OTT workflow (OTT)](OTT/README.md) | Advanced | Creating a highly configurable Live OTT stream using MediaLive, MediaPackage and CloudFront.  |
 | [Live Ad insertion workflow (SSAI)](SSAI/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. |
