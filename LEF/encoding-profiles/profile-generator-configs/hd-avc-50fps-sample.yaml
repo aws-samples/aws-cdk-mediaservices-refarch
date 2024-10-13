@@ -1,0 +1,87 @@
+common:
+  gopSize: 112
+  # Optionally gopSize can be overriden in individual renditions.
+  # Overriding the gopSize in renditions only makes sense if renditions are using
+  # a mix of framerates (say 25/50 or 30/60) and the gopSizeUnits is FRAMES.
+  # Note: MediaLive requires all renditions to have the same length of a GOP in
+  # seconds. For example, setting the GOP to 112 frames on a 50 fps rendition results
+  # in a 2.24 second (112/50) GOP. For a 25 fps rendition in the same MediaLive Channel
+  # the GOP would need to be set to 56 frames to get the same 2.24s GOP (i.e. 56/25).
+  gopSizeUnits: FRAMES
+  segmentLength: 2
+  fragmentLength: 2
+outputs:
+  - name: "-3000"
+    width: 960
+    height: 540
+    codec: H_264
+    codecProfile: HIGH
+    maxBitrate: 3000000
+    framerate: 50 #fps
+    # gopSize: 112  # Optional - Override for common.gopSize
+    # lookAheadRateControl: LOW  # Optional - Default to HIGH for best quality
+    # bufSize: 1500000 # Optional - Override to reduce latency.  
+  - name: "-7500"
+    width: 1920
+    height: 1080
+    codec: H_264
+    codecProfile: HIGH
+    maxBitrate: 7500000
+    framerate: 50 #fps
+  - name: "-4500"
+    width: 1280
+    height: 720
+    codec: H_264
+    codecProfile: HIGH
+    maxBitrate: 4500000
+    framerate: 50 #fps
+  - name: "-1800"
+    width: 640
+    height: 360
+    codec: H_264
+    codecProfile: HIGH
+    maxBitrate: 1800000
+    framerate: 50 #fps
+  - name: "-1000"
+    width: 480
+    height: 270
+    codec: H_264
+    codecProfile: HIGH
+    maxBitrate: 1000000
+    framerate: 50 #fps
+  - name: "-600"
+    width: 320
+    height: 180
+    codec: H_264
+    codecProfile: HIGH
+    maxBitrate: 600000
+    framerate: 50 #fps
+  # Frame Capture rendition will be configured as an 'imageBasedTrickPlay' rendition
+  # in custom transcode profiles.
+  # Commenting out frame capture as it is not currently supported by MediaLive
+  # for CMAF Ingest Output Groups
+  # - name: "-frame-capture"   # Only included in MediaLive profiles
+  #   width: 960
+  #   height: 540
+  #   codec: FRAME_CAPTURE
+  - name: "-AAC-LC-128"
+    codec: AAC
+    bitrate: 128000
+    codingMode: CODING_MODE_2_0
+    codingProfile: LC
+    sampleRate: 48000   # Is this required? Could it just be the default?
+    streamName: English
+    languageCode: ENG
+    # Audio normalization is only applied to custom transcode profiles
+    audioNormalIzationSettings:
+      algorithm: ITU_BS_1770_3
+      algorithmControl: CORRECT_AUDIO
+      loudnessLogging: DONT_LOG
+      targetLkfs: -23
+  # TODO: Captions need to be implemented but it could be challenging setting up the
+  # input on the encoder
+  # - name: "-STPP"
+  #   codec: STPP
+  #   DestinationType: "TTML"
+  #   LanguageCode: "ENG"
+
