@@ -1,0 +1,82 @@
+common:
+  gopSize: 112
+  gopSizeUnits: FRAMES
+  segmentLength: 2
+  fragmentLength: 2
+outputs:
+  - name: "-2000"
+    width: 960
+    height: 540
+    codec: H_265
+    codecProfile: MAIN
+    tier: HIGH
+    maxBitrate: 2000000
+    framerate: 50 #fps
+  - name: "-5000"
+    width: 1920
+    height: 1080
+    codec: H_265
+    codecProfile: MAIN
+    tier: HIGH
+    maxBitrate: 5000000
+    framerate: 50 #fps
+  - name: "-3000"
+    width: 1280
+    height: 720
+    codec: H_265
+    codecProfile: MAIN
+    tier: HIGH
+    maxBitrate: 3000000
+    framerate: 50 #fps
+  - name: "-1200"
+    width: 640
+    height: 360
+    codec: H_265
+    codecProfile: MAIN
+    tier: HIGH
+    maxBitrate: 1200000
+    framerate: 50 #fps
+  - name: "-700"
+    width: 480
+    height: 270
+    codec: H_265
+    codecProfile: MAIN
+    tier: HIGH
+    maxBitrate: 700000
+    framerate: 50 #fps
+  - name: "-400"
+    width: 320
+    height: 180
+    codec: H_265
+    codecProfile: MAIN
+    tier: HIGH
+    maxBitrate: 400000
+    framerate: 50 #fps
+  # Frame Capture rendition will be configured as an 'imageBasedTrickPlay' rendition
+  # in custom transcode profiles.
+  # Commenting out frame capture as it is not currently supported by MediaLive
+  # for CMAF Ingest Output Groups
+  # - name: "-frame-capture"   # Only included in MediaLive profiles
+  #   width: 960
+  #   height: 540
+  #   codec: FRAME_CAPTURE
+  - name: "-AAC-LC-128"
+    codec: AAC
+    bitrate: 128000
+    codingMode: CODING_MODE_2_0
+    codingProfile: LC
+    sampleRate: 48000   # Is this required? Could it just be the default?
+    streamName: English
+    languageCode: ENG
+    # Audio normalization is only applied to custom transcode profiles
+    audioNormalIzationSettings:
+      algorithm: ITU_BS_1770_3
+      algorithmControl: CORRECT_AUDIO
+      loudnessLogging: DONT_LOG
+      targetLkfs: -23
+  # TODO: Captions need to be implemented but it could be challenging setting up the
+  # input on the encoder
+  # - name: "-STPP"
+  #   codec: STPP
+  #   DestinationType: "TTML"
+  #   LanguageCode: "ENG"
