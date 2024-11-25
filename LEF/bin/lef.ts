@@ -34,9 +34,7 @@ const DEFAULT_EVENT_CONFIG = "../../config/eventConfiguration.ts";
 const DEFAULT_EVENT_GROUP_CONFIG = "../../config/eventGroupConfiguration.ts";
 const DEFAULT_FOUNDATION_CONFIG = "../../config/foundationConfiguration.ts";
 
-// Comment out AwsSolutionsChecks as this can periodically break the build
-// when changes such as a Python lambda verion update occur.
-//Aspects.of(app).add(new AwsSolutionsChecks());
+Aspects.of(app).add(new AwsSolutionsChecks());
 
 // Define Foundation Stack
 const foundationStack = new LefFoundationStack(
