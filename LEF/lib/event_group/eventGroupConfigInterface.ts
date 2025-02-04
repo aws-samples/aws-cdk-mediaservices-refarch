@@ -30,6 +30,10 @@ export interface IEventGroupCloudFrontConfig {
    * on AWS Solution (https://aws.amazon.com/solutions/implementations/secure-media-delivery-at-the-edge/)
   */
   tokenizationFunctionArn?: string;
+  /** CloudFront Key Group ID
+   * @remarks CloudFront Key Group ID to use when applying viewer restrictions to behaviours
+   */
+  keyGroupId?: string[];
 };
 
 export interface IEventGroupMediaTailorConfig {
@@ -38,12 +42,10 @@ export interface IEventGroupMediaTailorConfig {
   adSegmentUrl: string;
   adMarkerPassthrough: boolean;
   /**
-   * Defines the maximum duration of underfilled ad time (in seconds) allowed in an ad break.
-   * Value has been set to a relatively large value of 120 seconds. This value as selected to
-   * help protect against scenarios where a very long SCTE break has accidentally been inserted
-   * upstream. This value should be adjusted based on the expected duration of your SCTE breaks.
+   * Defines the maximum duration of underfilled ad time (in seconds) allowed in an ad break
+   * before MediaTailor will abandon personalization of the ad break.
    */
-  personalizationThreshold: number;
+  personalizationThreshold?: number | undefined;
   slateAdUrl: string;
   /**
    * Bumper
@@ -52,7 +54,7 @@ export interface IEventGroupMediaTailorConfig {
    * Sample bumpers have been configured below. The bumpers can be customised or disabled depending on the
    * desired user experience.
    */
-  bumper: {
+  bumper?: {
     startUrl: string;
     endUrl: string;
   };

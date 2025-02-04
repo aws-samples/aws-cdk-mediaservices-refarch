@@ -24,16 +24,6 @@ import argparse
 import os
 import langcodes
 
-SUPPORTED_CODECS=[
-    'H_264',
-    'H_265',
-    'AAC',
-    'AC3',
-    'EAC3',
-    'FRAME_CAPTURE',
-    'STPP'
-]
-
 AUDIO_CODECS = [
     'AAC',
     'AC3',
@@ -46,10 +36,19 @@ VIDEO_CODECS = [
     'FRAME_CAPTURE'
 ]
 
+# These are not really codecs. What is a better name?
+CAPTION_CODECS= [
+    "CAPTIONS"
+]
+
+# Complete list of supported codecs
+SUPPORTED_CODECS = AUDIO_CODECS + VIDEO_CODECS + CAPTION_CODECS
+
 OUTPUT_TYPES = [
     'mediatailor-hls-cmaf',
     'mediatailor-dash',
-    'medialive-hls-ts'
+    'medialive-hls-ts',
+    'medialive-cmaf-ingest'
 ]
 
 default_output_path = "generated-profiles"
@@ -83,23 +82,29 @@ def main(argv):
     with open(config_file_path, 'r') as config_file:
         config = yaml.safe_load(config_file)
 
-    output_file_prefix = get_filename_without_ext(config_file_path)
+    profile_set_name = get_filename_without_ext(config_file_path)
 
     for output_type in OUTPUT_TYPES:
-        output_file = f"{output_file_prefix}-{output_type}-v{profile_version}.json"
+        output_file = f"{output_type}-v{profile_version}.json"
 
+        print("Generating '%s'" % output_type)
         if output_type in ['mediatailor-hls-cmaf', 'mediatailor-dash']:
 
             ctpOutput = createCustomTranscodeProfile( output_type, config )
-            write_content_to_file(output_file_path + '/' + output_file, ctpOutput)
+            write_content_to_file(output_file_path + '/' + profile_set_name + '/' + output_file, ctpOutput)
 
             # Reset trickmode settings so multiple ctp can be generated
             ctp_trickmode_settings = None
 
         elif output_type == "medialive-hls-ts":
 
-            mlOutput = generateMediaLiveProfile( config )
-            write_content_to_file(output_file_path + '/' + output_file, mlOutput)
+            mlOutput = generateMediaLiveHlsTsProfile( config )
+            write_content_to_file(output_file_path + '/' + profile_set_name + '/' + output_file, mlOutput)
+
+        elif output_type in "medialive-cmaf-ingest":
+
+            mlOutput = generateMediaLiveCmafIngestProfile( config )
+            write_content_to_file(output_file_path + '/' + profile_set_name + '/' + output_file, mlOutput)
 
         else:
             print("Unsupported output type: " + output_type)
@@ -130,17 +135,14 @@ def write_content_to_file(filename, content):
         sys.exit(1)  # Exit with a non-zero exit code
 
 
-def generateMediaLiveProfile( config ):
-    print("Generating MediaLive Profile")
+def generateMediaLiveHlsTsProfile( config ):
 
-    audioDescriptions = []
-    captionDescriptions = []
-    outputGroups = []
-    videoDescriptions = []
+    outputsConfiguration = config['outputs']
+    audioDescriptions = getMediaLiveAudioDescriptions( outputsConfiguration )
+    captionDescriptions = getMediaLiveCaptionDescriptions(outputsConfiguration, 'HLS-TS')
+    videoDescriptions = getMediaLiveVideoDescriptions( outputsConfiguration, config['common'] )
 
-    audioDescriptions = getMediaLiveAudioDescriptions( config['outputs'] )
-    videoDescriptions = getMediaLiveVideoDescriptions( config['outputs'], config['common'] )
-    outputGroups = getMediaLiveOutputGroups( config['outputs'] )
+    outputGroups = getMediaLiveHlsTsOutputGroups( outputsConfiguration )
 
     profileOutput = OrderedDict()
     profileOutput['audioDescriptions'] = audioDescriptions
@@ -162,7 +164,59 @@ def generateMediaLiveProfile( config ):
 
     return profileOutputDump
 
-def getMediaLiveOutputGroups( outputs ):
+def generateMediaLiveCmafIngestProfile( config ):
+
+    outputsConfiguration = config['outputs']
+
+    # MediaLive CMAF Ingest Output Groups do not currently support FRAME_CAPTURE
+    # outputs.
+    # These outputs will automatically be removed from the profile.
+    unique_codecs = set( output['codec'] for output in outputsConfiguration )
+    if 'FRAME_CAPTURE' in unique_codecs:
+        print("Skipping FRAME_CAPTURE rendition in CMAF encoding profile.")
+        print("MediaLive CMAF Ingest Output Group does not currently support FRAME_CAPTURE renditions.")
+
+        # Remove any frame capture outputs
+        outputsConfiguration = [ output for output in outputsConfiguration if output['codec'] != 'FRAME_CAPTURE' ]
+
+    audioDescriptions = getMediaLiveAudioDescriptions( outputsConfiguration )
+    captionDescriptions = getMediaLiveCaptionDescriptions(outputsConfiguration, 'CMAF-INGEST')
+    videoDescriptions = getMediaLiveVideoDescriptions( outputsConfiguration, config['common'] )
+
+    # Set the first audio rendition to be the default rendition.
+    # This will set add 'MAIN' to the 'audioDashRoles'
+    if len(audioDescriptions) > 0:
+        if 'audioDashRoles' not in audioDescriptions[0].keys():
+            audioDescriptions[0]['audioDashRoles'] = []
+        
+        # Check audioDescriptions[0]['audioDashRoles'] list does
+        # not already have 'MAIN' entry
+        if 'MAIN' not in audioDescriptions[0]['audioDashRoles']:
+            audioDescriptions[0]['audioDashRoles'].append('MAIN')
+
+    outputGroups = getMediaLiveCmafIngestOutputGroups( outputsConfiguration, config['common'] )
+
+    profileOutput = OrderedDict()
+    profileOutput['audioDescriptions'] = audioDescriptions
+    profileOutput['captionDescriptions'] = captionDescriptions
+    profileOutput['outputGroups'] = outputGroups
+    profileOutput['timecodeConfig'] = { "source": "SYSTEMCLOCK" }
+    profileOutput['videoDescriptions'] = videoDescriptions
+    profileOutput['availConfiguration'] = {
+        "availSettings": {
+            "scte35SpliceInsert": {
+                "webDeliveryAllowedFlag": "FOLLOW",
+                "noRegionalBlackoutFlag": "FOLLOW"
+            }
+        }
+    }
+
+    # write ctp to a pretty format json string and maintain the order in the output
+    profileOutputDump = json.dumps(profileOutput, indent=2, sort_keys=False)
+
+    return profileOutputDump
+
+def getMediaLiveHlsTsOutputGroups( outputs ):
 
     outputList = []
     # Set outputs for output group
@@ -177,7 +231,7 @@ def getMediaLiveOutputGroups( outputs ):
                 "videoDescriptionName": f"{output['name']}"
             })
         elif output['codec'] in AUDIO_CODECS:
-            audioDescriptionName = generateAudioDescriptionName( output['codec'], output['bitrate'] )
+            audioDescriptionName = generateAudioDescriptionName( output['codec'], output['bitrate'], output['languageCode'] )
             outputList.append({
                 "outputName": f"{output['name']}",
                 "captionDescriptionNames": [],
@@ -186,9 +240,15 @@ def getMediaLiveOutputGroups( outputs ):
                 },
                 "audioDescriptionNames": [audioDescriptionName]
             })
-        elif output['codec'] == 'STPP':
-            print("TODO: Implement support for STPP")
-            continue
+        elif output['codec'] in CAPTION_CODECS:
+            captionDescriptionName = generateCaptionsDescriptionName(output['languageCode'])
+            outputList.append({
+                "outputName": f"{output['name']}",
+                "outputSettings": {
+                    "mediaPackageOutputSettings": {}
+                },
+                "captionDescriptionNames": [captionDescriptionName]
+            })
         else:
             print(f"Unsupported codec: {output['codec']}")
             sys.exit(1)
@@ -209,6 +269,76 @@ def getMediaLiveOutputGroups( outputs ):
 
     return outputGroups
 
+def getMediaLiveCmafIngestOutputGroups( outputs, commonCfg ):
+
+    outputList = []
+    # Set outputs for output group
+    for output in outputs:
+        if output['codec'] in VIDEO_CODECS:
+
+            renditionDescriptionName = ""
+            if output['codec'] == 'FRAME_CAPTURE':
+                renditionDescriptionName = generateFrameCaptureDescriptionName( output['codec'], output['height'] )
+            else:
+                renditionDescriptionName = generateVideoDescriptionName( output['codec'], output['maxBitrate'] )
+
+            outputList.append({
+                "captionDescriptionNames": [],
+                "outputName": f"{output['name']}",
+                "outputSettings": {
+                    "cmafIngestOutputSettings": {
+                        "nameModifier": renditionDescriptionName
+                    }
+                },
+                "videoDescriptionName": f"{output['name']}"
+            })
+        elif output['codec'] in AUDIO_CODECS:
+            audioDescriptionName = generateAudioDescriptionName( output['codec'], output['bitrate'], output['languageCode'] )
+            outputList.append({
+                "outputName": f"{output['name']}",
+                "captionDescriptionNames": [],
+                "outputSettings": {
+                    "cmafIngestOutputSettings": {
+                        "nameModifier": audioDescriptionName
+                    }
+                },
+                "audioDescriptionNames": [audioDescriptionName]
+            })
+        elif output['codec'] == 'CAPTIONS':
+            captionsDescriptionName = generateCaptionsDescriptionName(output['languageCode'])
+            outputList.append({
+                "outputName": f"{output['name']}",
+                "captionDescriptionNames": [captionsDescriptionName],
+                "outputSettings": {
+                    "cmafIngestOutputSettings": {
+                        "nameModifier": captionsDescriptionName
+                    }
+                },
+                "audioDescriptionNames": []
+            })
+        else:
+            print(f"Unsupported codec: {output['codec']}")
+            sys.exit(1)
+
+    outputGroups = [
+        {
+            "outputGroupSettings": {
+                "cmafIngestGroupSettings": {
+                    "destination": {
+                        "destinationRefId": "media-destination"
+                    },
+                    "nielsenId3Behavior": "NO_PASSTHROUGH",
+                    "scte35Type": "SCTE_35_WITHOUT_SEGMENTATION",
+                    "segmentLength": commonCfg["segmentLength"],
+                    "segmentLengthUnits": "SECONDS"
+                }
+            },
+            "name": "CMAFIngest",
+            "outputs": outputList
+        }
+    ]
+
+    return outputGroups
 
 def getMediaLiveVideoDescriptions( outputs, commonConfig ):
 
@@ -224,12 +354,37 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
         if 'gopSize' in output:
             gopSize = output['gopSize']
 
-        # Check for lookAheadRateControl Value
-        lookAheadRateControl = "HIGH"
-        if 'lookAheadRateControl' in output:
-            lookAheadRateControl = output['lookAheadRateControl']
+        # Check for a video codec profile override
+        videoCodecProfile = ""
+        if 'codecProfile' in output:
+            videoCodecProfile = output['codecProfile']
+        elif 'videoCodecProfile' in commonConfig:
+            videoCodecProfile = commonConfig['videoCodecProfile']
+        else:
+            raise Exception('Unable to find a specified codecProfile.')
 
-        # Check for lookAheadRateControl Value
+        # Check for a framerate override
+        framerate = ""
+        if 'framerate' in output:
+            framerate = output['framerate']
+        elif 'framerate' in commonConfig:
+            framerate = commonConfig['framerate']
+        else:
+            raise Exception('Unable to find a specified framerate.')
+
+        # Check for a video lookahead rate control override
+        videoLookAheadRateControl = ""
+        if 'lookAheadRateControl' in output:
+            videoLookAheadRateControl = output['lookAheadRateControl']
+        elif 'videoLookAheadRateControl' in commonConfig:
+            videoLookAheadRateControl = commonConfig['videoLookAheadRateControl']
+        else:
+            raise Exception('Unable to find a specified lookAheadRateControl.')
+
+        # Check for a videoCodecProfileTier override
+        videoCodecTier = getVideoCodecProfileTier( output, commonConfig )
+
+        # Check for buffer size Value
         bufSize = None
         if 'bufSize' in output:
             bufSize = output['bufSize']
@@ -245,7 +400,7 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
                         "entropyEncoding": "CABAC",
                         "flickerAq": "ENABLED",
                         "framerateControl": "SPECIFIED",
-                        "framerateNumerator": output['framerate'],
+                        "framerateNumerator": framerate,
                         "framerateDenominator": 1,
                         "gopBReference": "ENABLED",
                         "gopClosedCadence": 1,
@@ -255,13 +410,13 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
                         "subgopLength": "DYNAMIC",
                         "scanType": "PROGRESSIVE",
                         "level": "H264_LEVEL_AUTO",
-                        "lookAheadRateControl": lookAheadRateControl,
+                        "lookAheadRateControl": videoLookAheadRateControl,
                         "maxBitrate": output['maxBitrate'],
                         "numRefFrames": 3,
                         "parControl": "SPECIFIED",
                         "parDenominator": 1,
                         "parNumerator": 1,
-                        "profile": output['codecProfile'],
+                        "profile": videoCodecProfile,
                         "rateControlMode": "QVBR",
                         "syntax": "DEFAULT",
                         "sceneChangeDetect": "ENABLED",
@@ -297,22 +452,22 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
                         "colorMetadata": "INSERT",
                         "flickerAq": "ENABLED",
                         "framerateDenominator": 1,
-                        "framerateNumerator": output['framerate'],
+                        "framerateNumerator": framerate,
                         "gopClosedCadence": 1,
                         "gopSize": gopSize,
                         "gopSizeUnits": "FRAMES",
                         "level": "H265_LEVEL_AUTO",
-                        "lookAheadRateControl": lookAheadRateControl,
+                        "lookAheadRateControl": videoLookAheadRateControl,
                         "maxBitrate": output['maxBitrate'],
                         "mvOverPictureBoundaries": "ENABLED",
                         "mvTemporalPredictor": "ENABLED",
                         "parDenominator": 1,
                         "parNumerator": 1,
-                        "profile": output['codecProfile'],
+                        "profile": videoCodecProfile,
                         "rateControlMode": "QVBR",
                         "scanType": "PROGRESSIVE",
                         "sceneChangeDetect": "ENABLED",
-                        "tier": output['tier'],
+                        "tier": videoCodecTier,
                         "tilePadding": "NONE",
                         "timecodeBurninSettings": {
                             "fontSize": getTimecodeBurninFontSize( output['height'] ),
@@ -346,6 +501,7 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
                 "sharpness": 50,
                 "width": output['width']
             }
+
         else:
             print("Unsupported codec: " + output['codec'])
             sys.exit(1)
@@ -354,8 +510,17 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
 
     return videoDescriptions
 
-def generateAudioDescriptionName(codec, bitrate):
-    return f"audio_{codec.lower().replace('-', '')}_{bitrate}"
+def generateFrameCaptureDescriptionName(codec, height):
+    return f"framecapture_{height}"
+
+def generateVideoDescriptionName(codec, bitrate):
+    return f"video_{codec.lower().replace('-', '')}_{bitrate}"
+
+def generateAudioDescriptionName(codec, bitrate, language):
+    return f"audio_{codec.lower().replace('-', '')}_{bitrate}_{language}"
+
+def generateCaptionsDescriptionName(language):
+    return f"captions_{language}"
 
 def getMediaLiveAudioDescriptions( outputs ):
 
@@ -367,8 +532,8 @@ def getMediaLiveAudioDescriptions( outputs ):
             continue
 
         audioDescription = {}
-        twoLetterLanguageCode = convert_language_code(output['languageCode'])
-        audioDescriptionName = generateAudioDescriptionName( output['codec'], output['bitrate'] )
+        languageCode = formatLanguageCode(output['languageCode'])
+        audioDescriptionName = generateAudioDescriptionName( output['codec'], output['bitrate'], output['languageCode'] )
 
         if output['codec'] == 'AAC':
             audioDescription = {
@@ -385,7 +550,7 @@ def getMediaLiveAudioDescriptions( outputs ):
                     }
                 },
                 "audioTypeControl": "FOLLOW_INPUT",
-                "languageCode": twoLetterLanguageCode,
+                "languageCode": languageCode,
                 "languageCodeControl": "USE_CONFIGURED",
                 "auldioSelectorName": "default",
                 "name": audioDescriptionName,
@@ -405,7 +570,7 @@ def getMediaLiveAudioDescriptions( outputs ):
                     }
                 },
                 "audioTypeControl": "FOLLOW_INPUT",
-                "languageCode": twoLetterLanguageCode,
+                "languageCode": languageCode,
                 "languageCodeControl": "USE_CONFIGURED",
                 "auldioSelectorName": "default",
                 "name": audioDescriptionName,
@@ -439,7 +604,7 @@ def getMediaLiveAudioDescriptions( outputs ):
                     "surroundMode": "NOT_INDICATED"
                     }
                 },
-                "languageCode": twoLetterLanguageCode,
+                "languageCode": languageCode,
                 "languageCodeControl": "USE_CONFIGURED",
                 "name": audioDescriptionName,
                 "streamName": output['streamName']
@@ -451,6 +616,62 @@ def getMediaLiveAudioDescriptions( outputs ):
         audioDescriptions.append(audioDescription)
 
     return audioDescriptions
+
+def getMediaLiveCaptionDescriptions( outputs, outputGroupType ):
+
+    # Check outputGroupType
+    SUPPORTED_OUTPUTGROUP_TYPES=['HLS-TS','CMAF-INGEST']
+    if outputGroupType not in SUPPORTED_OUTPUTGROUP_TYPES:
+        # create a string concatenating all values of SUPPORTED_OUTPUTGROUP_TYPES separated by '|'
+        supportedOutputGroupTypesString = ' | '.join(SUPPORTED_OUTPUTGROUP_TYPES)
+        raise Exception('Invalid outputGroupType [%s]. Supported Types: %s' % ( outputGroupType, supportedOutputGroupTypesString ))        
+
+    captionsDescriptions = []
+
+    # Configure caption descriptions
+    for output in outputs:
+        if output['codec'] not in CAPTION_CODECS:
+            continue
+
+        captionsDescription = {}
+        languageCode = formatLanguageCode(output['languageCode'])
+        captionsDescriptionName = generateCaptionsDescriptionName( output['languageCode'] )
+
+        if outputGroupType == 'CMAF-INGEST':
+            captionsDescription = {
+                "name": captionsDescriptionName,
+                "languageCode": languageCode,
+                "languageDescription": output['languageDescription'],
+                "accessibility": output['accessibility'],
+                "captionDashRoles": [
+                    "MAIN"
+                ],
+                "captionSelectorName": output['captionsSelectorName'],
+                "destinationSettings": {
+                    "ttmlDestinationSettings": {
+                        "styleControl": output['styleControl']
+                    }
+                },
+            }
+
+        elif outputGroupType == 'HLS-TS':
+            captionsDescription = {
+                "name": captionsDescriptionName,
+                "languageCode": languageCode,
+                "languageDescription": output['languageDescription'],
+                "captionSelectorName": output['captionsSelectorName'],
+                "destinationSettings": {
+                    "webvttDestinationSettings": {}
+                },
+            }
+
+        else:
+            print("Unsupported captions codec: " + output['codec'])
+            sys.exit(1)
+        
+        captionsDescriptions.append(captionsDescription)
+
+    return captionsDescriptions
 
 def createCustomTranscodeProfile( profileType, config):
 
@@ -506,10 +727,9 @@ def createCustomTranscodeProfile( profileType, config):
         if outputCfg['codec'] not in SUPPORTED_CODECS:
             raise Exception('Codec not supported: ' + outputCfg['codec'])
         
-        if outputCfg['codec'] == 'STPP':
+        if outputCfg['codec'] == 'CAPTIONS':
             if profileType != "mediatailor-dash":
                 print("Skipping track because codec is not supported for %s profiles" % profileType)
-                pprint(outputCfg)
                 continue
             else:
                 includeCaptionSelector = True        
@@ -620,19 +840,19 @@ def createCustomTranscodeProfile( profileType, config):
                 "NameModifier": outputCfg['name']
             }
 
-        elif outputCfg['codec'] == "STPP":
+        elif outputCfg['codec'] == "CAPTIONS":
             output = {
                 "ContainerSettings": captionsContainerSettings,
                 "NameModifier": outputCfg['name'],
                 "CaptionDescriptions": [
                     {
-                        "CaptionSelectorName": "Captions Selector 1",
+                        "CaptionSelectorName": outputCfg['captionsSelectorName'],
                         "DestinationSettings": {
                             "DestinationType": "TTML",
                             "TtmlDestinationSettings": {
                             }
                         },
-                        "LanguageCode": outputCfg["LanguageCode"]
+                        "LanguageCode": outputCfg["languageCode"]
                     }
                 ]
             }
@@ -753,6 +973,10 @@ def getTrickmodeSettings():
 
 def getH264VideoDescription( outputCfg, commonCfg ):
 
+    gopSize = outputCfg['gopSize'] if 'gopSize' in outputCfg else commonCfg['gopSize']
+    codecProfile = outputCfg['codecProfile'] if 'codecProfile' in outputCfg else commonCfg['videoCodecProfile']
+    framerate = outputCfg['framerate'] if 'framerate' in outputCfg else commonCfg['framerate']
+
     return {
         "Width": outputCfg['width'],
         "ScalingBehavior": "DEFAULT",
@@ -773,7 +997,7 @@ def getH264VideoDescription( outputCfg, commonCfg ):
             "Softness": 0,
             "FramerateDenominator": 1,
             "GopClosedCadence": 1,
-            "GopSize": commonCfg['gopSize'],
+            "GopSize": gopSize,
             "Slices": 1,
             "GopBReference": "ENABLED",
             "MaxBitrate": outputCfg['maxBitrate'],
@@ -782,8 +1006,8 @@ def getH264VideoDescription( outputCfg, commonCfg ):
             "EntropyEncoding": "CABAC",
             "FramerateControl": "SPECIFIED",
             "RateControlMode": "QVBR",
-            "CodecProfile": outputCfg['codecProfile'],
-            "FramerateNumerator": outputCfg['framerate'],
+            "CodecProfile": codecProfile,
+            "FramerateNumerator": framerate,
             "MinIInterval": 0,
             "AdaptiveQuantization": "AUTO",
             "CodecLevel": "AUTO",
@@ -807,6 +1031,13 @@ def getH264VideoDescription( outputCfg, commonCfg ):
 
 def getH265VideoDescription( outputCfg, commonCfg ):
 
+    gopSize = outputCfg['gopSize'] if 'gopSize' in outputCfg else commonCfg['gopSize']
+    codecProfile = outputCfg['codecProfile'] if 'codecProfile' in outputCfg else commonCfg['videoCodecProfile']
+    framerate = outputCfg['framerate'] if 'framerate' in outputCfg else commonCfg['framerate']
+
+    # Check for a videoCodecProfileTier override
+    videoCodecTier = getVideoCodecProfileTier( outputCfg, commonCfg )
+
     return {
         "Width": outputCfg['width'],
         "Height": outputCfg['height'],
@@ -816,10 +1047,13 @@ def getH265VideoDescription( outputCfg, commonCfg ):
         "CodecSettings": {
             "Codec": "H_265",
             "H265Settings": {
-                "GopSize": commonCfg['gopSize'],
+                "FramerateDenominator": 1,
+                "FramerateControl": "SPECIFIED",
+                "FramerateNumerator": framerate,
+                "GopSize": gopSize,
                 "MaxBitrate": outputCfg['maxBitrate'],
                 "RateControlMode": "QVBR",
-                "CodecProfile": outputCfg['codecProfile'] + '_' + outputCfg['tier'],
+                "CodecProfile": codecProfile + '_' + videoCodecTier,
                 "SceneChangeDetect": "TRANSITION_DETECTION",
                 "GopSizeUnits": commonCfg['gopSizeUnits']
             }
@@ -842,6 +1076,19 @@ def getImageBaseTrickPlay( config ):
         "TileWidth": trickplay["tileWidth"] if "tileWidth" in trickplay.keys() else 1,
         "IntervalCadence": trickplay["intervalCadence"] if "intervalCadence" in trickplay.keys() else "FOLLOW_IFRAME"
     }
+
+def getVideoCodecProfileTier( outputCfg, commonCfg ):
+
+    videoCodecTier = ""
+    if outputCfg['codec'] == 'H_265':
+        if 'tier' in outputCfg:
+            videoCodecTier = outputCfg['tier']
+        elif 'videoCodecTier' in commonCfg:
+            videoCodecTier = commonCfg['videoCodecTier']
+        else:
+            raise Exception('Unable to find a specified video codec tier.')
+    
+    return videoCodecTier
 
 def getInputs( includeCaptionsSelector ):
 
@@ -896,37 +1143,44 @@ def get_filename_without_ext(config_file_path):
 
     return filename
 
-import langcodes
-
-def convert_language_code(three_letter_code):
+def formatLanguageCode(language_code):
     """
-    Convert a three-letter language code (ISO 639-2) to a two-letter language code (ISO 639-1).
-
+    Format a language code by converting it to lowercase with validation rules.
+    
     Args:
-        three_letter_code (str): The three-letter language code to be converted.
-
+        language_code (str): The language code to format (e.g., 'ENG', '123', 'esp')
+    
     Returns:
-        str: The corresponding two-letter language code.
-
+        str: The formatted language code in lowercase
+        
     Raises:
-        ValueError: If the three-letter code is not recognized or cannot be converted.
-
-    Example:
-        >>> convert_language_code("eng")
-        'en'
-        >>> convert_language_code("fra")
-        'fr'
-        >>> convert_language_code("invalid_code")
-        Traceback (most recent call last):
-            ...
-        ValueError: Could not find a two-letter code for invalid_code
+        ValueError: If language_code is None, empty, not 3 characters, or contains invalid characters
+        
+    Examples:
+        >>> formatLanguageCode('ENG')
+        'eng'
+        >>> formatLanguageCode('123')
+        '123'
+        >>> formatLanguageCode('esp')
+        'esp'
+        >>> formatLanguageCode('EN')  # Raises ValueError - not 3 characters
+        >>> formatLanguageCode('ENG!') # Raises ValueError - invalid characters
+        >>> formatLanguageCode(None)  # Raises ValueError - None value
     """
-    try:
-        # Convert the three-letter code to a two-letter code using langcodes
-        two_letter_code = langcodes.standardize_tag(three_letter_code)
-        return two_letter_code
-    except langcodes.LanguageCodeError:
-        raise ValueError(f"Could not find a two-letter code for {three_letter_code}")
+    # Check if language code is defined
+    if not language_code:
+        raise ValueError("Language code must be defined")
+    
+    # Check if language code is exactly 3 characters
+    if len(language_code) != 3:
+        raise ValueError("Language code must be exactly 3 characters")
+    
+    # Check if language code contains only alphanumeric characters
+    if not language_code.isalnum():
+        raise ValueError("Language code must contain only letters and numbers")
+    
+    return language_code.lower()
+
 
 def getTimecodeBurninFontSize(vertical_resolution):
     """

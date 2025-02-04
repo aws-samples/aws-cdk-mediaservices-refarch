@@ -36,7 +36,7 @@
                                 "Softness": 0,
                                 "FramerateDenominator": 1,
                                 "GopClosedCadence": 1,
-                                "GopSize": 112,
+                                "GopSize": 1,
                                 "Slices": 1,
                                 "GopBReference": "ENABLED",
                                 "MaxBitrate": 3000000,
@@ -55,7 +55,7 @@
                                 "QualityTuningLevel": "SINGLE_PASS",
                                 "FramerateConversionAlgorithm": "DUPLICATE_DROP",
                                 "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
+                                "GopSizeUnits": "SECONDS",
                                 "ParControl": "SPECIFIED",
                                 "NumberBFramesBetweenReferenceFrames": 3,
                                 "RepeatPps": "DISABLED",
@@ -99,7 +99,7 @@
                                 "Softness": 0,
                                 "FramerateDenominator": 1,
                                 "GopClosedCadence": 1,
-                                "GopSize": 112,
+                                "GopSize": 1,
                                 "Slices": 1,
                                 "GopBReference": "ENABLED",
                                 "MaxBitrate": 7500000,
@@ -118,7 +118,7 @@
                                 "QualityTuningLevel": "SINGLE_PASS",
                                 "FramerateConversionAlgorithm": "DUPLICATE_DROP",
                                 "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
+                                "GopSizeUnits": "SECONDS",
                                 "ParControl": "SPECIFIED",
                                 "NumberBFramesBetweenReferenceFrames": 3,
                                 "RepeatPps": "DISABLED",
@@ -162,7 +162,7 @@
                                 "Softness": 0,
                                 "FramerateDenominator": 1,
                                 "GopClosedCadence": 1,
-                                "GopSize": 112,
+                                "GopSize": 1,
                                 "Slices": 1,
                                 "GopBReference": "ENABLED",
                                 "MaxBitrate": 4500000,
@@ -181,7 +181,7 @@
                                 "QualityTuningLevel": "SINGLE_PASS",
                                 "FramerateConversionAlgorithm": "DUPLICATE_DROP",
                                 "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
+                                "GopSizeUnits": "SECONDS",
                                 "ParControl": "SPECIFIED",
                                 "NumberBFramesBetweenReferenceFrames": 3,
                                 "RepeatPps": "DISABLED",
@@ -225,7 +225,7 @@
                                 "Softness": 0,
                                 "FramerateDenominator": 1,
                                 "GopClosedCadence": 1,
-                                "GopSize": 112,
+                                "GopSize": 1,
                                 "Slices": 1,
                                 "GopBReference": "ENABLED",
                                 "MaxBitrate": 1800000,
@@ -244,7 +244,7 @@
                                 "QualityTuningLevel": "SINGLE_PASS",
                                 "FramerateConversionAlgorithm": "DUPLICATE_DROP",
                                 "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
+                                "GopSizeUnits": "SECONDS",
                                 "ParControl": "SPECIFIED",
                                 "NumberBFramesBetweenReferenceFrames": 3,
                                 "RepeatPps": "DISABLED",
@@ -288,7 +288,7 @@
                                 "Softness": 0,
                                 "FramerateDenominator": 1,
                                 "GopClosedCadence": 1,
-                                "GopSize": 112,
+                                "GopSize": 1,
                                 "Slices": 1,
                                 "GopBReference": "ENABLED",
                                 "MaxBitrate": 1000000,
@@ -307,7 +307,7 @@
                                 "QualityTuningLevel": "SINGLE_PASS",
                                 "FramerateConversionAlgorithm": "DUPLICATE_DROP",
                                 "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
+                                "GopSizeUnits": "SECONDS",
                                 "ParControl": "SPECIFIED",
                                 "NumberBFramesBetweenReferenceFrames": 3,
                                 "RepeatPps": "DISABLED",
@@ -351,7 +351,7 @@
                                 "Softness": 0,
                                 "FramerateDenominator": 1,
                                 "GopClosedCadence": 1,
-                                "GopSize": 112,
+                                "GopSize": 1,
                                 "Slices": 1,
                                 "GopBReference": "ENABLED",
                                 "MaxBitrate": 600000,
@@ -370,7 +370,7 @@
                                 "QualityTuningLevel": "SINGLE_PASS",
                                 "FramerateConversionAlgorithm": "DUPLICATE_DROP",
                                 "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
+                                "GopSizeUnits": "SECONDS",
                                 "ParControl": "SPECIFIED",
                                 "NumberBFramesBetweenReferenceFrames": 3,
                                 "RepeatPps": "DISABLED",
@@ -416,88 +416,30 @@
                             "LanguageCode": "ENG"
                         }
                     ],
-                    "NameModifier": "-AAC-LC-128"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "AudioDescriptions": [
-                        {
-                            "AudioTypeControl": "USE_CONFIGURED",
-                            "AudioSourceName": "Audio Selector 1",
-                            "AudioNormalizationSettings": {
-                                "Algorithm": "ITU_BS_1770_3",
-                                "AlgorithmControl": "CORRECT_AUDIO",
-                                "LoudnessLogging": "DONT_LOG",
-                                "TargetLkfs": -23,
-                                "PeakCalculation": "NONE"
-                            },
-                            "CodecSettings": {
-                                "Codec": "AC3",
-                                "Ac3Settings": {
-                                    "Bitrate": 384000,
-                                    "CodingMode": "CODING_MODE_3_2_LFE",
-                                    "Dialnorm": 23
-                                }
-                            },
-                            "StreamName": "English",
-                            "LanguageCodeControl": "USE_CONFIGURED",
-                            "LanguageCode": "ENG"
-                        }
-                    ],
-                    "NameModifier": "-AC3-384"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "AudioDescriptions": [
-                        {
-                            "AudioTypeControl": "USE_CONFIGURED",
-                            "AudioSourceName": "Audio Selector 1",
-                            "AudioNormalizationSettings": {
-                                "Algorithm": "ITU_BS_1770_3",
-                                "AlgorithmControl": "CORRECT_AUDIO",
-                                "LoudnessLogging": "DONT_LOG",
-                                "TargetLkfs": -23,
-                                "PeakCalculation": "NONE"
-                            },
-                            "CodecSettings": {
-                                "Codec": "EAC3",
-                                "Eac3Settings": {
-                                    "Dialnorm": 23,
-                                    "Bitrate": 192000,
-                                    "CodingMode": "CODING_MODE_3_2"
-                                }
-                            },
-                            "StreamName": "English",
-                            "LanguageCodeControl": "USE_CONFIGURED",
-                            "LanguageCode": "ENG"
-                        }
-                    ],
-                    "NameModifier": "-EAC3-192"
+                    "NameModifier": "-AAC-LC-128-ENG"
                 }
             ],
             "OutputGroupSettings": {
                 "Type": "DASH_ISO_GROUP_SETTINGS",
                 "DashIsoGroupSettings": {
-                    "SegmentLength": 2,
+                    "SegmentLength": 1,
                     "MinFinalSegmentLength": 1,
                     "Destination": "s3://bucket/main",
-                    "FragmentLength": 2,
+                    "FragmentLength": 1,
                     "SegmentControl": "SEGMENTED_FILES",
                     "MpdProfile": "MAIN_PROFILE",
                     "HbbtvCompliance": "NONE",
                     "WriteSegmentTimelineInRepresentation": "ENABLED",
                     "DashIFrameTrickPlayNameModifier": "_iframe",
-                    "DashManifestStyle": "BASIC"
+                    "DashManifestStyle": "BASIC",
+                    "ImageBasedTrickPlay": "ADVANCED",
+                    "ImageBasedTrickPlaySettings": {
+                        "ThumbnailHeight": 540,
+                        "ThumbnailWidth": 960,
+                        "TileHeight": 1,
+                        "TileWidth": 1,
+                        "IntervalCadence": "FOLLOW_IFRAME"
+                    }
                 }
             }
         }

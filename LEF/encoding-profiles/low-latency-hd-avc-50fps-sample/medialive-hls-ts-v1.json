@@ -14,61 +14,10 @@
         }
       },
       "audioTypeControl": "FOLLOW_INPUT",
-      "languageCode": "en",
+      "languageCode": "eng",
       "languageCodeControl": "USE_CONFIGURED",
       "auldioSelectorName": "default",
-      "name": "audio_aac",
-      "streamName": "English"
-    },
-    {
-      "codecSettings": {
-        "ac3Settings": {
-          "bitrate": 384000,
-          "bitstreamMode": "COMPLETE_MAIN",
-          "codingMode": "CODING_MODE_3_2_LFE",
-          "dialnorm": 24,
-          "drcProfile": "NONE",
-          "lfeFilter": "ENABLED",
-          "metadataControl": "USE_CONFIGURED"
-        }
-      },
-      "audioTypeControl": "FOLLOW_INPUT",
-      "languageCode": "en",
-      "languageCodeControl": "USE_CONFIGURED",
-      "auldioSelectorName": "default",
-      "name": "audio_ac3",
-      "streamName": "English"
-    },
-    {
-      "audioSelectorName": "default",
-      "audioTypeControl": "FOLLOW_INPUT",
-      "codecSettings": {
-        "eac3Settings": {
-          "attenuationControl": "NONE",
-          "bitrate": 192000,
-          "bitstreamMode": "COMPLETE_MAIN",
-          "codingMode": "CODING_MODE_3_2",
-          "dcFilter": "ENABLED",
-          "dialnorm": 24,
-          "drcLine": "NONE",
-          "drcRf": "NONE",
-          "lfeControl": "LFE",
-          "lfeFilter": "ENABLED",
-          "loRoCenterMixLevel": -3,
-          "loRoSurroundMixLevel": -3,
-          "ltRtCenterMixLevel": -3,
-          "ltRtSurroundMixLevel": -3,
-          "metadataControl": "FOLLOW_INPUT",
-          "passthroughControl": "NO_PASSTHROUGH",
-          "phaseControl": "SHIFT_90_DEGREES",
-          "stereoDownmix": "NOT_INDICATED",
-          "surroundExMode": "DISABLED",
-          "surroundMode": "NOT_INDICATED"
-        }
-      },
-      "languageCode": "en",
-      "languageCodeControl": "USE_CONFIGURED",
-      "name": "audio_eac3",
+      "name": "audio_aac_128000_ENG",
       "streamName": "English"
     }
   ],
@@ -133,33 +82,21 @@
           "videoDescriptionName": "-600"
         },
         {
-          "outputName": "-AAC-LC-128",
           "captionDescriptionNames": [],
+          "outputName": "-frame-capture",
           "outputSettings": {
             "mediaPackageOutputSettings": {}
           },
-          "audioDescriptionNames": [
-            "audio_aac"
-          ]
+          "videoDescriptionName": "-frame-capture"
         },
         {
-          "outputName": "-AC3-384",
+          "outputName": "-AAC-LC-128-ENG",
           "captionDescriptionNames": [],
           "outputSettings": {
             "mediaPackageOutputSettings": {}
           },
           "audioDescriptionNames": [
-            "audio_ac3"
-          ]
-        },
-        {
-          "outputName": "-EAC3-192",
-          "captionDescriptionNames": [],
-          "outputSettings": {
-            "mediaPackageOutputSettings": {}
-          },
-          "audioDescriptionNames": [
-            "audio_eac3"
+            "audio_aac_128000_ENG"
           ]
         }
       ]
@@ -183,12 +120,12 @@
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,
           "gopNumBFrames": 3,
-          "gopSize": 112,
-          "gopSizeUnits": "FRAMES",
+          "gopSize": 1,
+          "gopSizeUnits": "SECONDS",
           "subgopLength": "DYNAMIC",
           "scanType": "PROGRESSIVE",
           "level": "H264_LEVEL_AUTO",
-          "lookAheadRateControl": "HIGH",
+          "lookAheadRateControl": "LOW",
           "maxBitrate": 3000000,
           "numRefFrames": 3,
           "parControl": "SPECIFIED",
@@ -205,7 +142,8 @@
             "position": "TOP_LEFT",
             "prefix": ""
           },
-          "timecodeInsertion": "DISABLED"
+          "timecodeInsertion": "DISABLED",
+          "bufSize": 1500000
         }
       },
       "height": 540,
@@ -229,12 +167,12 @@
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,
           "gopNumBFrames": 3,
-          "gopSize": 112,
-          "gopSizeUnits": "FRAMES",
+          "gopSize": 1,
+          "gopSizeUnits": "SECONDS",
           "subgopLength": "DYNAMIC",
           "scanType": "PROGRESSIVE",
           "level": "H264_LEVEL_AUTO",
-          "lookAheadRateControl": "HIGH",
+          "lookAheadRateControl": "LOW",
           "maxBitrate": 7500000,
           "numRefFrames": 3,
           "parControl": "SPECIFIED",
@@ -251,7 +189,8 @@
             "position": "TOP_LEFT",
             "prefix": ""
           },
-          "timecodeInsertion": "DISABLED"
+          "timecodeInsertion": "DISABLED",
+          "bufSize": 3750000
         }
       },
       "height": 1080,
@@ -275,12 +214,12 @@
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,
           "gopNumBFrames": 3,
-          "gopSize": 112,
-          "gopSizeUnits": "FRAMES",
+          "gopSize": 1,
+          "gopSizeUnits": "SECONDS",
           "subgopLength": "DYNAMIC",
           "scanType": "PROGRESSIVE",
           "level": "H264_LEVEL_AUTO",
-          "lookAheadRateControl": "HIGH",
+          "lookAheadRateControl": "LOW",
           "maxBitrate": 4500000,
           "numRefFrames": 3,
           "parControl": "SPECIFIED",
@@ -297,7 +236,8 @@
             "position": "TOP_LEFT",
             "prefix": ""
           },
-          "timecodeInsertion": "DISABLED"
+          "timecodeInsertion": "DISABLED",
+          "bufSize": 2250000
         }
       },
       "height": 720,
@@ -321,12 +261,12 @@
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,
           "gopNumBFrames": 3,
-          "gopSize": 112,
-          "gopSizeUnits": "FRAMES",
+          "gopSize": 1,
+          "gopSizeUnits": "SECONDS",
           "subgopLength": "DYNAMIC",
           "scanType": "PROGRESSIVE",
           "level": "H264_LEVEL_AUTO",
-          "lookAheadRateControl": "HIGH",
+          "lookAheadRateControl": "LOW",
           "maxBitrate": 1800000,
           "numRefFrames": 3,
           "parControl": "SPECIFIED",
@@ -343,7 +283,8 @@
             "position": "TOP_LEFT",
             "prefix": ""
           },
-          "timecodeInsertion": "DISABLED"
+          "timecodeInsertion": "DISABLED",
+          "bufSize": 900000
         }
       },
       "height": 360,
@@ -367,12 +308,12 @@
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,
           "gopNumBFrames": 3,
-          "gopSize": 112,
-          "gopSizeUnits": "FRAMES",
+          "gopSize": 1,
+          "gopSizeUnits": "SECONDS",
           "subgopLength": "DYNAMIC",
           "scanType": "PROGRESSIVE",
           "level": "H264_LEVEL_AUTO",
-          "lookAheadRateControl": "HIGH",
+          "lookAheadRateControl": "LOW",
           "maxBitrate": 1000000,
           "numRefFrames": 3,
           "parControl": "SPECIFIED",
@@ -389,7 +330,8 @@
             "position": "TOP_LEFT",
             "prefix": ""
           },
-          "timecodeInsertion": "DISABLED"
+          "timecodeInsertion": "DISABLED",
+          "bufSize": 500000
         }
       },
       "height": 270,
@@ -413,12 +355,12 @@
           "gopBReference": "ENABLED",
           "gopClosedCadence": 1,
           "gopNumBFrames": 3,
-          "gopSize": 112,
-          "gopSizeUnits": "FRAMES",
+          "gopSize": 1,
+          "gopSizeUnits": "SECONDS",
           "subgopLength": "DYNAMIC",
           "scanType": "PROGRESSIVE",
           "level": "H264_LEVEL_AUTO",
-          "lookAheadRateControl": "HIGH",
+          "lookAheadRateControl": "LOW",
           "maxBitrate": 600000,
           "numRefFrames": 3,
           "parControl": "SPECIFIED",
@@ -435,7 +377,8 @@
             "position": "TOP_LEFT",
             "prefix": ""
           },
-          "timecodeInsertion": "DISABLED"
+          "timecodeInsertion": "DISABLED",
+          "bufSize": 300000
         }
       },
       "height": 180,
@@ -444,6 +387,17 @@
       "sharpness": 100,
       "scalingBehavior": "DEFAULT",
       "width": 320
+    },
+    {
+      "codecSettings": {
+        "frameCaptureSettings": {}
+      },
+      "height": 540,
+      "name": "-frame-capture",
+      "respondToAfd": "NONE",
+      "scalingBehavior": "DEFAULT",
+      "sharpness": 50,
+      "width": 960
     }
   ],
   "availConfiguration": {

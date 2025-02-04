@@ -265,6 +265,17 @@ interface IDashManifestConfig extends Omit<IManifestConfig, "childManifestName" 
     adMarkerDash: string;
   };
 
+  /** Configuration for UTC Timing */
+  utcTiming?: {
+    /** Timing method for DASH. */
+    timingMode: "UTC_DIRECT";
+  } | {
+    /** Timing method for DASH. */
+    timingMode: "HTTP_HEAD" | "HTTP_ISO" | "HTTP_XSDATE";
+    /** Timing URL for DASH. */
+    timingSource?: string;
+  };
+  
   /**
    * Segment template format.
    * @values "NUMBER_WITH_TIMELINE"

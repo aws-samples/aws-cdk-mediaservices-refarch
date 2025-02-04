@@ -21,6 +21,7 @@ export interface IMediaLiveProps {
   channelName: string;
   mediaLiveAccessRoleArn: string;
   configuration: IMediaLiveConfig;
+  outputGroupType: string;
   hlsIngestEndpoint1?: string;
   hlsIngestEndpoint2?: string;
 }
@@ -40,22 +41,6 @@ export class MediaLive extends Construct {
     let inputSettingsValue: any = {
       sourceEndBehavior: "CONTINUE",
     };
-
-    /*
-     * Second step: Create Security Groups
-     */
-    // Generate Security Groups for RTP and RTMP (Push) inputs
-    const mediaLiveSG = new medialive.CfnInputSecurityGroup(
-      this,
-      "MediaLiveInputSecurityGroup",
-      {
-        whitelistRules: [
-          {
-            cidr: configuration.inputCidr,
-          },
-        ],
-      },
-    );
 
     /*
      * Third step: Create Input and specific info based on the input types
@@ -119,7 +104,7 @@ export class MediaLive extends Construct {
         cfnInputProps = {
           name: inputName,
           type: configuration.inputType,
-          inputSecurityGroups: [mediaLiveSG.ref],
+          inputSecurityGroups: [ this.createMediaLiveSecurityGroup( configuration.inputCidr ) ],
         };
         break;
       case "RTMP_PUSH":
@@ -137,7 +122,7 @@ export class MediaLive extends Construct {
         cfnInputProps = {
           name: inputName,
           type: configuration.inputType,
-          inputSecurityGroups: [mediaLiveSG.ref],
+          inputSecurityGroups: [ this.createMediaLiveSecurityGroup( configuration.inputCidr ) ],
           destinations: destinationValue,
         };
         break;
@@ -239,95 +224,107 @@ export class MediaLive extends Construct {
     }
 
     // Configure output group settings
-    encoderSettings.outputGroups[0].outputGroupSettings = {
-      hlsGroupSettings: {
-        adMarkers: adMarkers,
-        destination: {
-          destinationRefId: "media-destination",
-        },
-        hlsCdnSettings: {
-          hlsBasicPutSettings: {
-            connectionRetryInterval: 1,
-            filecacheDuration: 300,
-            numRetries: 10,
-            restartDelay: 15,
+    if ( props.outputGroupType == "CMAF" ) {
+      // Configure CMAF Output Group
+      encoderSettings.outputGroups[0].outputGroupSettings = {
+        cmafIngestGroupSettings: {
+          destination: {
+            destinationRefId: "media-destination",
           },
-        },
-        hlsId3SegmentTagging: "ENABLED",
-        inputLossAction: "PAUSE_OUTPUT",
-        segmentLength: configuration.segmentLengthInSeconds,
-        minSegmentLength: configuration.minimumSegmentLengthInSeconds,
-        programDateTime: "INCLUDE",
-        programDateTimeClock: "SYSTEM_CLOCK",
-        programDateTimePeriod: configuration.segmentLengthInSeconds,
-      },
-    };
-
-    // Get a list of all the audio codecs used in the profile
-    // An audio rendition group will be created for each audio codec
-    const audioRenditionSets = getAudioRenditionSets(
-      encoderSettings.audioDescriptions,
-    );
-
-    var commonVideoOutputSettings = {
-      hlsSettings: {
-        standardHlsSettings: {
-          audioRenditionSets: audioRenditionSets,
-          m3U8Settings: {
-            scte35Behavior: configuration.scte35Behavior,
-            scte35Pid: "500",
-          },
-        },
-      },
-    };
-
-    var commonAudioOutputSettings = {
-      audioOnlyHlsSettings: {
-        audioGroupId: "program_audio",
-        audioTrackType: "ALTERNATE_AUDIO_AUTO_SELECT_DEFAULT",
-        segmentType: "AAC",
-      },
-    };
-
-    var frameCaptureOutputSettings = {
-      hlsSettings: {
-        frameCaptureHlsSettings: {},
-      },
-    };
-
-    var videoDescriptions = encoderSettings.videoDescriptions;
-
-    // Set output settings for each output in the output group
-    for (var output of encoderSettings.outputGroups[0].outputs) {
-      // Set default blank output settings for the output
-      output.outputSettings = { hlsOutputSettings: {} };
-
-      if (output.videoDescriptionName) {
-        // Process as a video rendition
-        var videoDescription = getVideoDescriptionByName(
-          videoDescriptions,
-          output.videoDescriptionName,
-        );
-
-        if (
-          videoDescription &&
-          videoDescription.codecSettings &&
-          videoDescription.codecSettings.frameCaptureSettings
-        ) {
-          // Frame capture video descriptions require a different set of output settings
-          output.outputSettings.hlsOutputSettings = frameCaptureOutputSettings;
-        } else {
-          output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
+          nielsenId3Behavior: "NO_PASSTHROUGH",
+          scte35Type: "SCTE_35_WITHOUT_SEGMENTATION",
+          segmentLength: configuration.segmentLengthInSeconds,
+          segmentLengthUnits: "SECONDS"
         }
-      } else if (output.audioDescriptionNames) {
-        // Process as an audio rendition
-        output.outputSettings.hlsOutputSettings.hlsSettings =
-          getHlsAudioOutputSettings(output, encoderSettings.audioDescriptions);
-      } else if (output.captionDescriptionNames) {
-        // Process as an captions rendition
-        output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
-      } else {
-        throw new Error("Unknown and unsupported output type.");
+      };
+    } else if (props.outputGroupType == "HLS") {
+      // Configure HLS Output Group
+      encoderSettings.outputGroups[0].outputGroupSettings = {
+        hlsGroupSettings: {
+          adMarkers: adMarkers,
+          destination: {
+            destinationRefId: "media-destination",
+          },
+          hlsCdnSettings: {
+            hlsBasicPutSettings: {
+              connectionRetryInterval: 1,
+              filecacheDuration: 300,
+              numRetries: 10,
+              restartDelay: 15,
+            },
+          },
+          hlsId3SegmentTagging: "ENABLED",
+          inputLossAction: "PAUSE_OUTPUT",
+          segmentLength: configuration.segmentLengthInSeconds,
+          minSegmentLength: configuration.minimumSegmentLengthInSeconds,
+          programDateTime: "INCLUDE",
+          programDateTimeClock: "SYSTEM_CLOCK",
+          programDateTimePeriod: configuration.segmentLengthInSeconds,
+        },
+      };
+    } else {
+      throw new Error("Unknown and unsupported output group type.");
+    }
+
+    if ( props.outputGroupType == "HLS" ) {
+      // Get a list of all the audio codecs used in the profile
+      // An audio rendition group will be created for each audio codec
+      const audioRenditionSets = getAudioRenditionSets(
+        encoderSettings.audioDescriptions,
+      );
+
+      var commonVideoOutputSettings = {
+        hlsSettings: {
+          standardHlsSettings: {
+            audioRenditionSets: audioRenditionSets,
+            m3U8Settings: {
+              scte35Behavior: configuration.scte35Behavior,
+              scte35Pid: "500",
+            },
+          },
+        },
+      };
+
+      var frameCaptureOutputSettings = {
+        hlsSettings: {
+          frameCaptureHlsSettings: {},
+        },
+      };
+
+      var videoDescriptions = encoderSettings.videoDescriptions;
+
+      // Set output settings for each output in the output group
+      for (var output of encoderSettings.outputGroups[0].outputs) {
+        // Set default blank output settings for the output
+        output.outputSettings = { hlsOutputSettings: {} };
+
+        if (output.videoDescriptionName) {
+          // Process as a video rendition
+          var videoDescription = getVideoDescriptionByName(
+            videoDescriptions,
+            output.videoDescriptionName,
+          );
+
+          if (
+            videoDescription &&
+            videoDescription.codecSettings &&
+            videoDescription.codecSettings.frameCaptureSettings
+          ) {
+            // Frame capture video descriptions require a different set of output settings
+            output.outputSettings.hlsOutputSettings = frameCaptureOutputSettings;
+          } else {
+            output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
+          }
+        } else if (output.audioDescriptionNames) {
+          // Process as an audio rendition
+          output.outputSettings.hlsOutputSettings.hlsSettings =
+            getHlsAudioOutputSettings(output, encoderSettings.audioDescriptions);
+        } else if (output.captionDescriptionNames) {
+          // Process as an captions rendition
+          output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
+        } else {
+          throw new Error("Unknown and unsupported output type.");
+        }
       }
     }
 
@@ -397,6 +394,18 @@ export class MediaLive extends Construct {
         });
       }
     }
+  }
+
+  // Function to create a Security Group
+  createMediaLiveSecurityGroup( inputCidr: string ): string {
+    const mediaLiveSG = new medialive.CfnInputSecurityGroup(
+      this,
+      "MediaLiveInputSecurityGroup",
+      {
+        whitelistRules: [ { cidr: inputCidr } ],
+      },
+    );
+    return mediaLiveSG.ref;
   }
 }
 

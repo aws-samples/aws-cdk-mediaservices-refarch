@@ -141,6 +141,7 @@ export class LefEventStack extends cdk.Stack {
         channelName: channelName,
         mediaLiveAccessRoleArn: mediaLiveAccessRoleArn,
         configuration: configuration.mediaLive,
+        outputGroupType: mediaPackageChannel.channelInputType,
         hlsIngestEndpoint1: mediaPackageChannel.channelIngestEndpoint1,
         hlsIngestEndpoint2: mediaPackageChannel.channelIngestEndpoint2,
       });
@@ -214,7 +215,7 @@ export class LefEventStack extends cdk.Stack {
     // Set default value to passthrough SCTE-35 for MediaLive HLS/TS outputs
     if ( config.event.mediaLive && !config.event.mediaLive.scte35Behavior ) {
       config.event.mediaLive.scte35Behavior = 'PASSTHROUGH';
-    } 
+    }
 
     // Set a default value for a medialive minimum segment length if not specified
     if ( config.event.mediaLive && config.event.mediaLive.minimumSegmentLengthInSeconds === undefined ) {
@@ -233,33 +234,53 @@ export class LefEventStack extends cdk.Stack {
     if (!config.event) {
       throw new Error('Event configuration is missing');
     }
-  
+
     if (config.event.mediaLive && config.event.elementalLive ) {
       throw new Error('Invalid event type. Must be either "mediaLive" or "elementalLive, not both."');
     }
-  
+
     if (!config.event.mediaLive && !config.event.elementalLive) {
       throw new Error('MediaLive or Elemental Live configuration must be specified');
     }
-  
+
     if (!config.event.mediaPackage || Object.keys(config.event.mediaPackage).length === 0) {
       throw new Error('MediaPackage configuration is missing or empty');
     }
-  
+
+    // Verify MediaLive output type (i.e. HLS or CMAF Ingest) matches MediaPackage Ingest configuration
+    if (config.event.mediaLive) {
+      const mediaLiveConfig = config.event.mediaLive;
+      const mediaPackageConfig = config.event.mediaPackage;
+
+      // Validate compatibility between MediaLive output and MediaPackage input types
+      const mediaLiveOutputGroupType = this.identifyMediaLiveOutputGroupType(mediaLiveConfig.encodingProfileLocation);
+      if ((mediaLiveOutputGroupType === 'CMAF' && mediaPackageConfig.inputType !== 'CMAF') ||
+          (mediaLiveOutputGroupType === 'HLS' && mediaPackageConfig.inputType !== 'HLS')) {
+          console.error(`In the event configuration the encoding profile [event.medialive.encodingProfileLocation] ` +
+            `must use an output group compatible with the MediaPackage Channel InputType ` +
+            `[event.mediapackage.inputType].`);
+          throw new Error(
+              `MediaLive output type "${mediaLiveOutputGroupType}" is not compatible with ` +
+              `MediaPackage input type "${mediaPackageConfig.inputType}". Both types must match.`
+          );
+      }
+
+    }
+
     // Validate MediaPackage endpoints
     Object.entries(config.event.mediaPackage.endpoints).forEach(([endpointName, endpoint]) => {
       if (endpoint.containerType !== 'CMAF' && endpoint.containerType !== 'TS') {
         throw new Error(`Invalid container type for MediaPackage endpoint "${endpointName}". Must be either "CMAF" or "TS"`);
       }
-  
+
       const manifestCount = (endpoint.hlsManifests?.length || 0) +
-                            (endpoint.lowLatencyHlsManifests?.length || 0) +
-                            (endpoint.dashManifests?.length || 0);
-  
+        (endpoint.lowLatencyHlsManifests?.length || 0) +
+        (endpoint.dashManifests?.length || 0);
+
       if (manifestCount === 0) {
         throw new Error(`MediaPackage endpoint "${endpointName}" must have at least one manifest`);
       }
-  
+
       // Validate manifest name uniqueness
       const manifestNames = new Set<string>();
       [
@@ -275,4 +296,58 @@ export class LefEventStack extends cdk.Stack {
     });
 
   }
+
+  /**
+   * Determines the MediaLive output group type by analyzing the encoder settings profile.
+   * 
+   * @param encodingProfile - Path to the encoder settings profile JSON file
+   * @returns "CMAF" | "HLS" - The identified output group type
+   * @throws Error if the profile cannot be loaded or has invalid settings
+   */
+  identifyMediaLiveOutputGroupType(encodingProfile: string): "CMAF" | "HLS" {
+    interface EncoderSettings {
+      outputGroups?: Array<{
+        outputGroupSettings?: {
+          cmafIngestGroupSettings?: unknown;
+          mediaPackageGroupSettings?: unknown;
+        };
+      }>;
+    }
+
+    let encoderSettings: EncoderSettings;
+
+    // load encoding profile
+    try {
+      encoderSettings = require(encodingProfile);
+
+      // Validate the loaded settings
+      if (!encoderSettings || typeof encoderSettings !== 'object') {
+        throw new Error('Invalid encoder settings format');
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to load encoder settings from ${encodingProfile}: ${error.message}`
+        );
+      } else {
+        throw new Error('Failed to load encoder settings: Unknown error');
+      }
+    }
+
+    // Check output group settings
+    if (!encoderSettings.outputGroups?.[0]?.outputGroupSettings) {
+      throw new Error('Invalid encoder settings: Missing output group settings');
+    }
+
+    const outputGroupSettings = encoderSettings.outputGroups[0].outputGroupSettings;
+
+    if (outputGroupSettings.cmafIngestGroupSettings) {
+      return "CMAF";
+    } else if (outputGroupSettings.mediaPackageGroupSettings) {
+      return "HLS";
+    } else {
+      throw new Error('Invalid MediaLive output group type');
+    }
+  }
+
 }

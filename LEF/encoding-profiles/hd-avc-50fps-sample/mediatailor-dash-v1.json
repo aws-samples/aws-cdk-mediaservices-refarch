@@ -4,12 +4,15 @@
     },
     "OutputGroups": [
         {
-            "Name": "CMAF",
+            "Name": "DASH ISO",
             "Outputs": [
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
+                            "CaptionContainerType": "RAW",
+                            "Scte35Source": "NONE",
+                            "Scte35Esam": "NONE",
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -68,8 +71,11 @@
                 },
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
+                            "CaptionContainerType": "RAW",
+                            "Scte35Source": "NONE",
+                            "Scte35Esam": "NONE",
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -128,8 +134,11 @@
                 },
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
+                            "CaptionContainerType": "RAW",
+                            "Scte35Source": "NONE",
+                            "Scte35Esam": "NONE",
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -188,8 +197,11 @@
                 },
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
+                            "CaptionContainerType": "RAW",
+                            "Scte35Source": "NONE",
+                            "Scte35Esam": "NONE",
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -248,8 +260,11 @@
                 },
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
+                            "CaptionContainerType": "RAW",
+                            "Scte35Source": "NONE",
+                            "Scte35Esam": "NONE",
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -308,8 +323,11 @@
                 },
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
+                            "CaptionContainerType": "RAW",
+                            "Scte35Source": "NONE",
+                            "Scte35Esam": "NONE",
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -368,8 +386,8 @@
                 },
                 {
                     "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
+                        "Container": "MPD",
+                        "MpdSettings": {
                             "AudioDuration": "MATCH_VIDEO_DURATION"
                         }
                     },
@@ -395,94 +413,33 @@
                             },
                             "StreamName": "English",
                             "LanguageCodeControl": "USE_CONFIGURED",
-                            "LanguageCode": "ENG"
+                            "LanguageCode": "eng"
                         }
                     ],
-                    "NameModifier": "-AAC-LC-128"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "AudioDescriptions": [
-                        {
-                            "AudioTypeControl": "USE_CONFIGURED",
-                            "AudioSourceName": "Audio Selector 1",
-                            "AudioNormalizationSettings": {
-                                "Algorithm": "ITU_BS_1770_3",
-                                "AlgorithmControl": "CORRECT_AUDIO",
-                                "LoudnessLogging": "DONT_LOG",
-                                "TargetLkfs": -23,
-                                "PeakCalculation": "NONE"
-                            },
-                            "CodecSettings": {
-                                "Codec": "AC3",
-                                "Ac3Settings": {
-                                    "Bitrate": 384000,
-                                    "CodingMode": "CODING_MODE_3_2_LFE",
-                                    "Dialnorm": 23
-                                }
-                            },
-                            "StreamName": "English",
-                            "LanguageCodeControl": "USE_CONFIGURED",
-                            "LanguageCode": "ENG"
-                        }
-                    ],
-                    "NameModifier": "-AC3-384"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "CMFC",
-                        "CmfcSettings": {
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "AudioDescriptions": [
-                        {
-                            "AudioTypeControl": "USE_CONFIGURED",
-                            "AudioSourceName": "Audio Selector 1",
-                            "AudioNormalizationSettings": {
-                                "Algorithm": "ITU_BS_1770_3",
-                                "AlgorithmControl": "CORRECT_AUDIO",
-                                "LoudnessLogging": "DONT_LOG",
-                                "TargetLkfs": -23,
-                                "PeakCalculation": "NONE"
-                            },
-                            "CodecSettings": {
-                                "Codec": "EAC3",
-                                "Eac3Settings": {
-                                    "Dialnorm": 23,
-                                    "Bitrate": 192000,
-                                    "CodingMode": "CODING_MODE_3_2"
-                                }
-                            },
-                            "StreamName": "English",
-                            "LanguageCodeControl": "USE_CONFIGURED",
-                            "LanguageCode": "ENG"
-                        }
-                    ],
-                    "NameModifier": "-EAC3-192"
+                    "NameModifier": "-AAC-LC-128-ENG"
                 }
             ],
             "OutputGroupSettings": {
-                "Type": "CMAF_GROUP_SETTINGS",
-                "CmafGroupSettings": {
-                    "WriteHlsManifest": "ENABLED",
-                    "WriteDashManifest": "ENABLED",
+                "Type": "DASH_ISO_GROUP_SETTINGS",
+                "DashIsoGroupSettings": {
                     "SegmentLength": 2,
                     "MinFinalSegmentLength": 1,
                     "Destination": "s3://bucket/main",
                     "FragmentLength": 2,
                     "SegmentControl": "SEGMENTED_FILES",
                     "MpdProfile": "MAIN_PROFILE",
-                    "ManifestDurationFormat": "FLOATING_POINT",
-                    "StreamInfResolution": "INCLUDE",
-                    "ClientCache": "ENABLED",
-                    "ManifestCompression": "NONE",
-                    "CodecSpecification": "RFC_4281"
+                    "HbbtvCompliance": "NONE",
+                    "WriteSegmentTimelineInRepresentation": "ENABLED",
+                    "DashIFrameTrickPlayNameModifier": "_iframe",
+                    "DashManifestStyle": "BASIC",
+                    "ImageBasedTrickPlay": "ADVANCED",
+                    "ImageBasedTrickPlaySettings": {
+                        "ThumbnailHeight": 540,
+                        "ThumbnailWidth": 960,
+                        "TileHeight": 1,
+                        "TileWidth": 1,
+                        "IntervalCadence": "FOLLOW_IFRAME"
+                    }
                 }
             }
         }

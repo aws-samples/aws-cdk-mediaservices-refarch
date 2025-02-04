@@ -53,11 +53,13 @@ export class MediaPackageV2 extends Construct {
   public readonly channelIngestEndpoint2: string;
   public readonly channelGroupName: string;
   public readonly channelName: string;
+  public readonly channelInputType: string;
 
   constructor(scope: Construct, id: string, props: IMediaPackageV2Props) {
     super(scope, id);
     this.channelGroupName = props.channelGroupName;
     this.channelName = props.channelName;
+    this.channelInputType = props.configuration.inputType;
 
     /*
      * Create MediaPackage Channel
@@ -69,7 +71,7 @@ export class MediaPackageV2 extends Construct {
         channelName: this.channelName,
         channelGroupName: this.channelGroupName,
         description: "Channel for " + Aws.STACK_NAME,
-        inputType: props.configuration.inputType,
+        inputType: this.channelInputType,
       },
     );
 

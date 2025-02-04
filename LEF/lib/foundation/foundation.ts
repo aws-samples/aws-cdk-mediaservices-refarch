@@ -130,7 +130,10 @@ export class Foundation extends Construct {
    * These policies include:
    *
    * - Origin Request Policies for MediaTailor manifests and tracking requests
-   * - Cache Policy for MediaTailor tracking requests
+   * - Origin Request Policy for MediaTailor Ad Redirect requests
+   * - Cache Policy for MediaTailor Ad Redirect requests
+   * - Origin Request Policy for MediaTailor WebVTT requests
+   * - Cache Policy for MediaTailor WebVTT requests
    * - Origin Request Policies for MediaPackage manifests and media segments
    * - Cache Policies for MediaPackage manifests and media segments
    *
@@ -150,7 +153,7 @@ export class Foundation extends Construct {
             Aws.STACK_NAME + "-EMT-ManifestOriginRequestPolicy",
           comment:
             "Policy to FWD select query strings and all headers to the origin for manifest requests",
-          // Pass 'All viewer headers' to MediaTailor. This allows the 'Accept-Encoding' head to be passed
+          // Pass 'All viewer headers' to MediaTailor. This allows the 'Accept-Encoding' header to be passed
           // to MediaTailor and for compressed responses to be delivered when appropriate. This will reduce
           // the size of manifests returned to clients and minimise costs.
           headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
@@ -170,40 +173,40 @@ export class Foundation extends Construct {
     });
 
     /*
-     * Create CloudFront MediaTailor Ad Segment Redirect Policies
+     * Create CloudFront MediaTailor Ad Redirect Policies
      * These policies cache the 301 redirects to prevent duplicate beacons being sent back to providers.
      */
-    const mediaTailorTrackingOriginRequestPolicy =
+    const mediaTailorAdRedirectOriginRequestPolicy =
       new cloudfront.OriginRequestPolicy(
         this,
-        "MediaTailorTrackingOriginRequestPolicy",
+        "MediaTailorAdRedirectOriginRequestPolicy",
         {
           originRequestPolicyName:
-            Aws.STACK_NAME + "-EMT-TrackingOriginRequestPolicy",
+            Aws.STACK_NAME + "-EMT-AdRedirectOriginRequestPolicy",
           comment:
-            "Policy to FWD all query strings and headers to MediaTailor for tracking requests",
-          // The format of a tracking request cannot be known in advance so 'All viewer headers' and 'All' query strings
-          // are passed it MediaTailor.
+            "Policy to FWD all query strings and headers to MediaTailor for ad redirect requests",
+          // The format of ad redirect requests cannot be known in advance so 'All viewer headers' and 'All' query strings
+          // are passed to MediaTailor.
           headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
           cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
           queryStringBehavior:
             cloudfront.OriginRequestQueryStringBehavior.all(),
         },
       );
-    new CfnOutput(this, "MediaTailorTrackingOriginRequestPolicyOutput", {
-      value: mediaTailorTrackingOriginRequestPolicy.originRequestPolicyId,
+    new CfnOutput(this, "MediaTailorAdRedirectOriginRequestPolicyOutput", {
+      value: mediaTailorAdRedirectOriginRequestPolicy.originRequestPolicyId,
       exportName:
-        Aws.STACK_NAME + "-MediaTailor-Tracking-OriginRequestPolicyId",
-      description: "Origin Request Policy Id for MediaTailor Tracking requests",
+        Aws.STACK_NAME + "-MediaTailor-Ad-Redirect-OriginRequestPolicyId",
+      description: "Origin Request Policy Id for MediaTailor AdRedirect requests",
     });
 
-    // Creating a custom cache policy for MediaTailor Ad Segment Redirects
-    const mediaTailorTrackingCachePolicy = new cloudfront.CachePolicy(
+    // Creating a custom cache policy for Ad redirect requests directed to MediaTailor
+    const mediaTailorAdRedirectCachePolicy = new cloudfront.CachePolicy(
       this,
-      "MediaTailorTrackingCachePolicy",
+      "MediaTailorAdRedirectCachePolicy",
       {
-        cachePolicyName: Aws.STACK_NAME + "-EMT-TrackingCachePolicy",
-        comment: "Policy for caching Elemental MediaTailor tracking requests",
+        cachePolicyName: Aws.STACK_NAME + "-EMT-AdRedirectCachePolicy",
+        comment: "Policy for caching Ad Redirects to minimize duplicate beacons sent by MediaTailor",
         defaultTtl: Duration.seconds(ONE_DAY_IN_SECONDS),
         minTtl: Duration.seconds(1),
         maxTtl: Duration.seconds(ONE_YEAR_IN_SECONDS),
@@ -214,10 +217,60 @@ export class Foundation extends Construct {
         enableAcceptEncodingBrotli: true,
       },
     );
-    new CfnOutput(this, "MediaTailorTrackingCachePolicyOutput", {
-      value: mediaTailorTrackingCachePolicy.cachePolicyId,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Tracking-CachePolicyId",
-      description: "Cache Policy Id for MediaTailor Tracking requests",
+    new CfnOutput(this, "MediaTailorAdRedirectCachePolicyOutput", {
+      value: mediaTailorAdRedirectCachePolicy.cachePolicyId,
+      exportName: Aws.STACK_NAME + "-MediaTailor-Ad-Redirect-CachePolicyId",
+      description: "Cache Policy Id for MediaTailor Ad Redirect requests",
+    });
+
+    /*
+     * Create CloudFront MediaTailor Ad Captions Policies
+     * For HLS streams, if the source stream contains captions, during ad breaks captions are delivered
+     * from MediaTailor. These captions files just contain the ncessary WebVTT headers and do not contain
+     * any captions.
+     */
+    const mediaTailorAdCaptionsOriginRequestPolicy =
+      new cloudfront.OriginRequestPolicy(
+        this,
+        "MediaTailorAdCaptionsOriginRequestPolicy",
+        {
+          originRequestPolicyName:
+            Aws.STACK_NAME + "-EMT-AdCaptionsOriginRequestPolicy",
+          comment:
+            "Policy to request empty captions files from MediaTailor during ad break.",
+          headerBehavior: cloudfront.OriginRequestHeaderBehavior.none(),
+          cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
+          queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
+        },
+      );
+    new CfnOutput(this, "MediaTailorAdCaptionsOriginRequestPolicyOutput", {
+      value: mediaTailorAdCaptionsOriginRequestPolicy.originRequestPolicyId,
+      exportName:
+        Aws.STACK_NAME + "-MediaTailor-Ad-Captions-OriginRequestPolicyId",
+      description: "Origin Request Policy Id for MediaTailor Ad Captions",
+    });
+
+    // Creating a custom cache policy for WebVTT requests directed to MediaTailor
+    const mediaTailorAdCaptionsCachePolicy = new cloudfront.CachePolicy(
+      this,
+      "MediaTailorAdCaptionsCachePolicy",
+      {
+        cachePolicyName: Aws.STACK_NAME + "-EMT-AdCaptionsCachePolicy",
+        comment: "Policy for caching empty Ad Captions delivered from MediaTailor during ad break",
+        defaultTtl: Duration.seconds(ONE_DAY_IN_SECONDS),
+        minTtl: Duration.seconds(1),
+        maxTtl: Duration.seconds(ONE_YEAR_IN_SECONDS),
+        cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+        headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+        queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+        enableAcceptEncodingGzip: true,
+        enableAcceptEncodingBrotli: true,
+      },
+    );
+    new CfnOutput(this, "MediaTailorAdCaptionsCachePolicyOutput", {
+      value: mediaTailorAdCaptionsCachePolicy.cachePolicyId,
+      exportName: Aws.STACK_NAME + "-MediaTailor-Ad-Captions-CachePolicyId",
+      description: "Cache Policy Id for MediaTailor Ad Captions requests",
     });
 
     /*
@@ -430,7 +483,7 @@ export class Foundation extends Construct {
       "CheckMediaTailorLoggerRoleExists",
       {
         functionName: Aws.STACK_NAME + "-CheckMediaTailorLoggerRoleExists",
-        runtime: lambda.Runtime.PYTHON_3_12,
+        runtime: lambda.Runtime.PYTHON_3_13,
         handler: "index.lambda_handler",
         code: lambda.Code.fromAsset(
           __dirname + "/../../lambda/check_mediatailor_logger_role",
@@ -585,7 +638,7 @@ export class Foundation extends Construct {
       "DailyNotificationFunction",
       {
         functionName: Aws.STACK_NAME + "-DailyMediaLiveNotificationFunction",
-        runtime: lambda.Runtime.PYTHON_3_12,
+        runtime: lambda.Runtime.PYTHON_3_13,
         handler: "index.lambda_handler",
         code: lambda.Code.fromAsset(
           __dirname + "/../../lambda/daily_medialive_notification",

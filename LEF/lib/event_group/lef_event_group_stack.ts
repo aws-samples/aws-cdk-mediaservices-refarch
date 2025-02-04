@@ -64,8 +64,6 @@ export class LefEventGroupStack extends cdk.Stack {
     const snsTopic = Fn.importValue(
       foundationStackNameParam.valueAsString + "-SnsTopicArn",
     );
-    const verifySnsTopicTrigger =
-      this.verifySnsTopicSubscriptionState(snsTopic);
 
     // Getting configuration information
     var eventGroupConfig = config;
@@ -109,6 +107,13 @@ export class LefEventGroupStack extends cdk.Stack {
       cloudFrontProps.tokenizationFunctionArn = configuredValue;
     }
 
+    // Set the Trusted Key Groups if specified in configuration
+    const trustedKeyGroups =
+      eventGroupConfig.cloudFront.keyGroupId;
+    if (trustedKeyGroups && trustedKeyGroups.length > 0) {
+      cloudFrontProps.keyGroupIds = trustedKeyGroups;
+    }
+
     // Create CloudFront Distribution
     const cloudfront = new CloudFront(
       this,
@@ -117,7 +122,8 @@ export class LefEventGroupStack extends cdk.Stack {
     );
 
     // Need to perform check to confirm SNS Email Subscription is active before proceeding
-    // create  the key resources in the stack
+    // to create the key resources in the stack
+    const verifySnsTopicTrigger = this.verifySnsTopicSubscriptionState(snsTopic);
     mediaTailor.node.addDependency(verifySnsTopicTrigger);
     cloudfront.node.addDependency(verifySnsTopicTrigger);
 
@@ -237,7 +243,7 @@ export class LefEventGroupStack extends cdk.Stack {
       "CheckValidSnsSubscriptioExists",
       {
         functionName: Aws.STACK_NAME + "-CheckValidSnsSubscriptionExists",
-        runtime: lambda.Runtime.PYTHON_3_12,
+        runtime: lambda.Runtime.PYTHON_3_13,
         handler: "index.lambda_handler",
         code: lambda.Code.fromAsset(
           __dirname + "/../../lambda/check_valid_sns_subscription_exists",
@@ -290,5 +296,8 @@ export class LefEventGroupStack extends cdk.Stack {
       throw new Error('MediaTailor configuration is missing in EventGroup config');
     }
 
+    if (config.cloudFront.tokenizationFunctionArn && config.cloudFront.keyGroupId) {
+      throw new Error('CloudFront configuration cannot have both tokenizationFunctionArn and keyGroupId');
+    }
   }
 }

@@ -30,9 +30,9 @@ const eventGroupConfigFile = app.node.tryGetContext("eventGroupConfigFile");
 const foundationConfigFile = app.node.tryGetContext("foundationConfigFile");
 const liveEventFrameworkVersion = app.node.tryGetContext("LiveEventFrameworkVersion");
 
-const DEFAULT_EVENT_CONFIG = "../../config/eventConfiguration.ts";
-const DEFAULT_EVENT_GROUP_CONFIG = "../../config/eventGroupConfiguration.ts";
-const DEFAULT_FOUNDATION_CONFIG = "../../config/foundationConfiguration.ts";
+const DEFAULT_EVENT_CONFIG = "../../config/default/eventConfiguration.ts";
+const DEFAULT_EVENT_GROUP_CONFIG = "../../config/default/eventGroupConfiguration.ts";
+const DEFAULT_FOUNDATION_CONFIG = "../../config/default/foundationConfiguration.ts";
 
 Aspects.of(app).add(new AwsSolutionsChecks());
 
@@ -49,8 +49,8 @@ const foundationStack = new LefFoundationStack(
     description: contextDescription
       ? contextDescription
       : "Live Event Framework Foundation Stack",
-  },
-  foundationConfigFile ?? DEFAULT_FOUNDATION_CONFIG,
+    },
+    foundationConfigFile ?? DEFAULT_FOUNDATION_CONFIG,
 );
 Tags.of(foundationStack).add('LiveEventFrameworkVersion', liveEventFrameworkVersion);
 Tags.of(foundationStack).add('StackType', 'LefFoundationStack');
