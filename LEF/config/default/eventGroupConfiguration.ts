@@ -1,4 +1,4 @@
-import { IEventGroupConfig } from '../lib/event_group/eventGroupConfigInterface';
+import { IEventGroupConfig } from '../../lib/event_group/eventGroupConfigInterface';
 
 export const EVENT_GROUP_CONFIG: IEventGroupConfig = {
   cloudFront: {
@@ -12,11 +12,11 @@ export const EVENT_GROUP_CONFIG: IEventGroupConfig = {
     contentSegmentUrl: '[player_params.content_segment_prefix]',
     adSegmentUrl: '[player_params.ad_segment_prefix]',
     adMarkerPassthrough: false,
-    personalizationThreshold: 120,
     slateAdUrl: 'https://d1zxfw9n55b23r.cloudfront.net/interstitials/SlateAd.mov',
-    bumper: {
-      startUrl: 'https://d1zxfw9n55b23r.cloudfront.net/interstitials/Bumper.mov',
-      endUrl: 'https://d1zxfw9n55b23r.cloudfront.net/interstitials/Bumper.mov',
-    }
+    // Bumpers can be enabled by uncommenting the 'bumper' section below.
+    // bumper: {
+    //   startUrl: 'https://d1zxfw9n55b23r.cloudfront.net/interstitials/Bumper.mov',
+    //   endUrl: 'https://d1zxfw9n55b23r.cloudfront.net/interstitials/Bumper.mov',
+    // },
   },
 };

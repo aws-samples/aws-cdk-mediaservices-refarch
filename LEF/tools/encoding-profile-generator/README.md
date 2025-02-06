@@ -4,6 +4,7 @@ The **_tools/encoding-profile-generator/generate_encoding_profile_set.py_** scri
 ladder settings and generates the following output encoding profiles:
 
 - MediaLive HLS/TS
+- MediaLive CMAF Ingest
 - MediaTailor HLS/CMAF Custom Transcode Profile
 - MediaTailor DASH/CMAF Custom Transcode Profile
 
@@ -17,7 +18,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r tools/requirements.txt
 
-tools/encoding-profile-generator/generate_encoding_profile_set.py --config encoding-profiles/profile-generator-configs/hd-avc-50fps-sample.yaml \
+tools/encoding-profile-generator/generate_encoding_profile_set.py --config tools/encoding-profile-generator/sample-configs/hd-avc-50fps-sample.yaml \
         --version 1 \
-        --output-path encoding-profiles/my-encoding-profiles
+        --output-path encoding-profiles
+
 ```

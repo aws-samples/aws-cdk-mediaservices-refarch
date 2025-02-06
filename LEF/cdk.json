@@ -17,7 +17,7 @@
     ]
   },
   "context": {
-    "LiveEventFrameworkVersion": "1.0.0",
+    "LiveEventFrameworkVersion": "1.0.2",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
     "@aws-cdk/core:target-partitions": [

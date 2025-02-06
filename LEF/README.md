@@ -1,9 +1,10 @@
-# Live Event Server Side Ad Insertion Workflow
+# Live Event Framework
 
 ## Log
 
 | Date       |      Entry      | Version | Comment                            |
 | ---------- | :-------------: | :-----: | ---------------------------------- |
+| 04/02/2025 | Update |  1.0.2  | Update |
 | 13/10/2024 | initial release |  0.0.2  | initial release of the application |
 | 29/02/2024 |     created     |  0.0.1  |                                    |
 
@@ -26,7 +27,7 @@ Before you start with this project make sure you are familiar with the following
 
 ## Table of content
 
-- [Solution overview](#solution)
+- [Project overview](#projectoverview)
 - [Recommendations - Before Getting Started](#recommendations)
 - [Architecture](#architecture)
 - [CDK deployment](#cdk)
@@ -37,7 +38,7 @@ Before you start with this project make sure you are familiar with the following
 - [Tutorial](#tutorial)
 - [License](#license)
 
-<a name="solution"></a>
+<a name="projectoverview"></a>
 
 ## Project Overview
 
@@ -191,7 +192,7 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 4. From the command line, use CDK to deploy the LefFoundationStack stack:
 
    ```bash
-   cdk deploy LefFoundationStack --context stackName=LefFoundation1 --parameters userEmail=YOUR_EMAIL --outputs-file ./cdk-exports-foundation.json [--context foundationConfigFile=../../config/foundationConfiguration.ts]
+   npx cdk deploy LefFoundationStack --context stackName=LefFoundation1 --parameters userEmail=YOUR_EMAIL --outputs-file ./cdk-exports-foundation.json [--context foundationConfigFile=../../config/default/foundationConfiguration.ts]
    ```
 
 5. When the LefFoundationStack is deployed an SNS Topic and SNS email subscription are created using the userEmail parameter passed into the foundation stack. The created SNS topic is used for notifying the person (or group of people) responsible for deploying the stack of notable events. The creation of the email subscription will send an email with a confirmation link to the userEmail.
@@ -203,7 +204,7 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 6. From the command line, use CDK to deploy the LefEventGroupStack stack. The LefEventGroupStack uses some of the resources deployed in the LefFoundationStack and requires the name of the foundation stack to be passed as a paramater:
 
    ```bash
-   cdk deploy LefEventGroupStack --context stackName=LefEventGroup1 --parameters foundationStackName=LefFoundation1 --outputs-file ./cdk-exports-event-group.json [--context eventGroupConfigFile=../../config/eventGroupConfiguration.ts]
+   npx cdk deploy LefEventGroupStack --context stackName=LefEventGroup1 --parameters foundationStackName=LefFoundation1 --outputs-file ./cdk-exports-event-group.json [--context eventGroupConfigFile=../../config/default/eventGroupConfiguration.ts]
    ```
 
    Multiple event groups can be created using the same foundation stack but each event group must have a unique stack name.
@@ -211,7 +212,7 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 7. From the command line, use CDK to deploy the LefEventStack stack. Because the LefEventStack resources need to be associated with an existing event group the name of the event group must be passed as a parameter.
 
    ```bash
-   cdk deploy LefEventStack --context stackName=LefEvent1 --parameters eventGroupStackName=LefEventGroup1 --outputs-file ./cdk-exports-event.json [--context eventConfigFile=../../config/eventConfiguration.ts]
+   npx cdk deploy LefEventStack --context stackName=LefEvent1 --parameters eventGroupStackName=LefEventGroup1 --outputs-file ./cdk-exports-event.json [--context eventConfigFile=../../config/default/eventConfiguration.ts]
    ```
 
    Multiple events can be created in the same event group but each event must have a unique stack name. There is an upper limit on the number of MediaPackage Channels which can be deployed in a MediaPackage Channel Group. An increase in this limit can be requested through _Service Quotas_ service in the _AWS Console_.
@@ -282,15 +283,15 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
    ```
 2. Destroy the event stack
    ```bash
-   cdk destroy LefEventStack --context stackName=LefEvent1 --profile $AWS_PROFILE
+   npx cdk destroy LefEventStack --context stackName=LefEvent1 --profile $AWS_PROFILE
    ```
 3. Destroy the event group stack
    ```bash
-   cdk destroy LefEventGroupStack --context stackName=LefEventGroup1 --profile $AWS_PROFILE
+   npx cdk destroy LefEventGroupStack --context stackName=LefEventGroup1 --profile $AWS_PROFILE
    ```
 4. Destroy the foundation stack
    ```bash
-   cdk destroy LefFoundationStack --context stackName=LefFoundation1 --profile $AWS_PROFILE
+   npx cdk destroy LefFoundationStack --context stackName=LefFoundation1 --profile $AWS_PROFILE
    ```
 
 <a name="known_issues"></a>

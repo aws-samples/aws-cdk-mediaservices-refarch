@@ -10,68 +10,66 @@ common:
   gopSizeUnits: FRAMES
   segmentLength: 2
   fragmentLength: 2
+  framerate: 50
+  videoLookAheadRateControl: HIGH # High for best quality / Low for lowest latency
+  videoCodecProfile: HIGH
 outputs:
   - name: "-3000"
+    codec: H_264
     width: 960
     height: 540
-    codec: H_264
-    codecProfile: HIGH
     maxBitrate: 3000000
-    framerate: 50 #fps
+    # codecProfile: HIGH  # Optional - Override for common.videoCodecProfile
+    # framerate: 50 # fps - Optional - Override for common.framerate
     # gopSize: 112  # Optional - Override for common.gopSize
     # lookAheadRateControl: LOW  # Optional - Default to HIGH for best quality
     # bufSize: 1500000 # Optional - Override to reduce latency.  
   - name: "-7500"
+    codec: H_264
     width: 1920
     height: 1080
-    codec: H_264
-    codecProfile: HIGH
     maxBitrate: 7500000
-    framerate: 50 #fps
   - name: "-4500"
+    codec: H_264
     width: 1280
     height: 720
-    codec: H_264
-    codecProfile: HIGH
     maxBitrate: 4500000
-    framerate: 50 #fps
   - name: "-1800"
+    codec: H_264
     width: 640
     height: 360
-    codec: H_264
-    codecProfile: HIGH
     maxBitrate: 1800000
-    framerate: 50 #fps
   - name: "-1000"
+    codec: H_264
     width: 480
     height: 270
-    codec: H_264
-    codecProfile: HIGH
     maxBitrate: 1000000
-    framerate: 50 #fps
   - name: "-600"
+    codec: H_264
     width: 320
     height: 180
-    codec: H_264
-    codecProfile: HIGH
     maxBitrate: 600000
-    framerate: 50 #fps
   # Frame Capture rendition will be configured as an 'imageBasedTrickPlay' rendition
   # in custom transcode profiles.
-  # Commenting out frame capture as it is not currently supported by MediaLive
-  # for CMAF Ingest Output Groups
-  # - name: "-frame-capture"   # Only included in MediaLive profiles
-  #   width: 960
-  #   height: 540
-  #   codec: FRAME_CAPTURE
-  - name: "-AAC-LC-128"
+  - name: "-frame-capture"   # Only included in MediaLive profiles
+    width: 960
+    height: 540
+    codec: FRAME_CAPTURE
+  - name: "-AAC-LC-128-ENG"
+    # The profile generator sets the first encoding profile listed as the default.
+    # For CMAF Ingest Output Groups:
+    # - The first audio track will have set 'MAIN' in 'AudioDashRoles'.
+    # - Additional audio tracks will not have any values set in 'AudioDashRoles'.
+    # For HLS Output Groups:
+    # - The first audio track will have set 'audioTrackType' to 'ALTERNATE_AUDIO_AUTO_SELECT_DEFAULT'.
+    # - Additional audio tracks will have set 'audioTrackType' to 'ALTERNATE_AUDIO_AUTO_SELECT'.
     codec: AAC
     bitrate: 128000
     codingMode: CODING_MODE_2_0
     codingProfile: LC
     sampleRate: 48000   # Is this required? Could it just be the default?
     streamName: English
-    languageCode: ENG
+    languageCode: eng
     # Audio normalization is only applied to custom transcode profiles
     audioNormalIzationSettings:
       algorithm: ITU_BS_1770_3
@@ -80,8 +78,11 @@ outputs:
       targetLkfs: -23
   # TODO: Captions need to be implemented but it could be challenging setting up the
   # input on the encoder
-  # - name: "-STPP"
-  #   codec: STPP
-  #   DestinationType: "TTML"
-  #   LanguageCode: "ENG"
+  # - name: "-CAPTIONS-ENG"
+  #   codec: CAPTIONS
+  #   captionsSelectorName: Captions-English
+  #   languageCode: eng
+  #   languageDescription: English
+  #   accessibility: DOES_NOT_IMPLEMENT_ACCESSIBILITY_FEATURES  # does not apply to HLS/TS Output Groupts
+  #   styleControl: PASSTHROUGH
 

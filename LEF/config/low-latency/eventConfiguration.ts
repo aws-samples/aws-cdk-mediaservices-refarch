@@ -1,12 +1,12 @@
-import { IEventConfig } from '../lib/event/eventConfigInterface';
+import { IEventConfig } from '../../lib/event/eventConfigInterface';
 
 export const EVENT_CONFIG: IEventConfig = {
   event: {
     mediaLive: {
-      encodingProfileLocation: "../../encoding-profiles/sample-profiles/hd-avc-50fps-sample-medialive-hls-ts-v1.json",
+      encodingProfileLocation: "../../encoding-profiles/low-latency-hd-avc-50fps-sample/medialive-cmaf-ingest-v1.json",
       channelClass: "STANDARD",
       inputType: "URL_PULL",
-      segmentLengthInSeconds: 4,
+      segmentLengthInSeconds: 1,
       inputSpecification: {
         codec: "HEVC",
         maximumBitrate: "MAX_20_MBPS",
@@ -33,7 +33,7 @@ export const EVENT_CONFIG: IEventConfig = {
     //   ]
     // },
     mediaPackage: {
-      inputType: "HLS",
+      inputType: "CMAF",
       endpoints: {
         cmafEndpoint: {
           containerType: "CMAF",
@@ -61,13 +61,33 @@ export const EVENT_CONFIG: IEventConfig = {
             {
               manifestName: "dash",
               manifestWindowSeconds: 60,
-              minUpdatePeriodSeconds: 5,
+              minUpdatePeriodSeconds: 4,
               minBufferTimeSeconds: 4,
               scteDash: {
                 adMarkerDash: "XML"
               },
               segmentTemplateFormat: "NUMBER_WITH_TIMELINE",
               suggestedPresentationDelaySeconds: 10,
+              // filterConfiguration: {
+              //   manifestFilter: "video_height:1-720",
+              //   start: "YYYY-MM-DDThh:mm:ss+00:00",
+              //   end: "YYYY-MM-DDThh:mm:ss+00:00",
+              //   timeDelaySeconds: 7200
+              // },
+              utcTiming: {
+                timingMode: "UTC_DIRECT"
+              }
+            }
+          ],
+          lowLatencyHlsManifests: [
+            {
+              manifestName: "low-latency-index",
+              childManifestName: "low-latency-variant",
+              manifestWindowSeconds: 60,
+              programDateTimeIntervalSeconds: 60,
+              scteHls: {
+                adMarkerHls: "DATERANGE"
+              },
               // filterConfiguration: {
               //   manifestFilter: "video_height:1-720",
               //   start: "YYYY-MM-DDThh:mm:ss+00:00",
@@ -80,7 +100,7 @@ export const EVENT_CONFIG: IEventConfig = {
             segmentName: "segment",
             includeIframeOnlyStreams: false,
             startoverWindowSeconds: 1209600,
-            segmentDurationSeconds: 5,
+            segmentDurationSeconds: 4,
             scte: {
               scteFilter: [
                 "SPLICE_INSERT",

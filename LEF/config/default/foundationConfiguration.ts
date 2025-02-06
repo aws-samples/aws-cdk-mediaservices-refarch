@@ -1,4 +1,4 @@
-import { IFoundationConfig } from '../lib/foundation/foundationConfigInterface';
+import { IFoundationConfig } from '../../lib/foundation/foundationConfigInterface';
 
 export const FOUNDATION_CONFIG: IFoundationConfig = {
   cloudFront: {
@@ -25,12 +25,17 @@ export const FOUNDATION_CONFIG: IFoundationConfig = {
       // #######################################################################
     ],
     allowedMediaTailorManifestQueryStrings: [
+      // ######### Reporting Mode - Optional Manifest Query String ##############################
+      // Optionally include if reporting mode needs to be set to a non-default value for sessions
+      // using implicit session initialization.
+      // ########################################################################################
+      // 'reportingMode',
       'aws.sessionId',
       'aws.streamId',
       'aws.logMode',
+      'playerParams.transcode_profile',
       'playerParams.content_segment_prefix',
-      'playerParams.ad_segment_prefix',
-      'playerParams.transcode_profile'
+      'playerParams.ad_segment_prefix'
     ]
   }
 };
