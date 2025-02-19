@@ -1,0 +1,9 @@
+**/node_modules/*
+**/package-lock.json
+
+**/build/*
+**/bundles/*
+**/dist/*
+
+**/cdk.out
+**/.cdk.staging

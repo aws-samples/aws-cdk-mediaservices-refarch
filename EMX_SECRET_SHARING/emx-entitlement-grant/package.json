@@ -1,0 +1,38 @@
+{
+  "name": "emx-entitlement-grant",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "lint": "eslint . --ext .ts",
+    "prettier": "prettier --check --config .prettierrc 'lib/**/*.ts' 'bin/**/*.ts'",
+    "format": "prettier --write --config .prettierrc 'lib/**/*.ts' 'bin/**/*.ts'",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.2",
+    "@types/node": "10.17.27",
+    "@typescript-eslint/eslint-plugin": "^5.40.1",
+    "@typescript-eslint/parser": "^5.40.1",
+    "aws-cdk": "2.177.0",
+    "cdk-nag": "2.21.50",
+    "eslint": "^8.31.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-no-loops": "^0.3.0",
+    "jest": "^27.5.1",
+    "prettier": "^2.8.1",
+    "ts-jest": "^27.1.4",
+    "ts-node": "^10.9.1",
+    "typescript": "~3.9.7"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.177.0",
+    "aws-sdk": "^2.1354.0",
+    "constructs": "^10.0.0",
+    "source-map-support": "^0.5.21"
+  }
+}

@@ -51,6 +51,7 @@ Before you start with this project make sure you are familiar with the following
 | [Audio Only with EMP workflow (AUDIO_ONLY_EMP)](AUDIO_ONLY_EMP/README.md) | Professional |  Example use case of using Elemental MediaLive & Elemental MediaPackage to create a simple audio only workflow. |
 | [Monitoring your Live Workflow (LIVE_CW_MONITOR)](LIVE_CW_MONITOR/README.md) | Professional |  Example of using CloudWatch dashboards to monitor your live workflow with CloudWatch metrics produced by MediaLive & MediaPackage. |
 | [Monitoring your MediaLive input and output with thumbnails (LIVE_THUMBNAIL_MONITORING)](LIVE_THUMBNAIL_MONITORING/README.md) | Professional |  Example of using MediaLive source thumbnails and output frame capture to build a HTML template for monitoring your live stream. |
+| [Infrastructure for granting EMX Entitlements to another account and stop secrets being shared via another medium (EMX_SECRET_SHARING)](EMX_SECRET_SHARING/README.md) | Advanced |  Example architecture on how you could share secrets automatically between accounts, without having to use another medium. |
 
 ## Coming Soon
 | Example | Type | Description |
