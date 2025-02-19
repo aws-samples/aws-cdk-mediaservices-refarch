@@ -1,0 +1,22 @@
+{
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint",
+        "no-loops",
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        "prettier",
+    ],
+    "parserOptions": {
+        "project": ["./EMX_SECRET_SHARING/emx-entitlement-grant/tsconfig.json"],
+        "sourceType": "module",
+    },
+    "rules": {
+        "no-console": 2,
+        "no-loops/no-loops": 2,
+    },
+}
