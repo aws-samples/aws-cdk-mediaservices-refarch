@@ -1,4 +1,4 @@
-# Infrastructure for granting EMX Entitlements to another account and stop secrets being shared via another medium
+# Infrastructure for granting  AWS Elemental MediaConnect Entitlements to another account and stop secrets being shared via another medium
 ## Log
 | Date        | Entry   | Version | Comment                             |
 |-------------|:-------:|:-------:|-------------------------------------|
