@@ -1,26 +1,29 @@
-import { IEventConfig } from '../../lib/event/eventConfigInterface';
+import { IEventConfig } from "../../lib/event/eventConfigInterface";
 
 export const EVENT_CONFIG: IEventConfig = {
   event: {
     mediaLive: {
-      encodingProfileLocation: "../../encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json",
+      encodingProfileLocation:
+        "../../encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json",
       channelClass: "STANDARD",
-      inputType: "URL_PULL",
       segmentLengthInSeconds: 4,
       inputSpecification: {
         codec: "HEVC",
         maximumBitrate: "MAX_20_MBPS",
-        resolution: "HD"
+        resolution: "HD",
       },
-      rtmpStreamName: "live",
-      sourceEndBehavior: 'LOOP',
-      priLink: "",
-      secLink: "",
-      inputCidr: "0.0.0.0/0",
-      priUrl: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
-      secUrl: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
-      priFlow: "",
-      secFlow: ""
+      input: {
+        type: "URL_PULL",
+        urls: [
+          {
+            url: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
+          },
+          {
+            url: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
+          },
+        ],
+      },
+      sourceEndBehavior: "LOOP",
     },
     // /****** Elemental Live Configuration ***********************************************************************
     //  * To use an Elemental Live Encoder rather than MediaLive, a configuration similar to the below can be used.
@@ -38,7 +41,7 @@ export const EVENT_CONFIG: IEventConfig = {
         cmafEndpoint: {
           containerType: "CMAF",
           originEndpointName: "cmaf",
-          resourcePolicyType: "CUSTOM",  // PUBLIC: (NOT RECOMMENDED) Allows public access to the endpoint.
+          resourcePolicyType: "CUSTOM", // PUBLIC: (NOT RECOMMENDED) Allows public access to the endpoint.
           startoverWindowSeconds: 1209600,
           hlsManifests: [
             {
@@ -47,7 +50,7 @@ export const EVENT_CONFIG: IEventConfig = {
               manifestWindowSeconds: 60,
               programDateTimeIntervalSeconds: 60,
               scteHls: {
-                adMarkerHls: "DATERANGE"
+                adMarkerHls: "DATERANGE",
               },
               // filterConfiguration: {
               //   manifestFilter: "video_height:1-720",
@@ -55,7 +58,7 @@ export const EVENT_CONFIG: IEventConfig = {
               //   end: "YYYY-MM-DDThh:mm:ss+00:00",
               //   timeDelaySeconds: 7200
               // }
-            }
+            },
           ],
           dashManifests: [
             {
@@ -64,7 +67,7 @@ export const EVENT_CONFIG: IEventConfig = {
               minUpdatePeriodSeconds: 5,
               minBufferTimeSeconds: 4,
               scteDash: {
-                adMarkerDash: "XML"
+                adMarkerDash: "XML",
               },
               segmentTemplateFormat: "NUMBER_WITH_TIMELINE",
               suggestedPresentationDelaySeconds: 10,
@@ -75,9 +78,9 @@ export const EVENT_CONFIG: IEventConfig = {
               //   timeDelaySeconds: 7200
               // },
               utcTiming: {
-                timingMode: "UTC_DIRECT"
-              }
-            }
+                timingMode: "UTC_DIRECT",
+              },
+            },
           ],
           segment: {
             segmentName: "segment",
@@ -94,12 +97,12 @@ export const EVENT_CONFIG: IEventConfig = {
                 "DISTRIBUTOR_PLACEMENT_OPPORTUNITY",
                 "PROVIDER_ADVERTISEMENT",
                 "PROVIDER_OVERLAY_PLACEMENT_OPPORTUNITY",
-                "PROVIDER_PLACEMENT_OPPORTUNITY"
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
+                "PROVIDER_PLACEMENT_OPPORTUNITY",
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
 };

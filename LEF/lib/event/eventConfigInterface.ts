@@ -12,28 +12,62 @@
  */
 
 /**
+ * Basic type definitions
+ */
+export type MediaLiveChannelClass = "STANDARD" | "SINGLE_PIPELINE";
+
+export type Scte35Behavior = "NO_PASSTHROUGH" | "PASSTHROUGH";
+
+export type AdMarkers = "ELEMENTAL_SCTE35" | "ELEMENTAL" | "ADOBE" | "";
+
+export type InputCodec = "MPEG2" | "AVC" | "HEVC";
+
+export type InputMaximumBitrate = "MAX_10_MBPS" | "MAX_20_MBPS" | "MAX_50_MBPS";
+
+export type InputResolution = "SD" | "HD" | "UHD";
+
+export type SourceEndBehavior = "LOOP" | "CONTINUE";
+
+export interface InputSpecification {
+  /** Codec for input. */
+  codec: InputCodec;
+
+  /** Maximum bitrate for input. */
+  maximumBitrate: InputMaximumBitrate;
+
+  /** Resolution for input. */
+  resolution: InputResolution;
+}
+
+/**
  * Configuration for an event in the Live Event Framework.
  */
 
+export type EventSourceConfig =
+  | {
+      /**
+       * Configuration for AWS Elemental MediaLive.
+       * @remarks Only one of mediaLive or elementalLive should be configured, not both.
+       */
+      mediaLive: IMediaLiveConfig;
+      elementalLive?: never;
+    }
+  | {
+      mediaLive?: never;
+      /**
+       * Configuration for Elemental Live.
+       * @remarks Only one of mediaLive or elementalLive should be configured, not both.
+       * Elemental Live appliances need to be configured with an Access Key pair for an IAM User with permisions
+       * to push content to the MediaPackage Channel. An example IAM User can be created using the
+       * 'tools/create_elemental_live_user.py' script. The userArn needs to be configured below so the MediaPackage
+       * Channel policy can be configured to allow the Elemental Live user to push content to the channel.
+       * The 'inputCidr' is an optional range of IP addresses that are allowed to access the MediaPackage Channel.
+       */
+      elementalLive: IElementalLiveConfig;
+    };
+
 export interface IEventConfig {
-  event: {
-    /**
-     * Configuration for AWS Elemental MediaLive.
-     * @remarks Only one of mediaLive or elementalLive should be configured, not both.
-     */
-    mediaLive?: IMediaLiveConfig;
-
-    /**
-     * Configuration for Elemental Live.
-     * @remarks Only one of mediaLive or elementalLive should be configured, not both.
-     * Elemental Live appliances need to be configured with an Access Key pair for an IAM User with permisions
-     * to push content to the MediaPackage Channel. An example IAM User can be created using the
-     * 'tools/create_elemental_live_user.py' script. The userArn needs to be configured below so the MediaPackage
-     * Channel policy can be configured to allow the Elemental Live user to push content to the channel.
-     * The 'inputCidr' is an optional range of IP addresses that are allowed to access the MediaPackage Channel.
-     */
-    elementalLive?: IElementalLiveConfig;
-
+  event: EventSourceConfig & {
     /**
      * Configuration for AWS Elemental MediaPackage.
      * @remarks Must contain at least one key-value pair defining a MediaPackage endpoint.
@@ -45,21 +79,23 @@ export interface IEventConfig {
 /**
  * Configuration for AWS Elemental MediaLive.
  */
+import { MediaLiveInput } from "./inputs/mediaLiveInputTypes";
+
 export interface IMediaLiveConfig {
   /** Location of the encoding profile. */
   encodingProfileLocation: string;
 
-  /** 
-   * Channel class for MediaLive.
-   * @values "STANDARD" | "SINGLE_PIPELINE"
-   */
-  channelClass: "STANDARD" | "SINGLE_PIPELINE";
+  /** Channel class for MediaLive. */
+  channelClass: MediaLiveChannelClass;
 
   /**
-   * Input type for MediaLive.
-   * @values "INPUT_DEVICE" | "RTP_PUSH" | "RTMP_PUSH" | "RTMP_PULL" | "MP4_FILE" | "TS_FILE" | "URL_PULL" | "MEDIACONNECT"
+   * MediaLive Anywhere Settings
+   * @remarks Only applies to MediaLive Anywhere channels.
    */
-  inputType: string;
+  anywhereSettings?: IAnywhereSettingsConfig;
+
+  /** Input configuration for MediaLive. */
+  input: MediaLiveInput;
 
   /** Segment length in seconds. */
   segmentLengthInSeconds: number;
@@ -67,64 +103,57 @@ export interface IMediaLiveConfig {
   /** Minimum segment length in seconds */
   minimumSegmentLengthInSeconds?: number;
 
-  /** scte35Behavior for MediaLive HLS/TS Output */ 
-  scte35Behavior?: "NO_PASSTHROUGH" | "PASSTHROUGH";
+  /** scte35Behavior for MediaLive HLS/TS Output */
+  scte35Behavior?: Scte35Behavior;
 
   /** HLS Ad Markers */
-  adMarkers?: "ELEMENTAL_SCTE35" | "ELEMENTAL" | "ADOBE" | "";
+  adMarkers?: AdMarkers;
 
   /** Input specification for MediaLive. */
-  inputSpecification: {
-    /**
-     * Codec for input.
-     * @values "MPEG2" | "AVC" | "HEVC"
-     */
-    codec: string;
-
-    /**
-     * Maximum bitrate for input.
-     * @values "MAX_10_MBPS" | "MAX_20_MBPS" | "MAX_50_MBPS"
-     */
-    maximumBitrate: string;
-
-    /**
-     * Resolution for input.
-     * @values "SD" | "HD" | "UHD"
-     */
-    resolution: string;
-  };
-
-  /** RTMP stream name. Only used for RTMP_PUSH inputs. */
-  rtmpStreamName: string;
+  inputSpecification: InputSpecification;
 
   /**
    * Source end behavior.
    * @remarks Only applies to MP4_FILE, TS_FILE, RTMP_PULL, URL_PULL inputs.
-   * @values "LOOP" | "CONTINUE"
    * All other inputs will use the 'CONTINUE' source end behaviour.
    */
-  sourceEndBehavior: "LOOP" | "CONTINUE";
+  sourceEndBehavior: SourceEndBehavior;
+}
 
-  /** Primary link. */
-  priLink: string;
+/**
+ * Configuration for MediaLive Anywhere Settings
+ */
+export interface IAnywhereSettingsConfig {
+  /** Channel Placement Group for Channel. */
+  channelPlacementGroupId: string;
 
-  /** Secondary link. */
-  secLink: string;
+  /** Cluster MediaLive Anywhere channel will run on. */
+  clusterId: string;
+}
 
-  /** Input CIDR. */
-  inputCidr: string;
+/**
+ * Configuration for MediaLive Multicast Input Settings
+ */
+export interface IMulticastSettingsConfig {
+  sources: IMulticastSource[];
+}
 
-  /** Primary URL. */
-  priUrl: string;
-
-  /** Secondary URL. */
-  secUrl: string;
-
-  /** Primary flow. */
-  priFlow: string;
-
-  /** Secondary flow. */
-  secFlow: string;
+/**
+ * Configuration for MediaLive Multicast Source
+ *
+ * @typedef {Object} IMulticastSource
+ * @property {string} [sourceIp] - The multicast source IP address (224.0.0.0 to 239.255.255.255)
+ * @property {string} url - Multicast URL (format: udp://<ip-address>:<port>)
+ *
+ * @example
+ * {
+ *   sourceIp: "224.0.0.0",
+ *   url: "udp://239.0.0.1:5000"
+ * }
+ */
+export interface IMulticastSource {
+  sourceIp?: string;
+  url: string;
 }
 
 /**
@@ -143,12 +172,10 @@ export interface IMediaPackageEndpointsConfig {
   [key: string]: IMediaPackageEndpointConfig;
 }
 
-
 /**
  * Configuration for a MediaPackage channel.
  */
 export interface IMediaPackageChannelConfig {
-
   /** Input type
    * @values "HLS" | "CMAF"
    */
@@ -249,7 +276,11 @@ interface IManifestConfig {
 /**
  * Configuration for a DASH manifest.
  */
-interface IDashManifestConfig extends Omit<IManifestConfig, "childManifestName" | "scteHls" | "programDateTimeIntervalSeconds" > {
+interface IDashManifestConfig
+  extends Omit<
+    IManifestConfig,
+    "childManifestName" | "scteHls" | "programDateTimeIntervalSeconds"
+  > {
   /** Minimum update period in seconds. */
   minUpdatePeriodSeconds: number;
 
@@ -266,16 +297,18 @@ interface IDashManifestConfig extends Omit<IManifestConfig, "childManifestName" 
   };
 
   /** Configuration for UTC Timing */
-  utcTiming?: {
-    /** Timing method for DASH. */
-    timingMode: "UTC_DIRECT";
-  } | {
-    /** Timing method for DASH. */
-    timingMode: "HTTP_HEAD" | "HTTP_ISO" | "HTTP_XSDATE";
-    /** Timing URL for DASH. */
-    timingSource?: string;
-  };
-  
+  utcTiming?:
+    | {
+        /** Timing method for DASH. */
+        timingMode: "UTC_DIRECT";
+      }
+    | {
+        /** Timing method for DASH. */
+        timingMode: "HTTP_HEAD" | "HTTP_ISO" | "HTTP_XSDATE";
+        /** Timing URL for DASH. */
+        timingSource?: string;
+      };
+
   /**
    * Segment template format.
    * @values "NUMBER_WITH_TIMELINE"
@@ -289,7 +322,7 @@ interface IDashManifestConfig extends Omit<IManifestConfig, "childManifestName" 
    * DRM signaling determines the way DASH manifest signals the DRM content.
    * @values "INDIVIDUAL" | "REFERENCED"
    */
-  drmSignaling?: 'INDIVIDUAL' | 'REFERENCED';
+  drmSignaling?: "INDIVIDUAL" | "REFERENCED";
 }
 
 /**
@@ -322,19 +355,19 @@ interface ISegmentConfig {
        * CMAF encryption method.
        * @values "CENC" | "CBCS"
        */
-      cmafEncryptionMethod?: 'CENC' | 'CBCS';
+      cmafEncryptionMethod?: "CENC" | "CBCS";
 
       /**
        * TS encryption method.
        * @values "AES-128" | "SAMPLE_AES"
        */
-      tsEncryptionMethod?: 'AES-128' | 'SAMPLE_AES';
+      tsEncryptionMethod?: "AES-128" | "SAMPLE_AES";
     };
 
     /** SPEKE key provider configuration. */
     spekeKeyProvider: {
       /** Array of DRM systems. */
-      drmSystems: Array<'FAIRPLAY'|'WIDEVINE'|'PLAYREADY'|'IRDETO'>;
+      drmSystems: Array<"FAIRPLAY" | "WIDEVINE" | "PLAYREADY" | "IRDETO">;
 
       /** Encryption contract configuration. */
       encryptionContractConfiguration: Record<string, unknown>;

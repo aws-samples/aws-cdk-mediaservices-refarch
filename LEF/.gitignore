@@ -6,6 +6,7 @@ node_modules
 cdk-exports-*.json
 cdk.context.json
 .venv
+test/temp-test-data
 
 # CDK asset staging directory
 .cdk.staging

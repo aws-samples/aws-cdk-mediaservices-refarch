@@ -140,6 +140,7 @@ def generateMediaLiveHlsTsProfile( config ):
     outputsConfiguration = config['outputs']
     audioDescriptions = getMediaLiveAudioDescriptions( outputsConfiguration )
     captionDescriptions = getMediaLiveCaptionDescriptions(outputsConfiguration, 'HLS-TS')
+    globalConfiguration = getMediaLiveGlobalConfiguration()
     videoDescriptions = getMediaLiveVideoDescriptions( outputsConfiguration, config['common'] )
 
     outputGroups = getMediaLiveHlsTsOutputGroups( outputsConfiguration )
@@ -147,6 +148,7 @@ def generateMediaLiveHlsTsProfile( config ):
     profileOutput = OrderedDict()
     profileOutput['audioDescriptions'] = audioDescriptions
     profileOutput['captionDescriptions'] = captionDescriptions
+    profileOutput['globalConfiguration'] = globalConfiguration
     profileOutput['outputGroups'] = outputGroups
     profileOutput['timecodeConfig'] = { "source": "SYSTEMCLOCK" }
     profileOutput['videoDescriptions'] = videoDescriptions
@@ -181,6 +183,7 @@ def generateMediaLiveCmafIngestProfile( config ):
 
     audioDescriptions = getMediaLiveAudioDescriptions( outputsConfiguration )
     captionDescriptions = getMediaLiveCaptionDescriptions(outputsConfiguration, 'CMAF-INGEST')
+    globalConfiguration = getMediaLiveGlobalConfiguration()
     videoDescriptions = getMediaLiveVideoDescriptions( outputsConfiguration, config['common'] )
 
     # Set the first audio rendition to be the default rendition.
@@ -199,6 +202,7 @@ def generateMediaLiveCmafIngestProfile( config ):
     profileOutput = OrderedDict()
     profileOutput['audioDescriptions'] = audioDescriptions
     profileOutput['captionDescriptions'] = captionDescriptions
+    profileOutput['globalConfiguration'] = globalConfiguration
     profileOutput['outputGroups'] = outputGroups
     profileOutput['timecodeConfig'] = { "source": "SYSTEMCLOCK" }
     profileOutput['videoDescriptions'] = videoDescriptions
@@ -673,6 +677,17 @@ def getMediaLiveCaptionDescriptions( outputs, outputGroupType ):
 
     return captionsDescriptions
 
+def getMediaLiveGlobalConfiguration():
+
+    globalConfiguration = {
+      "inputEndAction": "NONE",
+      "outputLockingMode": "PIPELINE_LOCKING",
+      "outputTimingSource": "SYSTEM_CLOCK",
+      "supportLowFramerateInputs": "DISABLED"
+    }
+
+    return globalConfiguration
+
 def createCustomTranscodeProfile( profileType, config):
 
     global ctp_trickmode_settings
@@ -898,6 +913,7 @@ def getDashOutputGroup( outputGroup, outputs, config ):
         "Type": "DASH_ISO_GROUP_SETTINGS",
         "DashIsoGroupSettings": {
             "SegmentLength": commonCfg["segmentLength"],
+            "SegmentLengthControl": "GOP_MULTIPLE",
             "MinFinalSegmentLength": 1,
             "Destination": "s3://bucket/main",
             "FragmentLength": commonCfg["fragmentLength"],
@@ -930,6 +946,7 @@ def getCmafOutputGroup( outputGroup, outputs, config ):
             "WriteHlsManifest": "ENABLED",
             "WriteDashManifest": "ENABLED",
             "SegmentLength": commonCfg["segmentLength"],
+            "SegmentLengthControl": "GOP_MULTIPLE",
             "MinFinalSegmentLength": 1,
             "Destination": "s3://bucket/main",
             "FragmentLength": commonCfg["fragmentLength"],

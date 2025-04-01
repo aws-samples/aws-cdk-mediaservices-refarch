@@ -13,12 +13,12 @@
 
 export interface IFoundationConfig {
   cloudFront: ICloudFrontConfig;
-};
+}
 
 export interface ICloudFrontConfig {
   logging: {
     logRetentionPeriod: number;
   };
   allowedMediaPackageManifestQueryStrings: string[];
-  allowedMediaTailorManifestQueryStrings: string[];
-};
+  allowedMediaTailorManifestQueryStrings: "ALL" | string[];
+}

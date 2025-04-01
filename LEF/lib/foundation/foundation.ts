@@ -29,7 +29,7 @@ import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NagSuppressions } from "cdk-nag";
-import { ICloudFrontConfig } from './foundationConfigInterface';
+import { ICloudFrontConfig } from "./foundationConfigInterface";
 
 const ONE_YEAR_IN_SECONDS = 31536000;
 const ONE_DAY_IN_SECONDS = 86400;
@@ -41,7 +41,7 @@ export interface FoundationProps {
 
 export class Foundation extends Construct {
   private allowedMediaPackageManifestQueryStrings: string[] = [];
-  private allowedMediaTailorManifestQueryStrings: string[] = [];
+  private allowedMediaTailorManifestQueryStrings: "ALL" | string[] = [];
 
   constructor(scope: Construct, id: string, props: FoundationProps) {
     super(scope, id);
@@ -83,7 +83,7 @@ export class Foundation extends Construct {
      * Create resources to send a daily notification containing a list of running MediaLive channels
      * deployed using Live Event Framework
      */
-    this.createResourcesToSendDailyNotification( snsTopicArn );
+    this.createResourcesToSendDailyNotification(snsTopicArn);
   }
 
   // Method to create S3 Logging Bucket and associated resources for CloudFront Distribution
@@ -144,6 +144,19 @@ export class Foundation extends Construct {
     /*
      * Create MediaTailor Manifest Policies
      */
+    cloudfront.OriginRequestQueryStringBehavior;
+    let mediaTailorManifestOriginRequestQueryStrings: cloudfront.OriginRequestQueryStringBehavior;
+    if (this.allowedMediaTailorManifestQueryStrings === "ALL") {
+      mediaTailorManifestOriginRequestQueryStrings =
+        cloudfront.OriginRequestQueryStringBehavior.all();
+    } else {
+      mediaTailorManifestOriginRequestQueryStrings =
+        cloudfront.OriginRequestQueryStringBehavior.allowList(
+          ...this.allowedMediaPackageManifestQueryStrings,
+          ...this.allowedMediaTailorManifestQueryStrings,
+        );
+    }
+
     const mediaTailorManifestOriginRequestPolicy =
       new cloudfront.OriginRequestPolicy(
         this,
@@ -158,11 +171,7 @@ export class Foundation extends Construct {
           // the size of manifests returned to clients and minimise costs.
           headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
           cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-          queryStringBehavior:
-            cloudfront.OriginRequestQueryStringBehavior.allowList(
-              ...this.allowedMediaPackageManifestQueryStrings,
-              ...this.allowedMediaTailorManifestQueryStrings,
-            ),
+          queryStringBehavior: mediaTailorManifestOriginRequestQueryStrings,
         },
       );
     new CfnOutput(this, "MediaTailorManifestOriginRequestPolicyOutput", {
@@ -173,134 +182,8 @@ export class Foundation extends Construct {
     });
 
     /*
-     * Create CloudFront MediaTailor Ad Redirect Policies
-     * These policies cache the 301 redirects to prevent duplicate beacons being sent back to providers.
-     */
-    const mediaTailorAdRedirectOriginRequestPolicy =
-      new cloudfront.OriginRequestPolicy(
-        this,
-        "MediaTailorAdRedirectOriginRequestPolicy",
-        {
-          originRequestPolicyName:
-            Aws.STACK_NAME + "-EMT-AdRedirectOriginRequestPolicy",
-          comment:
-            "Policy to FWD all query strings and headers to MediaTailor for ad redirect requests",
-          // The format of ad redirect requests cannot be known in advance so 'All viewer headers' and 'All' query strings
-          // are passed to MediaTailor.
-          headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
-          cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-          queryStringBehavior:
-            cloudfront.OriginRequestQueryStringBehavior.all(),
-        },
-      );
-    new CfnOutput(this, "MediaTailorAdRedirectOriginRequestPolicyOutput", {
-      value: mediaTailorAdRedirectOriginRequestPolicy.originRequestPolicyId,
-      exportName:
-        Aws.STACK_NAME + "-MediaTailor-Ad-Redirect-OriginRequestPolicyId",
-      description: "Origin Request Policy Id for MediaTailor AdRedirect requests",
-    });
-
-    // Creating a custom cache policy for Ad redirect requests directed to MediaTailor
-    const mediaTailorAdRedirectCachePolicy = new cloudfront.CachePolicy(
-      this,
-      "MediaTailorAdRedirectCachePolicy",
-      {
-        cachePolicyName: Aws.STACK_NAME + "-EMT-AdRedirectCachePolicy",
-        comment: "Policy for caching Ad Redirects to minimize duplicate beacons sent by MediaTailor",
-        defaultTtl: Duration.seconds(ONE_DAY_IN_SECONDS),
-        minTtl: Duration.seconds(1),
-        maxTtl: Duration.seconds(ONE_YEAR_IN_SECONDS),
-        cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-        headerBehavior: cloudfront.CacheHeaderBehavior.none(),
-        queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-        enableAcceptEncodingGzip: true,
-        enableAcceptEncodingBrotli: true,
-      },
-    );
-    new CfnOutput(this, "MediaTailorAdRedirectCachePolicyOutput", {
-      value: mediaTailorAdRedirectCachePolicy.cachePolicyId,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Ad-Redirect-CachePolicyId",
-      description: "Cache Policy Id for MediaTailor Ad Redirect requests",
-    });
-
-    /*
-     * Create CloudFront MediaTailor Ad Captions Policies
-     * For HLS streams, if the source stream contains captions, during ad breaks captions are delivered
-     * from MediaTailor. These captions files just contain the ncessary WebVTT headers and do not contain
-     * any captions.
-     */
-    const mediaTailorAdCaptionsOriginRequestPolicy =
-      new cloudfront.OriginRequestPolicy(
-        this,
-        "MediaTailorAdCaptionsOriginRequestPolicy",
-        {
-          originRequestPolicyName:
-            Aws.STACK_NAME + "-EMT-AdCaptionsOriginRequestPolicy",
-          comment:
-            "Policy to request empty captions files from MediaTailor during ad break.",
-          headerBehavior: cloudfront.OriginRequestHeaderBehavior.none(),
-          cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-          queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
-        },
-      );
-    new CfnOutput(this, "MediaTailorAdCaptionsOriginRequestPolicyOutput", {
-      value: mediaTailorAdCaptionsOriginRequestPolicy.originRequestPolicyId,
-      exportName:
-        Aws.STACK_NAME + "-MediaTailor-Ad-Captions-OriginRequestPolicyId",
-      description: "Origin Request Policy Id for MediaTailor Ad Captions",
-    });
-
-    // Creating a custom cache policy for WebVTT requests directed to MediaTailor
-    const mediaTailorAdCaptionsCachePolicy = new cloudfront.CachePolicy(
-      this,
-      "MediaTailorAdCaptionsCachePolicy",
-      {
-        cachePolicyName: Aws.STACK_NAME + "-EMT-AdCaptionsCachePolicy",
-        comment: "Policy for caching empty Ad Captions delivered from MediaTailor during ad break",
-        defaultTtl: Duration.seconds(ONE_DAY_IN_SECONDS),
-        minTtl: Duration.seconds(1),
-        maxTtl: Duration.seconds(ONE_YEAR_IN_SECONDS),
-        cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-        headerBehavior: cloudfront.CacheHeaderBehavior.none(),
-        queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-        enableAcceptEncodingGzip: true,
-        enableAcceptEncodingBrotli: true,
-      },
-    );
-    new CfnOutput(this, "MediaTailorAdCaptionsCachePolicyOutput", {
-      value: mediaTailorAdCaptionsCachePolicy.cachePolicyId,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Ad-Captions-CachePolicyId",
-      description: "Cache Policy Id for MediaTailor Ad Captions requests",
-    });
-
-    /*
      * Create CloudFront MediaPackage Manifest Policies
      */
-    // Creating a custom origin request policy for MediaPackage manifests
-    const mediaPackageManifestOriginRequestPolicy =
-      new cloudfront.OriginRequestPolicy(
-        this,
-        "MediaPackageManifestOriginRequestPolicy",
-        {
-          originRequestPolicyName:
-            Aws.STACK_NAME + "-EMP-ManifestOriginRequestPolicy",
-          comment:
-            "Policy to FWD select query strings to the origin for manifest requests",
-          headerBehavior: cloudfront.OriginRequestHeaderBehavior.none(),
-          cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-          queryStringBehavior:
-            cloudfront.OriginRequestQueryStringBehavior.allowList(
-              ...this.allowedMediaPackageManifestQueryStrings,
-            ),
-        },
-      );
-    new CfnOutput(this, "MediaPackageManifestOriginRequestPolicyOutput", {
-      value: mediaPackageManifestOriginRequestPolicy.originRequestPolicyId,
-      exportName:
-        Aws.STACK_NAME + "-MediaPackage-Manifest-OriginRequestPolicyId",
-      description: "Origin Request Policy Id for MediaPackage Manifests",
-    });
-
     // Creating a custom cache policy for MediaPackage manifests
     const mediaPackageManifestCachePolicy = new cloudfront.CachePolicy(
       this,
@@ -328,60 +211,6 @@ export class Foundation extends Construct {
       value: mediaPackageManifestCachePolicy.cachePolicyId,
       exportName: Aws.STACK_NAME + "-MediaPackage-Manifest-CachePolicyId",
       description: "Cache Policy Id for MediaPackage Manifests",
-    });
-
-    /*
-     * Create CloudFront MediaPackage Media Segment Policies
-     */
-    // Creating a custom origin request policy for MediaPackage media segments
-    const mediaPackageMediaOriginRequestPolicy =
-      new cloudfront.OriginRequestPolicy(
-        this,
-        "MediaPackageMediaOriginRequestPolicy",
-        {
-          originRequestPolicyName:
-            Aws.STACK_NAME + "-EMP-MediaOriginRequestPolicy",
-          comment:
-            "Policy to FWD no query or headers strings to the origin for media requests",
-          headerBehavior: cloudfront.OriginRequestHeaderBehavior.none(),
-          cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-          queryStringBehavior:
-            cloudfront.OriginRequestQueryStringBehavior.none(),
-        },
-      );
-    new CfnOutput(this, "MediaPackageMediaOriginRequestPolicyOutput", {
-      value: mediaPackageMediaOriginRequestPolicy.originRequestPolicyId,
-      exportName: Aws.STACK_NAME + "-MediaPackage-Media-OriginRequestPolicyId",
-      description: "Origin Request Policy Id for MediaPackage Media Segments",
-    });
-
-    // Creating a custom cache policy for MediaPackage media segments
-    const mediaPackageMediaCachePolicy = new cloudfront.CachePolicy(
-      this,
-      "MediaPackageMediaCachePolicy",
-      {
-        cachePolicyName: Aws.STACK_NAME + "-EMP-MediaCachePolicy",
-        comment:
-          "Policy for caching Elemental MediaPackage Origin media requests",
-        // MediaPackage includes a max-age header of 14 days on media segment responses.
-        // As the max age is larger than the minimum and less than the maximum TTL the content will expire
-        // after the 14 day max-age if not evicted prior.
-        // For more information on this behaviour see:
-        // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html#expiration-individual-objects
-        defaultTtl: Duration.seconds(ONE_DAY_IN_SECONDS),
-        minTtl: Duration.seconds(1),
-        maxTtl: Duration.seconds(ONE_YEAR_IN_SECONDS),
-        cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-        headerBehavior: cloudfront.CacheHeaderBehavior.none(),
-        queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-        enableAcceptEncodingGzip: false,
-        enableAcceptEncodingBrotli: false,
-      },
-    );
-    new CfnOutput(this, "MediaPackageMediaCachePolicyOutput", {
-      value: mediaPackageMediaCachePolicy.cachePolicyId,
-      exportName: Aws.STACK_NAME + "-MediaPackage-Media-CachePolicyId",
-      description: "Cache Policy Id for MediaPackage Media Segments",
     });
 
     // Creating a custom response headers policy for most of the behaviours
@@ -576,7 +405,6 @@ export class Foundation extends Construct {
   // The lambda function will list all the running MediaLive channels with a 'LiveEventFrameworkVersion' tag.
   // The lambda will send a summary of the running channels to the SNS topic created in the foundation stack.
   createResourcesToSendDailyNotification(snsTopicArn: string) {
-
     // Create a Role for to send daily medialive notifications
     // Create an IAM role for the Lambda function
     const lambdaRole = new iam.Role(this, "DailyMediaLiveNotificationRole", {
@@ -586,23 +414,20 @@ export class Foundation extends Construct {
         "Role for the DailyMediaLiveNotificationRole Lambda function",
     });
 
-    // Create a medialive policy statement querying 
+    // Create a medialive policy statement querying
     const medialivePolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: [
-        "medialive:ListChannels",
-        "medialive:DescribeChannel",
-      ],
+      actions: ["medialive:ListChannels", "medialive:DescribeChannel"],
       resources: [
-        `arn:aws:medialive:${Aws.REGION}:${Aws.ACCOUNT_ID}:channel:*`
+        `arn:aws:medialive:${Aws.REGION}:${Aws.ACCOUNT_ID}:channel:*`,
       ],
     });
 
     // Create a sns policy statement publishing daily summary
     const snsPolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: [ "sns:Publish" ],
-      resources: [ snsTopicArn ],
+      actions: ["sns:Publish"],
+      resources: [snsTopicArn],
     });
 
     // Create a custom policy statement for CloudWatch permissions
@@ -621,16 +446,20 @@ export class Foundation extends Construct {
     lambdaRole.addToPolicy(medialivePolicy);
     lambdaRole.addToPolicy(snsPolicy);
 
-    NagSuppressions.addResourceSuppressions(lambdaRole, [
-      {
-        id: "AwsSolutions-IAM5",
-        reason:
-          "Resource is limited to log-groups in the account/region but a wildcard needs to " +
-          "be specified at the end of the resources due to the full resource name being unpredictable. " +
-          "Read-only permissions are granted to all MediaLive Channels in the account so the lambda " +
-          "can check if they were deployed with LEF and are in a running state for notifications",
-      },
-    ], true );
+    NagSuppressions.addResourceSuppressions(
+      lambdaRole,
+      [
+        {
+          id: "AwsSolutions-IAM5",
+          reason:
+            "Resource is limited to log-groups in the account/region but a wildcard needs to " +
+            "be specified at the end of the resources due to the full resource name being unpredictable. " +
+            "Read-only permissions are granted to all MediaLive Channels in the account so the lambda " +
+            "can check if they were deployed with LEF and are in a running state for notifications",
+        },
+      ],
+      true,
+    );
 
     // Create a lambda function to invoke at midnight UTC each night
     const lambdaFunction = new lambda.Function(
@@ -653,14 +482,18 @@ export class Foundation extends Construct {
     // Create a rule to invoke the lambda function at midnight UTC each night
     new events.Rule(this, "DailyMediaLiveNotificationRule", {
       ruleName: Aws.STACK_NAME + "-DailyMediaLiveNotificationRule",
-      schedule: events.Schedule.cron({ minute: "0", hour: "0", day: "*", month: "*", year: "*" }),
+      schedule: events.Schedule.cron({
+        minute: "0",
+        hour: "0",
+        day: "*",
+        month: "*",
+        year: "*",
+      }),
       targets: [new targets.LambdaFunction(lambdaFunction)],
     });
 
     return;
-  } 
-
-
+  }
 
   // This function creates an SNS topic and subscribes to it using the email address specified in userEmail
   createSnsTopicWithSubscription(userEmail: string) {

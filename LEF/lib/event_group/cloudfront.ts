@@ -31,12 +31,15 @@ export interface CloudFrontProps {
   foundationStackName: string;
   mediaTailorHostname: string;
   mediaPackageHostname: string;
+  mediaPackageChannelGroupName: string;
   s3LoggingEnabled: boolean;
   logFilePrefix: string;
   nominalSegmentLength: number;
   enableIpv6: boolean;
   tokenizationFunctionArn?: string;
   keyGroupIds?: string[];
+  enableOriginShield?: boolean;
+  originShieldRegion?: string;
 }
 
 export class CloudFront extends Construct {
@@ -51,7 +54,8 @@ export class CloudFront extends Construct {
     const s3LoggingEnabled = props.s3LoggingEnabled;
     const nominalSegmentLength = props.nominalSegmentLength;
     const tokenizationFunctionArn = props.tokenizationFunctionArn;
-    let keyGroupIdList = new Array<cloudfront.IKeyGroup>;
+    let keyGroupIdList = new Array<cloudfront.IKeyGroup>();
+    const mediaPackageChannelGroupName = props.mediaPackageChannelGroupName;
 
     /*
      * First step: Import CloudFront Policies and Origins from Foundation Stack
@@ -97,9 +101,9 @@ export class CloudFront extends Construct {
       {
         originId: "MediaPackage",
         originSslProtocols: [cloudfront.OriginSslPolicy.TLS_V1_2],
+        originShieldEnabled: props.enableOriginShield,
+        originShieldRegion: props.originShieldRegion,
         protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
-        originShieldEnabled: false,
-        originShieldRegion: "",
         connectionAttempts: CONNECTION_ATTEMPTS,
         connectionTimeout: Duration.seconds(connectionTimeoutValue),
         readTimeout: Duration.seconds(readTimeoutValue),
@@ -113,9 +117,9 @@ export class CloudFront extends Construct {
       {
         originId: "MediaTailor",
         originSslProtocols: [cloudfront.OriginSslPolicy.TLS_V1_2],
+        originShieldEnabled: props.enableOriginShield,
+        originShieldRegion: props.originShieldRegion,
         protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
-        originShieldEnabled: false,
-        originShieldRegion: "",
         connectionAttempts: CONNECTION_ATTEMPTS,
         connectionTimeout: Duration.seconds(connectionTimeoutValue),
         readTimeout: Duration.seconds(readTimeoutValue),
@@ -129,9 +133,9 @@ export class CloudFront extends Construct {
       {
         originId: "MediaTailorAds",
         originSslProtocols: [cloudfront.OriginSslPolicy.TLS_V1_2],
+        originShieldEnabled: props.enableOriginShield,
+        originShieldRegion: props.originShieldRegion,
         protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
-        originShieldEnabled: false,
-        originShieldRegion: "",
         connectionAttempts: CONNECTION_ATTEMPTS,
         connectionTimeout: Duration.seconds(connectionTimeoutValue),
         readTimeout: Duration.seconds(readTimeoutValue),
@@ -166,14 +170,16 @@ export class CloudFront extends Construct {
         function: cfFunction,
       };
       functionAssociations.push(functionAssociation);
-    } else if ( props.keyGroupIds && props.keyGroupIds?.length >= 1 ) {
-
+    } else if (props.keyGroupIds && props.keyGroupIds?.length >= 1) {
       // Load the list of CloudFront Key Groups
       props.keyGroupIds.forEach((keyGroupId) => {
-        const keyGroup = cloudfront.KeyGroup.fromKeyGroupId(this, keyGroupId, keyGroupId);
+        const keyGroup = cloudfront.KeyGroup.fromKeyGroupId(
+          this,
+          keyGroupId,
+          keyGroupId,
+        );
         keyGroupIdList.push(keyGroup);
       });
-  
     }
 
     //3.1. Distribution for Live stream delivery
@@ -192,7 +198,8 @@ export class CloudFront extends Construct {
       errorResponses: this.getErrorResponseConfiguration(errorPageMinTtl),
       defaultBehavior: {
         origin: mediaTailorAdsOrigin,
-        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        cachePolicy:
+          cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -217,21 +224,17 @@ export class CloudFront extends Construct {
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-          originRequestPolicy:
-            foundation.mediaTailorManifestOriginRequestPolicy,
-          responseHeadersPolicy: foundation.postResponseHeadersPolicy,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+          responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           trustedKeyGroups: keyGroupIdList,
         },
         [pathPrefix + "/v1/w*"]: {
           origin: mediaTailorOrigin,
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          cachePolicy: foundation.mediaTailorAdCaptionsCachePolicy,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-          originRequestPolicy:
-            foundation.mediaTailorAdCaptionsOriginRequestPolicy,
           responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
@@ -262,67 +265,59 @@ export class CloudFront extends Construct {
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
         },
-        [pathPrefix + "/v1/segment/*"]: {
+        [pathPrefix + "/v1/*segment/*"]: {
           origin: mediaTailorOrigin,
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          cachePolicy: foundation.mediaTailorAdRedirectCachePolicy,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-          originRequestPolicy:
-            foundation.mediaTailorAdRedirectOriginRequestPolicy,
           responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
         },
-        [pathPrefix + "/v1/dashsegment/*"]: {
+        [pathPrefix + "/v1/i-media/*"]: {
           origin: mediaTailorOrigin,
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          cachePolicy: foundation.mediaTailorAdRedirectCachePolicy,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-          originRequestPolicy:
-            foundation.mediaTailorAdRedirectOriginRequestPolicy,
           responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
         },
         // MediaPackage Behaviours
-        [pathPrefix + "/out/v1/*.m3u8"]: {
+        [pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*.m3u8"]: {
           origin: mediaPackageOrigin,
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: foundation.mediaPackageManifestCachePolicy,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-          originRequestPolicy:
-            foundation.mediaPackageManifestOriginRequestPolicy,
           responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
         },
-        [pathPrefix + "/out/v1/*.mpd"]: {
+        [pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*.mpd"]: {
           origin: mediaPackageOrigin,
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: foundation.mediaPackageManifestCachePolicy,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-          originRequestPolicy:
-            foundation.mediaPackageManifestOriginRequestPolicy,
           responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
         },
-        [pathPrefix + "/out/v1/*"]: {
+        [pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*"]: {
           origin: mediaPackageOrigin,
-          cachePolicy: foundation.mediaPackageMediaCachePolicy,
+          cachePolicy:
+            cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          originRequestPolicy: foundation.mediaPackageMediaOriginRequestPolicy,
           responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
           functionAssociations: functionAssociations,
           trustedKeyGroups: keyGroupIdList,
@@ -450,72 +445,6 @@ export class CloudFront extends Construct {
         mediaTailorManifestOriginRequestPolicyId,
       );
 
-    // Load mediaTailorAdRedirectOriginRequestPolicy created by foundation stack
-    const mediaTailorAdRedirectOriginRequestPolicyId = Fn.importValue(
-      foundationStackName + "-MediaTailor-Ad-Redirect-OriginRequestPolicyId",
-    );
-    const mediaTailorAdRedirectOriginRequestPolicy =
-      cloudfront.OriginRequestPolicy.fromOriginRequestPolicyId(
-        this,
-        "MediaTailorAdRedirectOriginRequestPolicy",
-        mediaTailorAdRedirectOriginRequestPolicyId,
-      );
-
-    // Load mediaTailorAdRedirectCachePolicy created by foundation stack
-    const mediaTailorAdRedirectCachePolicyId = Fn.importValue(
-      foundationStackName + "-MediaTailor-Ad-Redirect-CachePolicyId",
-    );
-    const mediaTailorAdRedirectCachePolicy =
-      cloudfront.CachePolicy.fromCachePolicyId(
-        this,
-        "MediaTailorAdRedirectCachePolicy",
-        mediaTailorAdRedirectCachePolicyId,
-      );
-
-    // Load mediaTailorAdCaptionsOriginRequestPolicy created by foundation stack
-    const mediaTailorAdCaptionsOriginRequestPolicyId = Fn.importValue(
-      foundationStackName + "-MediaTailor-Ad-Captions-OriginRequestPolicyId",
-    );
-    const mediaTailorAdCaptionsOriginRequestPolicy =
-      cloudfront.OriginRequestPolicy.fromOriginRequestPolicyId(
-        this,
-        "MediaTailorAdCaptionsOriginRequestPolicy",
-        mediaTailorAdCaptionsOriginRequestPolicyId,
-      );
-
-    // Load mediaTailorAdCaptionsCachePolicy created by foundation stack
-    const mediaTailorAdCaptionsCachePolicyId = Fn.importValue(
-      foundationStackName + "-MediaTailor-Ad-Captions-CachePolicyId",
-    );
-    const mediaTailorAdCaptionsCachePolicy =
-      cloudfront.CachePolicy.fromCachePolicyId(
-        this,
-        "MediaTailorAdCaptionsCachePolicy",
-        mediaTailorAdCaptionsCachePolicyId,
-      );
-
-    // Load mediaPackageManifestOriginRequestPolicy created by foundation stack
-    const mediaPackageManifestOriginRequestPolicyId = Fn.importValue(
-      foundationStackName + "-MediaPackage-Manifest-OriginRequestPolicyId",
-    );
-    const mediaPackageManifestOriginRequestPolicy =
-      cloudfront.OriginRequestPolicy.fromOriginRequestPolicyId(
-        this,
-        "MediaPackageManifestOriginRequestPolicy",
-        mediaPackageManifestOriginRequestPolicyId,
-      );
-
-    // Load mediaPackageMediaOriginRequestPolicy created by foundation stack
-    const mediaPackageMediaOriginRequestPolicyId = Fn.importValue(
-      foundationStackName + "-MediaPackage-Media-OriginRequestPolicyId",
-    );
-    const mediaPackageMediaOriginRequestPolicy =
-      cloudfront.OriginRequestPolicy.fromOriginRequestPolicyId(
-        this,
-        "MediaPackageMediaOriginRequestPolicy",
-        mediaPackageMediaOriginRequestPolicyId,
-      );
-
     // Load mediaPackageManifestCachePolicy created by foundation stack
     const mediaPackageManifestCachePolicyId = Fn.importValue(
       foundationStackName + "-MediaPackage-Manifest-CachePolicyId",
@@ -525,17 +454,6 @@ export class CloudFront extends Construct {
         this,
         "MediaPackageManifestCachePolicy",
         mediaPackageManifestCachePolicyId,
-      );
-
-    // Load mediaPackageMediaCachePolicy created by foundation stack
-    const mediaPackageMediaCachePolicyId = Fn.importValue(
-      foundationStackName + "-MediaPackage-Media-CachePolicyId",
-    );
-    const mediaPackageMediaCachePolicy =
-      cloudfront.CachePolicy.fromCachePolicyId(
-        this,
-        "MediaPackageMediaCachePolicy",
-        mediaPackageMediaCachePolicyId,
       );
 
     // Load default responseHeadersPolicy created by foundation stack
@@ -563,19 +481,7 @@ export class CloudFront extends Construct {
     return {
       mediaTailorManifestOriginRequestPolicy:
         mediaTailorManifestOriginRequestPolicy,
-      mediaTailorAdRedirectOriginRequestPolicy:
-        mediaTailorAdRedirectOriginRequestPolicy,
-      mediaTailorAdCaptionsOriginRequestPolicy:
-        mediaTailorAdCaptionsOriginRequestPolicy,
-      mediaTailorAdRedirectCachePolicy:
-        mediaTailorAdRedirectCachePolicy,
-      mediaTailorAdCaptionsCachePolicy: mediaTailorAdCaptionsCachePolicy,
-      mediaPackageManifestOriginRequestPolicy:
-        mediaPackageManifestOriginRequestPolicy,
-      mediaPackageMediaOriginRequestPolicy:
-        mediaPackageMediaOriginRequestPolicy,
       mediaPackageManifestCachePolicy: mediaPackageManifestCachePolicy,
-      mediaPackageMediaCachePolicy: mediaPackageMediaCachePolicy,
       defaultResponseHeadersPolicy: defaultResponseHeadersPolicy,
       postResponseHeadersPolicy: postResponseHeadersPolicy,
       s3LogsBucket: s3LogsBucket,
