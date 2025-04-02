@@ -20,7 +20,8 @@ MediaLive Anywhere channels support a number of additional input types.
 
 - Multicast
 - SDI
-  Note: Multicast and SDI inputs do not make sense for MediaLive to support as these inputs cannot be delivered in the AWS Cloud.
+
+  **Note: Multicast and SDI inputs do not make sense for MediaLive to support as these inputs cannot be delivered in the AWS Cloud.**
 
 The [default Event Stack configuration file](../../config/default/eventConfiguration.ts) is configured to deploy a Standard MediaLive Channel. MediaLive Anywhere does not support the deployment of standard channels.
 
@@ -29,7 +30,7 @@ The following changes are require to the default configuration to convert it fro
 1. Channel Class
    Set the 'event.mediaLive.channelClass' to 'SINGLE_PIPELINE'.
 
-2. Confgure MediaLive Anywhere Cluster
+2. Configure MediaLive Anywhere Cluster
    Set the 'event.mediaLive.anywhereSettings' to an object specifying the 'channelPlacementGroupId' and 'clusterId'.
 
 Below is an example showing how these values might be set in the configuration file.
