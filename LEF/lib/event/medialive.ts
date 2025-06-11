@@ -13,7 +13,11 @@
 
 import { aws_medialive as medialive, Aws, CfnOutput, Fn } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { IMediaLiveConfig } from './eventConfigInterface';
+import {
+  IMediaLiveConfig,
+  MediaLiveChannelClass,
+} from "./eventConfigInterface";
+import { MediaLiveInput } from "./inputs/mediaLiveInputTypes";
 
 let defaultAudioInputAlreadyCreated: boolean = false;
 
@@ -22,224 +26,206 @@ export interface IMediaLiveProps {
   mediaLiveAccessRoleArn: string;
   configuration: IMediaLiveConfig;
   outputGroupType: string;
-  hlsIngestEndpoint1?: string;
-  hlsIngestEndpoint2?: string;
+  hlsIngestEndpoint1: string;
+  hlsIngestEndpoint2: string;
+}
+
+interface MediaLiveDestinationSetting {
+  url: string;
 }
 
 export class MediaLive extends Construct {
   public readonly channelLive: medialive.CfnChannel;
   public readonly channelInput: medialive.CfnInput;
 
-  constructor(scope: Construct, id: string, props: IMediaLiveProps) {
-    super(scope, id);
+  private configuration: IMediaLiveConfig;
 
-    // Set some props values to local variables
-    const configuration = props.configuration;
-    const mediaLiveAccessRoleArn = props.mediaLiveAccessRoleArn;
-
-    var destinationValue = [];
-    let inputSettingsValue: any = {
-      sourceEndBehavior: "CONTINUE",
+  private createInputProps(
+    inputName: string,
+    input: MediaLiveInput,
+    mediaLiveAccessRole: string,
+  ): medialive.CfnInputProps {
+    const baseProps: Partial<medialive.CfnInputProps> = {
+      name: inputName,
     };
 
-    /*
-     * Third step: Create Input and specific info based on the input types
-     */
-    // 1. Create a MediaLive input
-    const inputName =
-      Aws.STACK_NAME + "_" + configuration.inputType + "_MediaLiveInput";
-    var cfnInputProps: medialive.CfnInputProps = {
-      name: "",
-      roleArn: "",
-      type: "",
-      inputSecurityGroups: [],
-      destinations: [
-        {
-          streamName: "",
-        },
-      ],
-      inputDevices: [
-        {
-          id: "",
-        },
-      ],
-      mediaConnectFlows: [
-        {
-          flowArn: "",
-        },
-      ],
-      sources: [
-        {
-          passwordParam: "passwordParam",
-          url: "url",
-          username: "username",
-        },
-      ],
-      vpc: {
-        securityGroupIds: [""],
-        subnetIds: [""],
-      },
-    };
-
-    // 1.1 Testing the Input Type
-    switch (configuration.inputType) {
-      case "INPUT_DEVICE":
-        // Validating if STANDARD or SINGLE_PIPELINE Channel to provide 1 or 2 InputDevice
-        if (configuration.channelClass == "STANDARD") {
-          destinationValue = [
-            { id: configuration.priLink },
-            { id: configuration.secLink },
-          ];
-        } else {
-          destinationValue = [{ id: configuration.priLink }];
-        }
-        cfnInputProps = {
-          name: inputName,
-          type: configuration.inputType,
-          inputDevices: destinationValue,
+    switch (input.type) {
+      case "MULTICAST":
+        return {
+          ...baseProps,
+          type: "MULTICAST",
+          multicastSettings: input.multicastSettings,
         };
-        break;
+
+      case "INPUT_DEVICE":
+        return {
+          ...baseProps,
+          type: "INPUT_DEVICE",
+          inputDevices: [{ id: input.deviceId }],
+        };
 
       case "RTP_PUSH":
-        cfnInputProps = {
-          name: inputName,
-          type: configuration.inputType,
-          inputSecurityGroups: [ this.createMediaLiveSecurityGroup( configuration.inputCidr ) ],
+        return {
+          ...baseProps,
+          type: "RTP_PUSH",
+          inputSecurityGroups: [this.createMediaLiveSecurityGroup(input.cidr)],
         };
-        break;
+
       case "RTMP_PUSH":
-        // Validating if STANDARD or SINGLE_PIPELINE Channel to provide 1 or 2 URL
-        if (configuration.channelClass == "STANDARD") {
-          destinationValue = [
-            { streamName: configuration.rtmpStreamName + "/primary" },
-            { streamName: configuration.rtmpStreamName + "/secondary" },
-          ];
-        } else {
-          destinationValue = [
-            { streamName: configuration.rtmpStreamName + "/primary" },
-          ];
-        }
-        cfnInputProps = {
-          name: inputName,
-          type: configuration.inputType,
-          inputSecurityGroups: [ this.createMediaLiveSecurityGroup( configuration.inputCidr ) ],
-          destinations: destinationValue,
+        return {
+          ...baseProps,
+          type: "RTMP_PUSH",
+          inputSecurityGroups: [this.createMediaLiveSecurityGroup(input.cidr)],
         };
-        break;
-      case "URL_PULL":
-        // HLS Input Attachments require additional parameters to be set
-        // MediaLive can extract SCTE markers from either the HLS Manifests or Segments.
-        // By default SCTE markers are read from segments. For this project the default m3u8
-        // is generated using MediaTailor Channel assembly and the SCTE need to be read from
-        // the manifest files.
-        if (configuration.priUrl.endsWith(".m3u8")) {
-          inputSettingsValue = {
-            sourceEndBehavior: configuration.sourceEndBehavior,
-            networkInputSettings: {
-              hlsInputSettings: {
-                scte35Source: "MANIFEST",
-              },
-            },
-          };
-        }
-      // Code is intended to fall throught to the same processing for 'TS_FILE'
-      case "MP4_FILE":
+
       case "RTMP_PULL":
-      case "TS_FILE":
-        // Validating if STANDARD or SINGLE_PIPELINE Channel to provide 1 or 2 URL
-        if (configuration.channelClass == "STANDARD") {
-          destinationValue = [
-            { url: configuration.priUrl },
-            { url: configuration.secUrl },
-          ];
-        } else {
-          destinationValue = [{ url: configuration.priUrl }];
-        }
-        cfnInputProps = {
-          name: inputName,
-          type: configuration.inputType,
-          sources: destinationValue,
+        return {
+          ...baseProps,
+          type: "RTMP_PULL",
+          sources: input.urls.map((url: string) => ({
+            url: url,
+            ...(input.username && input.password
+              ? {
+                  username: input.username,
+                  passwordParam: input.password,
+                }
+              : {}),
+          })),
         };
-        inputSettingsValue["sourceEndBehavior"] =
-          configuration.sourceEndBehavior;
-        break;
+
       case "MEDIACONNECT":
-        // Validating if STANDARD or SINGLE_PIPELINE Channel to provide 1 or 2 URL
-        if (configuration.channelClass == "STANDARD") {
-          destinationValue = [
-            { flowArn: configuration.priFlow },
-            { flowArn: configuration.secFlow },
-          ];
-        } else {
-          destinationValue = [{ flowArn: configuration.priFlow }];
-        }
-        cfnInputProps = {
-          name: inputName,
-          type: configuration.inputType,
-          roleArn: mediaLiveAccessRoleArn,
-          mediaConnectFlows: destinationValue,
+        return {
+          ...baseProps,
+          type: "MEDIACONNECT",
+          roleArn: mediaLiveAccessRole,
+          mediaConnectFlows: input.arnList.map((arn: string) => ({
+            flowArn: arn,
+          })),
         };
-        break;
+
+      case "URL_PULL":
+        return {
+          ...baseProps,
+          type: "URL_PULL",
+          sources: input.urls.map(
+            (urlConfig: {
+              url: string;
+              username?: string;
+              password?: string;
+            }): medialive.CfnInput.InputSourceRequestProperty => ({
+              url: urlConfig.url,
+              ...(urlConfig.username && { username: urlConfig.username }),
+              ...(urlConfig.password && { passwordParam: urlConfig.password }),
+            }),
+          ),
+        };
+
+      case "MP4_FILE":
+      case "TS_FILE":
+        return {
+          ...baseProps,
+          type: input.type,
+          sources: input.urls.map((url: string) => {
+            return {
+              url: url,
+            };
+          }),
+        };
     }
 
-    const mediaLiveInput = new medialive.CfnInput(
-      this,
-      "MediaInputChannel",
-      cfnInputProps,
+    throw new Error(
+      "Unknown input type. Specified input type does not match a supported type",
     );
+  }
 
-    //2. Create Channel
-    var encoderSettings = require(configuration.encodingProfileLocation);
+  private getAttachedInputSettings(): any {
+    const input = this.configuration.input;
 
-    // HLS Output Group
+    if (input.type == "URL_PULL" && input.urls[0].url.endsWith(".m3u8")) {
+      // HLS Input Attachments require additional parameters to be set
+      // MediaLive can extract SCTE markers from either the HLS Manifests or Segments.
+      // By default SCTE markers are read from segments. For this project the default m3u8
+      // is generated using MediaTailor Channel assembly and the SCTE need to be read from
+      // the manifest files.
+      return {
+        sourceEndBehavior: this.configuration.sourceEndBehavior,
+        networkInputSettings: {
+          hlsInputSettings: {
+            scte35Source: "MANIFEST",
+          },
+        },
+      };
+    } else if (
+      [
+        "MEDIACONNECT",
+        "RTP_PUSH",
+        "MULTICAST",
+        "INPUT_DEVICE",
+        "RTP_PUSH",
+        "RTMP_PUSH",
+        "RTMP_PULL",
+      ].includes(input.type)
+    ) {
+      // Listed inputs do not support 'LOOP' sourceEndBehaviour
+      return {
+        sourceEndBehavior: "CONTINUE",
+      };
+    }
+    return {
+      sourceEndBehavior: this.configuration.sourceEndBehavior,
+    };
+  }
+
+  private getMediaLiveDestination(
+    channelClass: MediaLiveChannelClass,
+    pipeline0Destination: string,
+    pipeline1Destination: string,
+  ): medialive.CfnChannel.OutputDestinationProperty {
     // Validating if STANDARD or SINGLE_PIPELINE Channel to provide 1 or 2 URL for MediaPackage Ingest
-    var mediaLiveDestination = {};
-    if (configuration.channelClass == "STANDARD") {
-      mediaLiveDestination = {
-        id: "media-destination",
-        settings: [
-          {
-            url: props.hlsIngestEndpoint1,
-          },
-          {
-            url: props.hlsIngestEndpoint2,
-          },
-        ],
-      };
-    } else {
-      mediaLiveDestination = {
-        id: "media-destination",
-        settings: [
-          {
-            url: props.hlsIngestEndpoint1,
-          },
-        ],
-      };
-    }
+    let destination = {
+      id: "media-destination",
+      settings: [] as MediaLiveDestinationSetting[],
+    };
 
-    // Format adMarkers into structure required by MediaLive
-    const adMarkers: Array<string> = [];
-    if ( configuration.adMarkers !== undefined && configuration.adMarkers !== "" ) {
-      adMarkers.push( configuration.adMarkers )
+    if (channelClass === "SINGLE_PIPELINE") {
+      destination.settings = [{ url: pipeline0Destination }];
+    } else {
+      destination.settings = [
+        { url: pipeline0Destination },
+        { url: pipeline1Destination },
+      ];
     }
+    return destination as medialive.CfnChannel.OutputDestinationProperty;
+  }
+
+  private getOutputGroupSettings(outputGroupType: string): any {
+    let outputGroupSettings: any = {};
 
     // Configure output group settings
-    if ( props.outputGroupType == "CMAF" ) {
+    if (outputGroupType == "CMAF") {
       // Configure CMAF Output Group
-      encoderSettings.outputGroups[0].outputGroupSettings = {
+      outputGroupSettings = {
         cmafIngestGroupSettings: {
           destination: {
             destinationRefId: "media-destination",
           },
           nielsenId3Behavior: "NO_PASSTHROUGH",
           scte35Type: "SCTE_35_WITHOUT_SEGMENTATION",
-          segmentLength: configuration.segmentLengthInSeconds,
-          segmentLengthUnits: "SECONDS"
-        }
+          segmentLength: this.configuration.segmentLengthInSeconds,
+          segmentLengthUnits: "SECONDS",
+        },
       };
-    } else if (props.outputGroupType == "HLS") {
+    } else if (outputGroupType == "HLS") {
+      // Format adMarkers into structure required by MediaLive
+      const adMarkers: Array<string> = [];
+      if (
+        this.configuration.adMarkers !== undefined &&
+        this.configuration.adMarkers !== ""
+      ) {
+        adMarkers.push(this.configuration.adMarkers);
+      }
       // Configure HLS Output Group
-      encoderSettings.outputGroups[0].outputGroupSettings = {
+      outputGroupSettings = {
         hlsGroupSettings: {
           adMarkers: adMarkers,
           destination: {
@@ -255,83 +241,132 @@ export class MediaLive extends Construct {
           },
           hlsId3SegmentTagging: "ENABLED",
           inputLossAction: "PAUSE_OUTPUT",
-          segmentLength: configuration.segmentLengthInSeconds,
-          minSegmentLength: configuration.minimumSegmentLengthInSeconds,
+          segmentLength: this.configuration.segmentLengthInSeconds,
+          minSegmentLength: this.configuration.minimumSegmentLengthInSeconds,
           programDateTime: "INCLUDE",
           programDateTimeClock: "SYSTEM_CLOCK",
-          programDateTimePeriod: configuration.segmentLengthInSeconds,
+          programDateTimePeriod: this.configuration.segmentLengthInSeconds,
         },
       };
     } else {
       throw new Error("Unknown and unsupported output group type.");
     }
 
-    if ( props.outputGroupType == "HLS" ) {
-      // Get a list of all the audio codecs used in the profile
-      // An audio rendition group will be created for each audio codec
-      const audioRenditionSets = getAudioRenditionSets(
-        encoderSettings.audioDescriptions,
-      );
+    return outputGroupSettings;
+  }
 
-      var commonVideoOutputSettings = {
-        hlsSettings: {
-          standardHlsSettings: {
-            audioRenditionSets: audioRenditionSets,
-            m3U8Settings: {
-              scte35Behavior: configuration.scte35Behavior,
-              scte35Pid: "500",
-            },
+  private setHlsOutputGroupSpecificSettings(encoderSettings: any) {
+    // Method to isolate the configuration only required for a HLS output group
+
+    // Get a list of all the audio codecs used in the profile
+    // An audio rendition group will be created for each audio codec
+    const audioRenditionSets = getAudioRenditionSets(
+      encoderSettings.audioDescriptions,
+    );
+
+    var commonVideoOutputSettings = {
+      hlsSettings: {
+        standardHlsSettings: {
+          audioRenditionSets: audioRenditionSets,
+          m3U8Settings: {
+            scte35Behavior: this.configuration.scte35Behavior,
+            scte35Pid: "500",
           },
         },
-      };
+      },
+    };
 
-      var frameCaptureOutputSettings = {
-        hlsSettings: {
-          frameCaptureHlsSettings: {},
-        },
-      };
+    var frameCaptureOutputSettings = {
+      hlsSettings: {
+        frameCaptureHlsSettings: {},
+      },
+    };
 
-      var videoDescriptions = encoderSettings.videoDescriptions;
+    var videoDescriptions = encoderSettings.videoDescriptions;
 
-      // Set output settings for each output in the output group
-      for (var output of encoderSettings.outputGroups[0].outputs) {
-        // Set default blank output settings for the output
-        output.outputSettings = { hlsOutputSettings: {} };
+    // Set output settings for each output in the output group
+    for (var output of encoderSettings.outputGroups[0].outputs) {
+      // Set default blank output settings for the output
+      output.outputSettings = { hlsOutputSettings: {} };
 
-        if (output.videoDescriptionName) {
-          // Process as a video rendition
-          var videoDescription = getVideoDescriptionByName(
-            videoDescriptions,
-            output.videoDescriptionName,
-          );
+      if (output.videoDescriptionName) {
+        // Process as a video rendition
+        var videoDescription = getVideoDescriptionByName(
+          videoDescriptions,
+          output.videoDescriptionName,
+        );
 
-          if (
-            videoDescription &&
-            videoDescription.codecSettings &&
-            videoDescription.codecSettings.frameCaptureSettings
-          ) {
-            // Frame capture video descriptions require a different set of output settings
-            output.outputSettings.hlsOutputSettings = frameCaptureOutputSettings;
-          } else {
-            output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
-          }
-        } else if (output.audioDescriptionNames) {
-          // Process as an audio rendition
-          output.outputSettings.hlsOutputSettings.hlsSettings =
-            getHlsAudioOutputSettings(output, encoderSettings.audioDescriptions);
-        } else if (output.captionDescriptionNames) {
-          // Process as an captions rendition
-          output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
+        if (
+          videoDescription &&
+          videoDescription.codecSettings &&
+          videoDescription.codecSettings.frameCaptureSettings
+        ) {
+          // Frame capture video descriptions require a different set of output settings
+          output.outputSettings.hlsOutputSettings = frameCaptureOutputSettings;
         } else {
-          throw new Error("Unknown and unsupported output type.");
+          output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
         }
+      } else if (output.audioDescriptionNames) {
+        // Process as an audio rendition
+        output.outputSettings.hlsOutputSettings.hlsSettings =
+          getHlsAudioOutputSettings(output, encoderSettings.audioDescriptions);
+      } else if (output.captionDescriptionNames) {
+        // Process as an captions rendition
+        output.outputSettings.hlsOutputSettings = commonVideoOutputSettings;
+      } else {
+        throw new Error("Unknown and unsupported output type.");
       }
     }
+  }
+
+  constructor(scope: Construct, id: string, props: IMediaLiveProps) {
+    super(scope, id);
+
+    const { configuration, mediaLiveAccessRoleArn } = props;
+    this.configuration = configuration;
+
+    //1. Create the MediaLive Input
+    const inputName =
+      configuration.input.inputName ||
+      `${Aws.STACK_NAME}_${configuration.input.type}_MediaLiveInput`;
+    const mediaLiveInput = new medialive.CfnInput(
+      this,
+      "MediaInputChannel",
+      this.createInputProps(
+        inputName,
+        configuration.input,
+        mediaLiveAccessRoleArn,
+      ),
+    );
+    const attachedInputSettings = this.getAttachedInputSettings();
+
+    //2. Create Channel
+    // Load MediaLive Output settins from configurations file
+    var encoderSettings = require(configuration.encodingProfileLocation);
+    // Configure output group settings
+    encoderSettings.outputGroups[0].outputGroupSettings =
+      this.getOutputGroupSettings(props.outputGroupType);
+
+    if (props.outputGroupType == "HLS") {
+      // Set unique output configuration required for HLS output groups
+      // CMAF Output groups require significantly less configuration
+      this.setHlsOutputGroupSpecificSettings(encoderSettings);
+    }
+
+    // Set additional MediaLive Anywhere configuration if specified
+    var anywhereSettings:
+      | medialive.CfnChannel.AnywhereSettingsProperty
+      | undefined = configuration.anywhereSettings;
 
     const channelLive = new medialive.CfnChannel(this, "MediaLiveChannel", {
       channelClass: configuration.channelClass,
+      anywhereSettings: anywhereSettings,
       destinations: [
-        mediaLiveDestination as medialive.CfnChannel.OutputDestinationProperty,
+        this.getMediaLiveDestination(
+          configuration.channelClass,
+          props.hlsIngestEndpoint1,
+          props.hlsIngestEndpoint2,
+        ),
       ],
       inputSpecification: {
         codec: configuration.inputSpecification.codec,
@@ -343,8 +378,8 @@ export class MediaLive extends Construct {
       inputAttachments: [
         {
           inputId: mediaLiveInput.ref,
-          inputAttachmentName: inputName,
-          inputSettings: inputSettingsValue,
+          inputAttachmentName: mediaLiveInput.name,
+          inputSettings: attachedInputSettings,
         },
       ],
       encoderSettings:
@@ -367,7 +402,7 @@ export class MediaLive extends Construct {
       description: "The Input Name of the MediaLive Channel",
     });
     if (
-      ["UDP_PUSH", "RTP_PUSH", "RTMP_PUSH"].includes(configuration.inputType)
+      ["UDP_PUSH", "RTP_PUSH", "RTMP_PUSH"].includes(configuration.input.type)
     ) {
       if (configuration.channelClass == "STANDARD") {
         new CfnOutput(this, "MediaLiveChannelDestPri", {
@@ -397,12 +432,17 @@ export class MediaLive extends Construct {
   }
 
   // Function to create a Security Group
-  createMediaLiveSecurityGroup( inputCidr: string ): string {
+  createMediaLiveSecurityGroup(inputCidr: string[]): string {
+    // Create list of cidr blocks
+    const cidrList = inputCidr.map((cidr) => {
+      return { cidr: cidr };
+    });
+
     const mediaLiveSG = new medialive.CfnInputSecurityGroup(
       this,
       "MediaLiveInputSecurityGroup",
       {
-        whitelistRules: [ { cidr: inputCidr } ],
+        whitelistRules: cidrList,
       },
     );
     return mediaLiveSG.ref;

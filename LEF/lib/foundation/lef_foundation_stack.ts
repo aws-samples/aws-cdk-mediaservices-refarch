@@ -10,17 +10,18 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-import { CfnParameter } from "aws-cdk-lib";
+import { Aws, aws_iam as iam, CfnParameter, Tags } from "aws-cdk-lib";
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { LefBaseStack } from "../lef_base_stack";
 import { Foundation } from "./foundation";
-import { IFoundationConfig } from './foundationConfigInterface';
+import { IFoundationConfig } from "./foundationConfigInterface";
 
 // Define a regular expression pattern for email validation
 const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
-export class LefFoundationStack extends cdk.Stack {
+export class LefFoundationStack extends LefBaseStack {
   constructor(
     scope: Construct,
     id: string,
@@ -34,6 +35,18 @@ export class LefFoundationStack extends cdk.Stack {
 
     // Validate foundation configuration
     this.validateConfig(config);
+
+    // Tag resources
+    const tags: Record<string, string>[] = [
+      {
+        FoundationStackName: Aws.STACK_NAME,
+        StackType: "LefFoundationStack",
+        LiveEventFrameworkVersion: scope.node.tryGetContext(
+          "LiveEventFrameworkVersion",
+        ),
+      },
+    ];
+    this.tagResources(tags);
 
     // Define parameter to capture email address to subscribe to SNS topic
     const userEmail = new CfnParameter(this, "userEmail", {
@@ -51,35 +64,24 @@ export class LefFoundationStack extends cdk.Stack {
     });
   }
 
-  // load foundation configuration
-  loadConfig( configFilePath: string ): IFoundationConfig {
-
-    try {
-      const config = require(configFilePath);
-      return config.FOUNDATION_CONFIG;
-    } catch (err) {
-      if (err instanceof Error) {
-        throw new Error(
-          `Failed to load configuration file (${configFilePath}): ${err.message}`,
-        );
-      } else {
-        throw new Error(
-          `Failed to load configuration file (${configFilePath}): ${String(err)}`,
-        );
-      }
-    }
+  loadConfig(configFilePath: string): IFoundationConfig {
+    return this.getConfig<IFoundationConfig>(
+      configFilePath,
+      "FOUNDATION_CONFIG",
+    );
   }
 
   // validate foundation configuration
-  validateConfig( config: IFoundationConfig ) {
+  validateConfig(config: IFoundationConfig): void {
+    // Additional stack-specific validations can be added here
 
-    if (!config.cloudFront) {
-      throw new Error('CloudFront configuration is missing in foundation config');
+    if (
+      !config.cloudFront.logging ||
+      typeof config.cloudFront.logging.logRetentionPeriod !== "number"
+    ) {
+      throw new Error(
+        "Invalid or missing log retention period in CloudFront configuration",
+      );
     }
-  
-    if (!config.cloudFront.logging || typeof config.cloudFront.logging.logRetentionPeriod !== 'number') {
-      throw new Error('Invalid or missing log retention period in CloudFront configuration');
-    }
-
   }
-};
+}

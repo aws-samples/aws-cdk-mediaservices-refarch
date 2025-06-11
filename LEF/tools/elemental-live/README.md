@@ -1,10 +1,10 @@
 # Configuring Workflow to use Elemental Live Appliances
 
-The default 'config/eventConfiguration.yaml' creates a workflow using MediaLive to encode the live stream. The Live Event Framework also supports workflows using Elemental Live Appliances. Figure 2 below shows the Live Event Framework architecture using Elemental Live rather than MediaLive as the encoder. Using the Live Event Framework it is possible to deploy events using MediaLive and Elemental Live encoders into the same channel group.
+The [default event configuration](../../config/default/eventConfiguration.ts) creates a workflow using MediaLive to encode the live stream. The Live Event Framework also supports workflows using Elemental Live Appliances. Figure 1 below shows the Live Event Framework architecture using Elemental Live rather than MediaLive as the encoder. Using the Live Event Framework it is possible to deploy events using MediaLive, MediaLive Anywhere and Elemental Live encoders into the same channel group.
 
 ![Live Event Framework Architecture Diagram using AWS Elemental Live](../../resources/ArchitectureDiagram-ElementalLive.png)
 
-**Figure 2. Live Event Framework Architecture Diagram using AWS Elemental Live**
+**Figure 1. Live Event Framework Architecture Diagram using AWS Elemental Live**
 
 For an Elemental Live appliance to push a stream to a MediaPackage V2 channel:
 

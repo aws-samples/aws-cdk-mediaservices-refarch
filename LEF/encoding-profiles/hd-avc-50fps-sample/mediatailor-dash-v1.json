@@ -1,470 +1,470 @@
 {
-    "TimecodeConfig": {
-        "Source": "ZEROBASED"
-    },
-    "OutputGroups": [
+  "TimecodeConfig": {
+    "Source": "ZEROBASED"
+  },
+  "OutputGroups": [
+    {
+      "Name": "DASH ISO",
+      "Outputs": [
         {
-            "Name": "DASH ISO",
-            "Outputs": [
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "CaptionContainerType": "RAW",
-                            "Scte35Source": "NONE",
-                            "Scte35Esam": "NONE",
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "VideoDescription": {
-                        "Width": 960,
-                        "ScalingBehavior": "DEFAULT",
-                        "Height": 540,
-                        "VideoPreprocessors": {
-                            "Deinterlacer": {}
-                        },
-                        "TimecodeInsertion": "DISABLED",
-                        "AntiAlias": "ENABLED",
-                        "Sharpness": 50,
-                        "CodecSettings": {
-                            "Codec": "H_264",
-                            "H264Settings": {
-                                "InterlaceMode": "PROGRESSIVE",
-                                "ParNumerator": 1,
-                                "NumberReferenceFrames": 3,
-                                "Syntax": "DEFAULT",
-                                "Softness": 0,
-                                "FramerateDenominator": 1,
-                                "GopClosedCadence": 1,
-                                "GopSize": 112,
-                                "Slices": 1,
-                                "GopBReference": "ENABLED",
-                                "MaxBitrate": 3000000,
-                                "SlowPal": "DISABLED",
-                                "ParDenominator": 1,
-                                "EntropyEncoding": "CABAC",
-                                "FramerateControl": "SPECIFIED",
-                                "RateControlMode": "QVBR",
-                                "CodecProfile": "HIGH",
-                                "FramerateNumerator": 50,
-                                "MinIInterval": 0,
-                                "AdaptiveQuantization": "AUTO",
-                                "CodecLevel": "AUTO",
-                                "FieldEncoding": "PAFF",
-                                "SceneChangeDetect": "DISABLED",
-                                "QualityTuningLevel": "SINGLE_PASS",
-                                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
-                                "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
-                                "ParControl": "SPECIFIED",
-                                "NumberBFramesBetweenReferenceFrames": 3,
-                                "RepeatPps": "DISABLED",
-                                "DynamicSubGop": "ADAPTIVE"
-                            }
-                        },
-                        "AfdSignaling": "NONE",
-                        "DropFrameTimecode": "ENABLED",
-                        "RespondToAfd": "NONE",
-                        "ColorMetadata": "IGNORE"
-                    },
-                    "NameModifier": "-3000"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "CaptionContainerType": "RAW",
-                            "Scte35Source": "NONE",
-                            "Scte35Esam": "NONE",
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "VideoDescription": {
-                        "Width": 1920,
-                        "ScalingBehavior": "DEFAULT",
-                        "Height": 1080,
-                        "VideoPreprocessors": {
-                            "Deinterlacer": {}
-                        },
-                        "TimecodeInsertion": "DISABLED",
-                        "AntiAlias": "ENABLED",
-                        "Sharpness": 50,
-                        "CodecSettings": {
-                            "Codec": "H_264",
-                            "H264Settings": {
-                                "InterlaceMode": "PROGRESSIVE",
-                                "ParNumerator": 1,
-                                "NumberReferenceFrames": 3,
-                                "Syntax": "DEFAULT",
-                                "Softness": 0,
-                                "FramerateDenominator": 1,
-                                "GopClosedCadence": 1,
-                                "GopSize": 112,
-                                "Slices": 1,
-                                "GopBReference": "ENABLED",
-                                "MaxBitrate": 7500000,
-                                "SlowPal": "DISABLED",
-                                "ParDenominator": 1,
-                                "EntropyEncoding": "CABAC",
-                                "FramerateControl": "SPECIFIED",
-                                "RateControlMode": "QVBR",
-                                "CodecProfile": "HIGH",
-                                "FramerateNumerator": 50,
-                                "MinIInterval": 0,
-                                "AdaptiveQuantization": "AUTO",
-                                "CodecLevel": "AUTO",
-                                "FieldEncoding": "PAFF",
-                                "SceneChangeDetect": "DISABLED",
-                                "QualityTuningLevel": "SINGLE_PASS",
-                                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
-                                "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
-                                "ParControl": "SPECIFIED",
-                                "NumberBFramesBetweenReferenceFrames": 3,
-                                "RepeatPps": "DISABLED",
-                                "DynamicSubGop": "ADAPTIVE"
-                            }
-                        },
-                        "AfdSignaling": "NONE",
-                        "DropFrameTimecode": "ENABLED",
-                        "RespondToAfd": "NONE",
-                        "ColorMetadata": "IGNORE"
-                    },
-                    "NameModifier": "-7500"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "CaptionContainerType": "RAW",
-                            "Scte35Source": "NONE",
-                            "Scte35Esam": "NONE",
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "VideoDescription": {
-                        "Width": 1280,
-                        "ScalingBehavior": "DEFAULT",
-                        "Height": 720,
-                        "VideoPreprocessors": {
-                            "Deinterlacer": {}
-                        },
-                        "TimecodeInsertion": "DISABLED",
-                        "AntiAlias": "ENABLED",
-                        "Sharpness": 50,
-                        "CodecSettings": {
-                            "Codec": "H_264",
-                            "H264Settings": {
-                                "InterlaceMode": "PROGRESSIVE",
-                                "ParNumerator": 1,
-                                "NumberReferenceFrames": 3,
-                                "Syntax": "DEFAULT",
-                                "Softness": 0,
-                                "FramerateDenominator": 1,
-                                "GopClosedCadence": 1,
-                                "GopSize": 112,
-                                "Slices": 1,
-                                "GopBReference": "ENABLED",
-                                "MaxBitrate": 4500000,
-                                "SlowPal": "DISABLED",
-                                "ParDenominator": 1,
-                                "EntropyEncoding": "CABAC",
-                                "FramerateControl": "SPECIFIED",
-                                "RateControlMode": "QVBR",
-                                "CodecProfile": "HIGH",
-                                "FramerateNumerator": 50,
-                                "MinIInterval": 0,
-                                "AdaptiveQuantization": "AUTO",
-                                "CodecLevel": "AUTO",
-                                "FieldEncoding": "PAFF",
-                                "SceneChangeDetect": "DISABLED",
-                                "QualityTuningLevel": "SINGLE_PASS",
-                                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
-                                "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
-                                "ParControl": "SPECIFIED",
-                                "NumberBFramesBetweenReferenceFrames": 3,
-                                "RepeatPps": "DISABLED",
-                                "DynamicSubGop": "ADAPTIVE"
-                            }
-                        },
-                        "AfdSignaling": "NONE",
-                        "DropFrameTimecode": "ENABLED",
-                        "RespondToAfd": "NONE",
-                        "ColorMetadata": "IGNORE"
-                    },
-                    "NameModifier": "-4500"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "CaptionContainerType": "RAW",
-                            "Scte35Source": "NONE",
-                            "Scte35Esam": "NONE",
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "VideoDescription": {
-                        "Width": 640,
-                        "ScalingBehavior": "DEFAULT",
-                        "Height": 360,
-                        "VideoPreprocessors": {
-                            "Deinterlacer": {}
-                        },
-                        "TimecodeInsertion": "DISABLED",
-                        "AntiAlias": "ENABLED",
-                        "Sharpness": 50,
-                        "CodecSettings": {
-                            "Codec": "H_264",
-                            "H264Settings": {
-                                "InterlaceMode": "PROGRESSIVE",
-                                "ParNumerator": 1,
-                                "NumberReferenceFrames": 3,
-                                "Syntax": "DEFAULT",
-                                "Softness": 0,
-                                "FramerateDenominator": 1,
-                                "GopClosedCadence": 1,
-                                "GopSize": 112,
-                                "Slices": 1,
-                                "GopBReference": "ENABLED",
-                                "MaxBitrate": 1800000,
-                                "SlowPal": "DISABLED",
-                                "ParDenominator": 1,
-                                "EntropyEncoding": "CABAC",
-                                "FramerateControl": "SPECIFIED",
-                                "RateControlMode": "QVBR",
-                                "CodecProfile": "HIGH",
-                                "FramerateNumerator": 50,
-                                "MinIInterval": 0,
-                                "AdaptiveQuantization": "AUTO",
-                                "CodecLevel": "AUTO",
-                                "FieldEncoding": "PAFF",
-                                "SceneChangeDetect": "DISABLED",
-                                "QualityTuningLevel": "SINGLE_PASS",
-                                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
-                                "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
-                                "ParControl": "SPECIFIED",
-                                "NumberBFramesBetweenReferenceFrames": 3,
-                                "RepeatPps": "DISABLED",
-                                "DynamicSubGop": "ADAPTIVE"
-                            }
-                        },
-                        "AfdSignaling": "NONE",
-                        "DropFrameTimecode": "ENABLED",
-                        "RespondToAfd": "NONE",
-                        "ColorMetadata": "IGNORE"
-                    },
-                    "NameModifier": "-1800"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "CaptionContainerType": "RAW",
-                            "Scte35Source": "NONE",
-                            "Scte35Esam": "NONE",
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "VideoDescription": {
-                        "Width": 480,
-                        "ScalingBehavior": "DEFAULT",
-                        "Height": 270,
-                        "VideoPreprocessors": {
-                            "Deinterlacer": {}
-                        },
-                        "TimecodeInsertion": "DISABLED",
-                        "AntiAlias": "ENABLED",
-                        "Sharpness": 50,
-                        "CodecSettings": {
-                            "Codec": "H_264",
-                            "H264Settings": {
-                                "InterlaceMode": "PROGRESSIVE",
-                                "ParNumerator": 1,
-                                "NumberReferenceFrames": 3,
-                                "Syntax": "DEFAULT",
-                                "Softness": 0,
-                                "FramerateDenominator": 1,
-                                "GopClosedCadence": 1,
-                                "GopSize": 112,
-                                "Slices": 1,
-                                "GopBReference": "ENABLED",
-                                "MaxBitrate": 1000000,
-                                "SlowPal": "DISABLED",
-                                "ParDenominator": 1,
-                                "EntropyEncoding": "CABAC",
-                                "FramerateControl": "SPECIFIED",
-                                "RateControlMode": "QVBR",
-                                "CodecProfile": "HIGH",
-                                "FramerateNumerator": 50,
-                                "MinIInterval": 0,
-                                "AdaptiveQuantization": "AUTO",
-                                "CodecLevel": "AUTO",
-                                "FieldEncoding": "PAFF",
-                                "SceneChangeDetect": "DISABLED",
-                                "QualityTuningLevel": "SINGLE_PASS",
-                                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
-                                "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
-                                "ParControl": "SPECIFIED",
-                                "NumberBFramesBetweenReferenceFrames": 3,
-                                "RepeatPps": "DISABLED",
-                                "DynamicSubGop": "ADAPTIVE"
-                            }
-                        },
-                        "AfdSignaling": "NONE",
-                        "DropFrameTimecode": "ENABLED",
-                        "RespondToAfd": "NONE",
-                        "ColorMetadata": "IGNORE"
-                    },
-                    "NameModifier": "-1000"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "CaptionContainerType": "RAW",
-                            "Scte35Source": "NONE",
-                            "Scte35Esam": "NONE",
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "VideoDescription": {
-                        "Width": 320,
-                        "ScalingBehavior": "DEFAULT",
-                        "Height": 180,
-                        "VideoPreprocessors": {
-                            "Deinterlacer": {}
-                        },
-                        "TimecodeInsertion": "DISABLED",
-                        "AntiAlias": "ENABLED",
-                        "Sharpness": 50,
-                        "CodecSettings": {
-                            "Codec": "H_264",
-                            "H264Settings": {
-                                "InterlaceMode": "PROGRESSIVE",
-                                "ParNumerator": 1,
-                                "NumberReferenceFrames": 3,
-                                "Syntax": "DEFAULT",
-                                "Softness": 0,
-                                "FramerateDenominator": 1,
-                                "GopClosedCadence": 1,
-                                "GopSize": 112,
-                                "Slices": 1,
-                                "GopBReference": "ENABLED",
-                                "MaxBitrate": 600000,
-                                "SlowPal": "DISABLED",
-                                "ParDenominator": 1,
-                                "EntropyEncoding": "CABAC",
-                                "FramerateControl": "SPECIFIED",
-                                "RateControlMode": "QVBR",
-                                "CodecProfile": "HIGH",
-                                "FramerateNumerator": 50,
-                                "MinIInterval": 0,
-                                "AdaptiveQuantization": "AUTO",
-                                "CodecLevel": "AUTO",
-                                "FieldEncoding": "PAFF",
-                                "SceneChangeDetect": "DISABLED",
-                                "QualityTuningLevel": "SINGLE_PASS",
-                                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
-                                "UnregisteredSeiTimecode": "DISABLED",
-                                "GopSizeUnits": "FRAMES",
-                                "ParControl": "SPECIFIED",
-                                "NumberBFramesBetweenReferenceFrames": 3,
-                                "RepeatPps": "DISABLED",
-                                "DynamicSubGop": "ADAPTIVE"
-                            }
-                        },
-                        "AfdSignaling": "NONE",
-                        "DropFrameTimecode": "ENABLED",
-                        "RespondToAfd": "NONE",
-                        "ColorMetadata": "IGNORE"
-                    },
-                    "NameModifier": "-600"
-                },
-                {
-                    "ContainerSettings": {
-                        "Container": "MPD",
-                        "MpdSettings": {
-                            "AudioDuration": "MATCH_VIDEO_DURATION"
-                        }
-                    },
-                    "AudioDescriptions": [
-                        {
-                            "AudioTypeControl": "USE_CONFIGURED",
-                            "AudioSourceName": "Audio Selector 1",
-                            "AudioNormalizationSettings": {
-                                "Algorithm": "ITU_BS_1770_3",
-                                "AlgorithmControl": "CORRECT_AUDIO",
-                                "LoudnessLogging": "DONT_LOG",
-                                "TargetLkfs": -23,
-                                "PeakCalculation": "NONE"
-                            },
-                            "CodecSettings": {
-                                "Codec": "AAC",
-                                "AacSettings": {
-                                    "Bitrate": 128000,
-                                    "CodecProfile": "LC",
-                                    "CodingMode": "CODING_MODE_2_0",
-                                    "SampleRate": 48000
-                                }
-                            },
-                            "StreamName": "English",
-                            "LanguageCodeControl": "USE_CONFIGURED",
-                            "LanguageCode": "eng"
-                        }
-                    ],
-                    "NameModifier": "-AAC-LC-128-ENG"
-                }
-            ],
-            "OutputGroupSettings": {
-                "Type": "DASH_ISO_GROUP_SETTINGS",
-                "DashIsoGroupSettings": {
-                    "SegmentLength": 2,
-                    "MinFinalSegmentLength": 1,
-                    "Destination": "s3://bucket/main",
-                    "FragmentLength": 2,
-                    "SegmentControl": "SEGMENTED_FILES",
-                    "MpdProfile": "MAIN_PROFILE",
-                    "HbbtvCompliance": "NONE",
-                    "WriteSegmentTimelineInRepresentation": "ENABLED",
-                    "DashIFrameTrickPlayNameModifier": "_iframe",
-                    "DashManifestStyle": "BASIC",
-                    "ImageBasedTrickPlay": "ADVANCED",
-                    "ImageBasedTrickPlaySettings": {
-                        "ThumbnailHeight": 540,
-                        "ThumbnailWidth": 960,
-                        "TileHeight": 1,
-                        "TileWidth": 1,
-                        "IntervalCadence": "FOLLOW_IFRAME"
-                    }
-                }
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "CaptionContainerType": "RAW",
+              "Scte35Source": "NONE",
+              "Scte35Esam": "NONE",
+              "AudioDuration": "MATCH_VIDEO_DURATION"
             }
-        }
-    ],
-    "AdAvailOffset": 0,
-    "Inputs": [
+          },
+          "VideoDescription": {
+            "Width": 960,
+            "ScalingBehavior": "DEFAULT",
+            "Height": 540,
+            "VideoPreprocessors": {
+              "Deinterlacer": {}
+            },
+            "TimecodeInsertion": "DISABLED",
+            "AntiAlias": "ENABLED",
+            "Sharpness": 50,
+            "CodecSettings": {
+              "Codec": "H_264",
+              "H264Settings": {
+                "InterlaceMode": "PROGRESSIVE",
+                "ParNumerator": 1,
+                "NumberReferenceFrames": 3,
+                "Syntax": "DEFAULT",
+                "Softness": 0,
+                "FramerateDenominator": 1,
+                "GopClosedCadence": 1,
+                "GopSize": 112,
+                "Slices": 1,
+                "GopBReference": "ENABLED",
+                "MaxBitrate": 3000000,
+                "SlowPal": "DISABLED",
+                "ParDenominator": 1,
+                "EntropyEncoding": "CABAC",
+                "FramerateControl": "SPECIFIED",
+                "RateControlMode": "QVBR",
+                "CodecProfile": "HIGH",
+                "FramerateNumerator": 50,
+                "MinIInterval": 0,
+                "AdaptiveQuantization": "AUTO",
+                "CodecLevel": "AUTO",
+                "FieldEncoding": "PAFF",
+                "SceneChangeDetect": "DISABLED",
+                "QualityTuningLevel": "SINGLE_PASS",
+                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
+                "UnregisteredSeiTimecode": "DISABLED",
+                "GopSizeUnits": "FRAMES",
+                "ParControl": "SPECIFIED",
+                "NumberBFramesBetweenReferenceFrames": 3,
+                "RepeatPps": "DISABLED",
+                "DynamicSubGop": "ADAPTIVE"
+              }
+            },
+            "AfdSignaling": "NONE",
+            "DropFrameTimecode": "ENABLED",
+            "RespondToAfd": "NONE",
+            "ColorMetadata": "IGNORE"
+          },
+          "NameModifier": "-3000"
+        },
         {
-            "AudioSelectors": {
-                "Audio Selector 1": {
-                    "Offset": 0,
-                    "DefaultSelection": "DEFAULT",
-                    "ProgramSelection": 1
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "CaptionContainerType": "RAW",
+              "Scte35Source": "NONE",
+              "Scte35Esam": "NONE",
+              "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+          },
+          "VideoDescription": {
+            "Width": 1920,
+            "ScalingBehavior": "DEFAULT",
+            "Height": 1080,
+            "VideoPreprocessors": {
+              "Deinterlacer": {}
+            },
+            "TimecodeInsertion": "DISABLED",
+            "AntiAlias": "ENABLED",
+            "Sharpness": 50,
+            "CodecSettings": {
+              "Codec": "H_264",
+              "H264Settings": {
+                "InterlaceMode": "PROGRESSIVE",
+                "ParNumerator": 1,
+                "NumberReferenceFrames": 3,
+                "Syntax": "DEFAULT",
+                "Softness": 0,
+                "FramerateDenominator": 1,
+                "GopClosedCadence": 1,
+                "GopSize": 112,
+                "Slices": 1,
+                "GopBReference": "ENABLED",
+                "MaxBitrate": 7500000,
+                "SlowPal": "DISABLED",
+                "ParDenominator": 1,
+                "EntropyEncoding": "CABAC",
+                "FramerateControl": "SPECIFIED",
+                "RateControlMode": "QVBR",
+                "CodecProfile": "HIGH",
+                "FramerateNumerator": 50,
+                "MinIInterval": 0,
+                "AdaptiveQuantization": "AUTO",
+                "CodecLevel": "AUTO",
+                "FieldEncoding": "PAFF",
+                "SceneChangeDetect": "DISABLED",
+                "QualityTuningLevel": "SINGLE_PASS",
+                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
+                "UnregisteredSeiTimecode": "DISABLED",
+                "GopSizeUnits": "FRAMES",
+                "ParControl": "SPECIFIED",
+                "NumberBFramesBetweenReferenceFrames": 3,
+                "RepeatPps": "DISABLED",
+                "DynamicSubGop": "ADAPTIVE"
+              }
+            },
+            "AfdSignaling": "NONE",
+            "DropFrameTimecode": "ENABLED",
+            "RespondToAfd": "NONE",
+            "ColorMetadata": "IGNORE"
+          },
+          "NameModifier": "-7500"
+        },
+        {
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "CaptionContainerType": "RAW",
+              "Scte35Source": "NONE",
+              "Scte35Esam": "NONE",
+              "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+          },
+          "VideoDescription": {
+            "Width": 1280,
+            "ScalingBehavior": "DEFAULT",
+            "Height": 720,
+            "VideoPreprocessors": {
+              "Deinterlacer": {}
+            },
+            "TimecodeInsertion": "DISABLED",
+            "AntiAlias": "ENABLED",
+            "Sharpness": 50,
+            "CodecSettings": {
+              "Codec": "H_264",
+              "H264Settings": {
+                "InterlaceMode": "PROGRESSIVE",
+                "ParNumerator": 1,
+                "NumberReferenceFrames": 3,
+                "Syntax": "DEFAULT",
+                "Softness": 0,
+                "FramerateDenominator": 1,
+                "GopClosedCadence": 1,
+                "GopSize": 112,
+                "Slices": 1,
+                "GopBReference": "ENABLED",
+                "MaxBitrate": 4500000,
+                "SlowPal": "DISABLED",
+                "ParDenominator": 1,
+                "EntropyEncoding": "CABAC",
+                "FramerateControl": "SPECIFIED",
+                "RateControlMode": "QVBR",
+                "CodecProfile": "HIGH",
+                "FramerateNumerator": 50,
+                "MinIInterval": 0,
+                "AdaptiveQuantization": "AUTO",
+                "CodecLevel": "AUTO",
+                "FieldEncoding": "PAFF",
+                "SceneChangeDetect": "DISABLED",
+                "QualityTuningLevel": "SINGLE_PASS",
+                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
+                "UnregisteredSeiTimecode": "DISABLED",
+                "GopSizeUnits": "FRAMES",
+                "ParControl": "SPECIFIED",
+                "NumberBFramesBetweenReferenceFrames": 3,
+                "RepeatPps": "DISABLED",
+                "DynamicSubGop": "ADAPTIVE"
+              }
+            },
+            "AfdSignaling": "NONE",
+            "DropFrameTimecode": "ENABLED",
+            "RespondToAfd": "NONE",
+            "ColorMetadata": "IGNORE"
+          },
+          "NameModifier": "-4500"
+        },
+        {
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "CaptionContainerType": "RAW",
+              "Scte35Source": "NONE",
+              "Scte35Esam": "NONE",
+              "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+          },
+          "VideoDescription": {
+            "Width": 640,
+            "ScalingBehavior": "DEFAULT",
+            "Height": 360,
+            "VideoPreprocessors": {
+              "Deinterlacer": {}
+            },
+            "TimecodeInsertion": "DISABLED",
+            "AntiAlias": "ENABLED",
+            "Sharpness": 50,
+            "CodecSettings": {
+              "Codec": "H_264",
+              "H264Settings": {
+                "InterlaceMode": "PROGRESSIVE",
+                "ParNumerator": 1,
+                "NumberReferenceFrames": 3,
+                "Syntax": "DEFAULT",
+                "Softness": 0,
+                "FramerateDenominator": 1,
+                "GopClosedCadence": 1,
+                "GopSize": 112,
+                "Slices": 1,
+                "GopBReference": "ENABLED",
+                "MaxBitrate": 1800000,
+                "SlowPal": "DISABLED",
+                "ParDenominator": 1,
+                "EntropyEncoding": "CABAC",
+                "FramerateControl": "SPECIFIED",
+                "RateControlMode": "QVBR",
+                "CodecProfile": "HIGH",
+                "FramerateNumerator": 50,
+                "MinIInterval": 0,
+                "AdaptiveQuantization": "AUTO",
+                "CodecLevel": "AUTO",
+                "FieldEncoding": "PAFF",
+                "SceneChangeDetect": "DISABLED",
+                "QualityTuningLevel": "SINGLE_PASS",
+                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
+                "UnregisteredSeiTimecode": "DISABLED",
+                "GopSizeUnits": "FRAMES",
+                "ParControl": "SPECIFIED",
+                "NumberBFramesBetweenReferenceFrames": 3,
+                "RepeatPps": "DISABLED",
+                "DynamicSubGop": "ADAPTIVE"
+              }
+            },
+            "AfdSignaling": "NONE",
+            "DropFrameTimecode": "ENABLED",
+            "RespondToAfd": "NONE",
+            "ColorMetadata": "IGNORE"
+          },
+          "NameModifier": "-1800"
+        },
+        {
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "CaptionContainerType": "RAW",
+              "Scte35Source": "NONE",
+              "Scte35Esam": "NONE",
+              "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+          },
+          "VideoDescription": {
+            "Width": 480,
+            "ScalingBehavior": "DEFAULT",
+            "Height": 270,
+            "VideoPreprocessors": {
+              "Deinterlacer": {}
+            },
+            "TimecodeInsertion": "DISABLED",
+            "AntiAlias": "ENABLED",
+            "Sharpness": 50,
+            "CodecSettings": {
+              "Codec": "H_264",
+              "H264Settings": {
+                "InterlaceMode": "PROGRESSIVE",
+                "ParNumerator": 1,
+                "NumberReferenceFrames": 3,
+                "Syntax": "DEFAULT",
+                "Softness": 0,
+                "FramerateDenominator": 1,
+                "GopClosedCadence": 1,
+                "GopSize": 112,
+                "Slices": 1,
+                "GopBReference": "ENABLED",
+                "MaxBitrate": 1000000,
+                "SlowPal": "DISABLED",
+                "ParDenominator": 1,
+                "EntropyEncoding": "CABAC",
+                "FramerateControl": "SPECIFIED",
+                "RateControlMode": "QVBR",
+                "CodecProfile": "HIGH",
+                "FramerateNumerator": 50,
+                "MinIInterval": 0,
+                "AdaptiveQuantization": "AUTO",
+                "CodecLevel": "AUTO",
+                "FieldEncoding": "PAFF",
+                "SceneChangeDetect": "DISABLED",
+                "QualityTuningLevel": "SINGLE_PASS",
+                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
+                "UnregisteredSeiTimecode": "DISABLED",
+                "GopSizeUnits": "FRAMES",
+                "ParControl": "SPECIFIED",
+                "NumberBFramesBetweenReferenceFrames": 3,
+                "RepeatPps": "DISABLED",
+                "DynamicSubGop": "ADAPTIVE"
+              }
+            },
+            "AfdSignaling": "NONE",
+            "DropFrameTimecode": "ENABLED",
+            "RespondToAfd": "NONE",
+            "ColorMetadata": "IGNORE"
+          },
+          "NameModifier": "-1000"
+        },
+        {
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "CaptionContainerType": "RAW",
+              "Scte35Source": "NONE",
+              "Scte35Esam": "NONE",
+              "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+          },
+          "VideoDescription": {
+            "Width": 320,
+            "ScalingBehavior": "DEFAULT",
+            "Height": 180,
+            "VideoPreprocessors": {
+              "Deinterlacer": {}
+            },
+            "TimecodeInsertion": "DISABLED",
+            "AntiAlias": "ENABLED",
+            "Sharpness": 50,
+            "CodecSettings": {
+              "Codec": "H_264",
+              "H264Settings": {
+                "InterlaceMode": "PROGRESSIVE",
+                "ParNumerator": 1,
+                "NumberReferenceFrames": 3,
+                "Syntax": "DEFAULT",
+                "Softness": 0,
+                "FramerateDenominator": 1,
+                "GopClosedCadence": 1,
+                "GopSize": 112,
+                "Slices": 1,
+                "GopBReference": "ENABLED",
+                "MaxBitrate": 600000,
+                "SlowPal": "DISABLED",
+                "ParDenominator": 1,
+                "EntropyEncoding": "CABAC",
+                "FramerateControl": "SPECIFIED",
+                "RateControlMode": "QVBR",
+                "CodecProfile": "HIGH",
+                "FramerateNumerator": 50,
+                "MinIInterval": 0,
+                "AdaptiveQuantization": "AUTO",
+                "CodecLevel": "AUTO",
+                "FieldEncoding": "PAFF",
+                "SceneChangeDetect": "DISABLED",
+                "QualityTuningLevel": "SINGLE_PASS",
+                "FramerateConversionAlgorithm": "DUPLICATE_DROP",
+                "UnregisteredSeiTimecode": "DISABLED",
+                "GopSizeUnits": "FRAMES",
+                "ParControl": "SPECIFIED",
+                "NumberBFramesBetweenReferenceFrames": 3,
+                "RepeatPps": "DISABLED",
+                "DynamicSubGop": "ADAPTIVE"
+              }
+            },
+            "AfdSignaling": "NONE",
+            "DropFrameTimecode": "ENABLED",
+            "RespondToAfd": "NONE",
+            "ColorMetadata": "IGNORE"
+          },
+          "NameModifier": "-600"
+        },
+        {
+          "ContainerSettings": {
+            "Container": "MPD",
+            "MpdSettings": {
+              "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+          },
+          "AudioDescriptions": [
+            {
+              "AudioTypeControl": "USE_CONFIGURED",
+              "AudioSourceName": "Audio Selector 1",
+              "AudioNormalizationSettings": {
+                "Algorithm": "ITU_BS_1770_3",
+                "AlgorithmControl": "CORRECT_AUDIO",
+                "LoudnessLogging": "DONT_LOG",
+                "TargetLkfs": -23,
+                "PeakCalculation": "NONE"
+              },
+              "CodecSettings": {
+                "Codec": "AAC",
+                "AacSettings": {
+                  "Bitrate": 128000,
+                  "CodecProfile": "LC",
+                  "CodingMode": "CODING_MODE_2_0",
+                  "SampleRate": 48000
                 }
-            },
-            "VideoSelector": {
-                "ColorSpace": "FOLLOW",
-                "Rotate": "DEGREE_0",
-                "AlphaBehavior": "DISCARD"
-            },
-            "FilterEnable": "AUTO",
-            "PsiControl": "USE_PSI",
-            "FilterStrength": 0,
-            "DeblockFilter": "DISABLED",
-            "DenoiseFilter": "DISABLED",
-            "TimecodeSource": "EMBEDDED"
+              },
+              "StreamName": "English",
+              "LanguageCodeControl": "USE_CONFIGURED",
+              "LanguageCode": "eng"
+            }
+          ],
+          "NameModifier": "-AAC-LC-128-ENG"
         }
-    ]
+      ],
+      "OutputGroupSettings": {
+        "Type": "DASH_ISO_GROUP_SETTINGS",
+        "DashIsoGroupSettings": {
+          "SegmentLength": 2,
+          "MinFinalSegmentLength": 1,
+          "Destination": "s3://bucket/main",
+          "FragmentLength": 2,
+          "SegmentControl": "SEGMENTED_FILES",
+          "MpdProfile": "MAIN_PROFILE",
+          "HbbtvCompliance": "NONE",
+          "WriteSegmentTimelineInRepresentation": "ENABLED",
+          "DashIFrameTrickPlayNameModifier": "_iframe",
+          "DashManifestStyle": "BASIC",
+          "ImageBasedTrickPlay": "ADVANCED",
+          "ImageBasedTrickPlaySettings": {
+            "ThumbnailHeight": 540,
+            "ThumbnailWidth": 960,
+            "TileHeight": 1,
+            "TileWidth": 1,
+            "IntervalCadence": "FOLLOW_IFRAME"
+          }
+        }
+      }
+    }
+  ],
+  "AdAvailOffset": 0,
+  "Inputs": [
+    {
+      "AudioSelectors": {
+        "Audio Selector 1": {
+          "Offset": 0,
+          "DefaultSelection": "DEFAULT",
+          "ProgramSelection": 1
+        }
+      },
+      "VideoSelector": {
+        "ColorSpace": "FOLLOW",
+        "Rotate": "DEGREE_0",
+        "AlphaBehavior": "DISCARD"
+      },
+      "FilterEnable": "AUTO",
+      "PsiControl": "USE_PSI",
+      "FilterStrength": 0,
+      "DeblockFilter": "DISABLED",
+      "DenoiseFilter": "DISABLED",
+      "TimecodeSource": "EMBEDDED"
+    }
+  ]
 }

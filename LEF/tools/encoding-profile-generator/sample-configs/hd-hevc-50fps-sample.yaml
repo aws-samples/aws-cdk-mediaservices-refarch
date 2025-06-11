@@ -24,7 +24,7 @@ outputs:
     # framerate: 50 # fps - Optional - Override for common.framerate
     # gopSize: 112  # Optional - Override for common.gopSize
     # lookAheadRateControl: LOW  # Optional - Default to HIGH for best quality
-    # bufSize: 1500000 # Optional - Override to reduce latency.  
+    # bufSize: 1500000 # Optional - Override to reduce latency.
   - name: "-5000"
     codec: H_265
     width: 1920
@@ -52,7 +52,7 @@ outputs:
     maxBitrate: 400000
   # Frame Capture rendition will be configured as an 'imageBasedTrickPlay' rendition
   # in custom transcode profiles.
-  - name: "-frame-capture"   # Only included in MediaLive profiles
+  - name: "-frame-capture" # Only included in MediaLive profiles
     width: 960
     height: 540
     codec: FRAME_CAPTURE
@@ -68,7 +68,7 @@ outputs:
     bitrate: 128000
     codingMode: CODING_MODE_2_0
     codingProfile: LC
-    sampleRate: 48000   # Is this required? Could it just be the default?
+    sampleRate: 48000 # Is this required? Could it just be the default?
     streamName: English
     languageCode: ENG
     # Audio normalization is only applied to custom transcode profiles

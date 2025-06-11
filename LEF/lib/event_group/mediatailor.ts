@@ -13,7 +13,7 @@
 
 import { aws_mediatailor as mediatailor, Fn } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { IEventGroupMediaTailorConfig } from './eventGroupConfigInterface';
+import { IEventGroupMediaTailorConfig } from "./eventGroupConfigInterface";
 
 export interface MediaTailorProps {
   configurationName: string;
@@ -70,8 +70,10 @@ export class MediaTailor extends Construct {
 
       // Add additional "player_params.transcode_profile" key to configurationAliasesValue
       configurationAliasesValue["player_params.transcode_profile"] = {
-        "hls-cmaf": transcodeProfiles.hlsCmaf ? transcodeProfiles.hlsCmaf : '',
-        "dash-cmaf": transcodeProfiles.dashCmaf ? transcodeProfiles.dashCmaf : '',
+        "hls-cmaf": transcodeProfiles.hlsCmaf ? transcodeProfiles.hlsCmaf : "",
+        "dash-cmaf": transcodeProfiles.dashCmaf
+          ? transcodeProfiles.dashCmaf
+          : "",
       };
     }
 
@@ -132,8 +134,7 @@ export class MediaTailor extends Construct {
             enabled: configuration.adMarkerPassthrough,
           },
         },
-        personalizationThresholdSeconds:
-          configuration.personalizationThreshold,
+        personalizationThresholdSeconds: configuration.personalizationThreshold,
         slateAdUrl: configuration.slateAdUrl,
         transcodeProfileName: configuration.transcodeProfiles
           ? "[player_params.transcode_profile]"

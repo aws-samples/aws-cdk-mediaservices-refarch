@@ -15,7 +15,7 @@
 
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
-import { Aws, Tags } from "aws-cdk-lib";
+import { Aws } from "aws-cdk-lib";
 import { LefFoundationStack } from "../lib/foundation/lef_foundation_stack";
 import { LefEventGroupStack } from "../lib/event_group/lef_event_group_stack";
 import { LefEventStack } from "../lib/event/lef_event_stack";
@@ -28,11 +28,12 @@ const contextDescription = app.node.tryGetContext("stackDescription");
 const eventConfigFile = app.node.tryGetContext("eventConfigFile");
 const eventGroupConfigFile = app.node.tryGetContext("eventGroupConfigFile");
 const foundationConfigFile = app.node.tryGetContext("foundationConfigFile");
-const liveEventFrameworkVersion = app.node.tryGetContext("LiveEventFrameworkVersion");
 
 const DEFAULT_EVENT_CONFIG = "../../config/default/eventConfiguration.ts";
-const DEFAULT_EVENT_GROUP_CONFIG = "../../config/default/eventGroupConfiguration.ts";
-const DEFAULT_FOUNDATION_CONFIG = "../../config/default/foundationConfiguration.ts";
+const DEFAULT_EVENT_GROUP_CONFIG =
+  "../../config/default/eventGroupConfiguration.ts";
+const DEFAULT_FOUNDATION_CONFIG =
+  "../../config/default/foundationConfiguration.ts";
 
 Aspects.of(app).add(new AwsSolutionsChecks());
 
@@ -49,11 +50,9 @@ const foundationStack = new LefFoundationStack(
     description: contextDescription
       ? contextDescription
       : "Live Event Framework Foundation Stack",
-    },
-    foundationConfigFile ?? DEFAULT_FOUNDATION_CONFIG,
+  },
+  foundationConfigFile ?? DEFAULT_FOUNDATION_CONFIG,
 );
-Tags.of(foundationStack).add('LiveEventFrameworkVersion', liveEventFrameworkVersion);
-Tags.of(foundationStack).add('StackType', 'LefFoundationStack');
 
 // Define Event Group Stack
 const eventGroupStack = new LefEventGroupStack(
@@ -71,8 +70,6 @@ const eventGroupStack = new LefEventGroupStack(
   },
   eventGroupConfigFile ?? DEFAULT_EVENT_GROUP_CONFIG,
 );
-Tags.of(eventGroupStack).add('LiveEventFrameworkVersion', liveEventFrameworkVersion);
-Tags.of(eventGroupStack).add('StackType', 'LefEventGroupStack');
 
 // Define Event Stack
 const eventStack = new LefEventStack(
@@ -90,5 +87,3 @@ const eventStack = new LefEventStack(
   },
   eventConfigFile ?? DEFAULT_EVENT_CONFIG,
 );
-Tags.of(eventStack).add('LiveEventFrameworkVersion', liveEventFrameworkVersion);
-Tags.of(eventStack).add('StackType', 'LefEventStack');

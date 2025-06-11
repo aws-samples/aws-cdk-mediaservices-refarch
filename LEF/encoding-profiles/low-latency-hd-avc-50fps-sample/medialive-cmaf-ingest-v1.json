@@ -19,12 +19,16 @@
       "auldioSelectorName": "default",
       "name": "audio_aac_128000_ENG",
       "streamName": "English",
-      "audioDashRoles": [
-        "MAIN"
-      ]
+      "audioDashRoles": ["MAIN"]
     }
   ],
   "captionDescriptions": [],
+  "globalConfiguration": {
+    "inputEndAction": "NONE",
+    "outputLockingMode": "PIPELINE_LOCKING",
+    "outputTimingSource": "SYSTEM_CLOCK",
+    "supportLowFramerateInputs": "DISABLED"
+  },
   "outputGroups": [
     {
       "outputGroupSettings": {
@@ -108,9 +112,7 @@
               "nameModifier": "audio_aac_128000_ENG"
             }
           },
-          "audioDescriptionNames": [
-            "audio_aac_128000_ENG"
-          ]
+          "audioDescriptionNames": ["audio_aac_128000_ENG"]
         }
       ]
     }

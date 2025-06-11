@@ -14,7 +14,7 @@
 export interface IEventGroupConfig {
   cloudFront: IEventGroupCloudFrontConfig;
   mediaTailor: IEventGroupMediaTailorConfig;
-};
+}
 
 export interface IEventGroupCloudFrontConfig {
   nominalSegmentLength: number;
@@ -22,19 +22,32 @@ export interface IEventGroupCloudFrontConfig {
    * Foundation stack applies a default 30 day retention policy to this bucket.
    * Logs older than the retention period will be removed to minimise S3 charges
    * @values true | false
-  */
+   */
   s3LoggingEnabled: boolean;
   enableIpv6: boolean;
+  /** Enable Origin Shield to add an additional caching layer
+   * @values true | false
+   * @default false
+   * @remarks Origin Shield is a CloudFront feature that provides additional caching layers
+   * to reduce latency and improve overall performance.
+   *
+   */
+  enableOriginShield?: boolean;
+  /** AWS Region for Origin Shield
+   * Must be a valid AWS Region where Origin Shield is available
+   * @example "us-east-1"
+   */
+  originShieldRegion?: string;
   /** Tokenization function ARN
    * @remarks CloudFront Function deployed by Secure Media Delivery at the Edge
    * on AWS Solution (https://aws.amazon.com/solutions/implementations/secure-media-delivery-at-the-edge/)
-  */
+   */
   tokenizationFunctionArn?: string;
   /** CloudFront Key Group ID
    * @remarks CloudFront Key Group ID to use when applying viewer restrictions to behaviours
    */
   keyGroupId?: string[];
-};
+}
 
 export interface IEventGroupMediaTailorConfig {
   adDecisionServerUrl: string;
@@ -50,7 +63,7 @@ export interface IEventGroupMediaTailorConfig {
   /**
    * Bumper
    * Documentation - https://docs.aws.amazon.com/mediatailor/latest/ug/bumpers.html
-   * 
+   *
    * Sample bumpers have been configured below. The bumpers can be customised or disabled depending on the
    * desired user experience.
    */
@@ -79,7 +92,7 @@ export interface IEventGroupMediaTailorConfig {
     /**
      * @values 'OFF' | 'BEHIND_LIVE_EDGE' | 'AFTER_LIVE_EDGE'
      */
-    mode: 'OFF' | 'BEHIND_LIVE_EDGE' | 'AFTER_LIVE_EDGE';
+    mode: "OFF" | "BEHIND_LIVE_EDGE" | "AFTER_LIVE_EDGE";
     /**
      * @format HH:MM:SS
      * @example "00:00:30" for 30 seconds
@@ -88,10 +101,10 @@ export interface IEventGroupMediaTailorConfig {
     /**
      * @values 'PARTIAL_AVAIL' | 'FULL_AVAIL_ONLY'
      */
-    fillPolicy: 'PARTIAL_AVAIL' | 'FULL_AVAIL_ONLY';
+    fillPolicy: "PARTIAL_AVAIL" | "FULL_AVAIL_ONLY";
   };
   /**
-   * PENDING IMPLEMENTATION: logPrecentageEnabled has not yet been implemented. 
+   * PENDING IMPLEMENTATION: logPrecentageEnabled has not yet been implemented.
    * The logPercentage enabled has been set to the default value of 100 percent. Valid values are between 0 and 100.
    * For integration it is useful to log all sessions to simplify troubleshooting. For production deployments logging
    * 100% of sessions can incur significant CloudWatch Log charges. In these cases it may be more cost effective to reduce
@@ -117,8 +130,8 @@ export interface IEventGroupMediaTailorConfig {
    *    dashCmaf: "hd-avc-50fps-sample-mediatailor-dash-v1"
    * }
    */
-  transcodeProfiles?: 
-  | { hlsCmaf: string; dashCmaf?: string }
-  | { hlsCmaf?: string; dashCmaf: string }
-  | { hlsCmaf: string; dashCmaf: string };
-};
+  transcodeProfiles?:
+    | { hlsCmaf: string; dashCmaf?: string }
+    | { hlsCmaf?: string; dashCmaf: string }
+    | { hlsCmaf: string; dashCmaf: string };
+}

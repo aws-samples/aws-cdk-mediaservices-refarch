@@ -13,325 +13,376 @@
 #  and limitations under the License.
 #######################################################################################################################
 
+from typing import Optional, Any, Dict, List
+import time
 import boto3
-from pprint import pprint
-import urllib3
-import os
-import sys
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.endpoint import URLLib3Session
 from botocore.exceptions import ClientError, ProfileNotFound
+import urllib3
+import os
+import sys
 import json
 import argparse
 import signal
+from dataclasses import dataclass
+import logging
+from pathlib import Path
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-urllib3session = URLLib3Session()
-default_profile_path = "../config/encoding-profiles"
+# Reduce noise from other loggers
+logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger('boto3').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-# Print a string to the console
-def main():
-    
-    service_name = 'mediatailor'
+# Constants
+# amazonq-ignore-next-line
+DEFAULT_PROFILE_PATH = "../config/encoding-profiles"
+MEDIATAILOR_API_BASE = "api.mediatailor.{region}.amazonaws.com"
+SERVICE_NAME = "mediatailor"
 
-    # Create an argument parser
-    parser = argparse.ArgumentParser(description='Upload custom transcode profiles to AWS MediaTailor')
-    parser.add_argument('--path', default=default_profile_path, help=f'Path to the location of the profiles (default: {default_profile_path})')
-    parser.add_argument('--profile', type=str, required=False, help='AWS profile to use')
-    parser.add_argument('--region', type=str, required=False, help='AWS region to use')
-    parser.add_argument('encodingProfiles', nargs='+', help='List of encoding profiles to upload')
-    args = parser.parse_args()
+@dataclass
+class AWSConfig:
+    """Class to hold AWS configuration settings."""
+    session: boto3.Session
+    region: str
+    account_id: str
 
-    # Get the list of profiles and the path from the parsed arguments
-    custom_transcode_profile_list = args.encodingProfiles
-    profile_path = args.path
-    aws_profile = args.profile
-    aws_region = args.region
+    @classmethod
+    def create_from_args(cls, profile: Optional[str], region: Optional[str]) -> 'AWSConfig':
+        """
+        Create an AWSConfig instance from provided arguments.
+        
+        Args:
+            profile: Optional AWS profile name
+            region: Optional AWS region name
+            
+        Returns:
+            AWSConfig instance
+        
+        Raises:
+            ValueError: If region is not provided and cannot be determined
+            ClientError: If AWS credentials are invalid
+        """
+        try:
+            session = cls._create_session(profile, region)
+            account_id = session.client('sts').get_caller_identity()['Account']
+            return cls(session=session, region=session.region_name, account_id=account_id)
+        except ValueError as e:
+            raise ValueError(f"Failed to create AWS configuration: {str(e)}") from e
+        except ClientError as e:
+            raise ClientError(f"Failed to create AWS configuration: {str(e)}", e.response['Error'])
+        except Exception as e:
+            # amazonq-ignore-next-line
+            raise Exception(f"Unexpected error while creating AWS configuration: {str(e)}") from e
 
-    try:
-        session = get_session(aws_profile, aws_region)
-        aws_account_id = session.client('sts').get_caller_identity()['Account']
-        aws_region = session.region_name
-
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-
-    # Print summary of the aws operating environment
-    print("")
-    print("Operating environment:")
-    print(f"\tAWS Account ID: {aws_account_id}")
-    print(f"\tAWS Region: {aws_region}")
-    print("\tProfiles to be uploaded:")
-    for custom_transcode_profile in custom_transcode_profile_list:
-        print("\t\t- %s" % custom_transcode_profile)
-
-    # Register the signal handler for SIGINT
-    # This will allow a user to use control-c to exit the prompt without receiving an error
-    signal.signal(signal.SIGINT, signal_handler)
-
-    while True:
-        user_input = input("\nDo you want to proceed and upload the profiles? (y/N): ").lower()
-        if user_input == 'y':
-            print("Proceeding with profile upload...")
-            break
-        else:
-            print("Exiting script.")
-            sys.exit(0)
-
-    if not check_account_enabled_for_ctp(session, aws_region, service_name):
-        print("ERROR: MediaTailor custom transcode profiles are not enabled for this account")
-        print("ERROR: To enable custom transcode profiles, please contact AWS support")
-        sys.exit(1)
-
-    for custom_transcode_profile in custom_transcode_profile_list:
-
-        header_string = f"Processing '{custom_transcode_profile}' custom transcode profile:"
-        header_string_length = len(header_string)
-
-        print("")
-        print(  "-" * header_string_length)
-        print(header_string)
-        print( "-" * header_string_length)
-
-        # Check if custom profile already exists
-        existing_ctp = custom_transcode_profile_exists( session, aws_region, service_name,custom_transcode_profile )
-        new_ctp_definition_file = f'{profile_path}/{custom_transcode_profile}'
-        if not new_ctp_definition_file.endswith('.json'):
-            new_ctp_definition_file += '.json'
-
-        if existing_ctp:
-
-            # If ctp already exists compare the existing custom transcode profile with the new profile.
-            # If the profiles are the same an update was not necessary and there is no reason to
-            # upload the new profile.
-            if existing_ctp_is_up_to_date( aws_region, service_name, existing_ctp, new_ctp_definition_file ):
-                print("Custom transcode profile '%s' is up to date." % custom_transcode_profile)
-                print(f"No action required to update '{custom_transcode_profile}'")
-                continue
+    @staticmethod
+    # amazonq-ignore-next-line
+    def _create_session(profile: Optional[str], region: Optional[str]) -> boto3.Session:
+        """Create and validate AWS session."""
+        try:
+            if profile:
+                session = boto3.Session(profile_name=profile, region_name=region)
             else:
-                print(f"Custom transcode profile '{custom_transcode_profile}' is different to the version contained in {new_ctp_definition_file}.")
-                print("WARNING: Overriding existing profiles with a new version is not recommeneded")
-                print("WARNING: If profiles are updated MediaTailor will *NOT* retranscode any ads transcoded")
-                print("WARNING: with the previous profile")
-                print("RECOMMENDATION: Increment a version number on profiles each time a change is made to")
-                print("RECOMMENDATION: ensure all ads are retranscoded and use the same profile.")
-
-        else:
-            # Create new custom tramscode profile
-            upload_custom_transcode_profile(session, aws_region, service_name, custom_transcode_profile, new_ctp_definition_file)
-
-
-def get_session(aws_profile, aws_region):
-    try:
-        if aws_profile:
-            session = boto3.Session(profile_name=aws_profile, region_name=aws_region)
-        else:
-            # Check for environment variables
-            access_key = os.environ.get('AWS_ACCESS_KEY_ID')
-            secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
-            region_name = aws_region if aws_region else os.environ.get('AWS_REGION')
-            if region_name is None:
-                raise ValueError("AWS region name must be specified in either the '--region' parameter or 'AWS_REGION' environment variable")
-
-            if access_key and secret_key and region_name:
-                session = boto3.Session(
-                    aws_access_key_id=access_key,
-                    aws_secret_access_key=secret_key,
-                    region_name=region_name
-                )
-            else:
-                # Fall back to default AWS profile
+                # Try to get region from command line, environment, or default config
+                region_name = region or os.environ.get('AWS_REGION')
+                if not region_name:
+                    # Try to get default region from boto3
+                    default_session = boto3.Session()
+                    region_name = default_session.region_name
+                
+                if not region_name:
+                    raise ValueError("AWS region must be specified via --region, AWS_REGION environment variable, or AWS default region configuration")
+                
                 session = boto3.Session(region_name=region_name)
+            
+            if not session.region_name:
+                raise ValueError("AWS region name must be specified")
+            
+            return session
+            
+        except ProfileNotFound as e:
+            logger.error("The specified AWS profile does not exist")
+            raise
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ExpiredToken':
+                logger.error("AWS security token has expired")
+            raise
 
-        if session.region_name is None:
-            raise ValueError("AWS region name must be specified with'--region' parameter")
-
-        # Verify the session by making a simple STS call
-        session.client('sts').get_caller_identity()
-        return session
-    except ProfileNotFound as e:
-        print(f"Error: {e}")
-        print("The specified AWS profile does not exist. Please check your AWS configuration.")
-        sys.exit(1)
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'ExpiredToken':
-            print("Error: The AWS security token has expired. Please update your AWS credentials and try again.")
-            sys.exit(1)
-        else:
-            print(f"Error: {e}")
-            print("Unable to create an AWS session. Please check your AWS credentials and configuration.")
-            sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}")
-        print("An unexpected error occurred while creating the AWS session.")
-        sys.exit(1)
-
-
-def existing_ctp_is_up_to_date( aws_region, service_name, existing_ctp, new_ctp_definition_file ):
-
-    try:
-        new_ctp = load_custom_transcode_profile_from_file(new_ctp_definition_file)
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        sys.exit(1)
+class MediaTailorAPI:
+    """Handler for MediaTailor API operations."""
     
-    new_ctp_string = json.dumps(new_ctp)
+    def __init__(self, config: AWSConfig):
+        self.config = config
+        self.http_session = URLLib3Session()
 
-    if existing_ctp == new_ctp_string:
+    def _make_request(self, method: str, endpoint: str, data: Optional[str] = None) -> urllib3.HTTPResponse:
+        """Make authenticated request to MediaTailor API."""
+        mediaTailorEndpointHostname=f"{MEDIATAILOR_API_BASE.format(region=self.config.region)}"
+        url = f"https://{mediaTailorEndpointHostname}/{endpoint}"
+        logger.debug(f"Making {method} request to {url}")
+        logger.debug(f"Request data: {data if data else 'empty'}")
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Host': f"{mediaTailorEndpointHostname}"
+        }
+        request = AWSRequest(
+            method=method,
+            url=url,
+            headers=headers,
+            data=data.encode('utf-8') if data else b''
+        )
+        
+        auth = SigV4Auth(self.config.session.get_credentials(), SERVICE_NAME, self.config.region)
+        auth.add_auth(request)
+        
+        try:
+            prepared_request = request.prepare()
+            response = self.http_session.send(prepared_request)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Request headers: {dict(prepared_request.headers)}")
+                logger.debug(f"Response status: {response.status_code}")
+                logger.debug(f"Response headers: {dict(response.headers)}")
+                logger.debug(f"Response content: {response.content.decode('utf-8') if response.content else 'empty'}")
+            return response
+        except urllib3.exceptions.RequestError as e:
+            logger.error(f"Network error during API request: {str(e)}", exc_info=True)
+            raise
+        except urllib3.exceptions.TimeoutError as e:
+            logger.error(f"Timeout error during API request: {str(e)}", exc_info=True)
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during API request: {str(e)}", exc_info=True)
+            raise
+
+    def check_profile_exists(self, profile_name: str) -> Optional[str]:
+        """
+        Check if a transcode profile exists.
+        
+        Returns:
+            The profile content if it exists, None otherwise
+        """
+        try:
+            response = self._make_request('GET', f"transcodeProfile/{profile_name}")
+            if not response.content:
+                logger.warning("Empty response received when checking profile existence")
+                return None
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Check profile exists response: status={response.status_code}, content={response.content.decode('utf-8')}")
+        except urllib3.exceptions.RequestError as e:
+            logger.error(f"Network error when checking if profile exists: {e}", exc_info=True)
+            return None
+        except urllib3.exceptions.TimeoutError as e:
+            logger.error(f"Timeout error when checking if profile exists: {e}", exc_info=True)
+            return None
+        # amazonq-ignore-next-line
+        except Exception as e:
+            logger.error(f"Unexpected error when checking if profile exists: {e}", exc_info=True)
+            raise  # Let unexpected exceptions propagate
+        
+        if response.status_code == 200:
+            logger.info(f"Profile '{profile_name}' exists")
+            try:
+                content = response.content.decode('utf-8')
+                # Verify the content is valid JSON
+                json.loads(content)
+                return content
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON response: {e}")
+                return None
+        elif response.status_code in (404, 403):
+            # 404 means profile doesn't exist, 403 can mean profile doesn't exist with Sigv4
+            logger.info(f"Profile '{profile_name}' does not exist")
+            return None
+        else:
+            logger.error(f"Unexpected status {response.status_code} checking profile '{profile_name}': {response.content.decode('utf-8')}")
+            return None
+
+    def check_account_enabled(self) -> bool:
+        """Check if account is enabled for custom transcode profiles."""
+        try:
+            response = self._make_request('GET', "transcodeProfile/nonExistentProfile")
+            return response.status_code == 404
+        except urllib3.exceptions.RequestError as e:
+            logger.error(f"Network error when checking account enablement: {e}")
+            return False
+        except urllib3.exceptions.TimeoutError as e:
+            logger.error(f"Timeout error when checking account enablement: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error when checking account enablement: {e}")
+            return False
+
+    def upload_profile(self, profile_name: str, profile_data: Dict[str, Any]) -> bool:
+        """
+        Upload a custom transcode profile after performing necessary checks.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._check_and_confirm_profile_upload(profile_name, profile_data):
+            return False
+
+        return self._perform_profile_upload(profile_name, profile_data)
+
+    def _check_and_confirm_profile_upload(self, profile_name: str, profile_data: Dict[str, Any]) -> bool:
+        logger.info(f"Checking if profile '{profile_name}' exists...")
+        existing_profile = self.check_profile_exists(profile_name)
+        logger.info(f"Profile existence check result: {existing_profile is not None}")
+        
+        if existing_profile:
+            return self._handle_existing_profile(profile_name, profile_data, existing_profile)
         return True
 
-    return False
+    def _handle_existing_profile(self, profile_name: str, profile_data: Dict[str, Any], existing_profile: str) -> bool:
+        existing_profile_dict = json.loads(existing_profile)
+        logger.debug(f"Comparing profiles:\nExisting: {json.dumps(existing_profile_dict, sort_keys=True)}\nNew: {json.dumps(profile_data, sort_keys=True)}")
+        if json.dumps(profile_data, sort_keys=True) == json.dumps(existing_profile_dict, sort_keys=True):
+            logger.info(f"Profile '{profile_name}' is up to date")
+            logger.info(f"Profile has not been loaded as it is the same as the version currently available in the account.")
+            return False
+        
+        logger.warning(
+            f"Profile '{profile_name}' exists with different content.\n"
+            "WARNING: Updating existing profiles is not recommended as it won't retranscode existing ads.\n"
+            "RECOMMENDATION: Use versioned profile names for changes."
+        )
+        
+        return self._confirm_overwrite(profile_name)
 
-# Check if MediaTailor profile already exists before attempting to upload
-# If the custom transcode profile exists the profile is returned. Otherwise None is returned
-def custom_transcode_profile_exists( session, aws_region, service_name, profile_name):
-    # Check if MediaTailor profile already exists before attempting to upload
-    response = call_get_api( session,
-                             aws_region,
-                             service_name,
-                             "https://api.mediatailor.%s.amazonaws.com/transcodeProfile/%s" % (aws_region, profile_name)
+    def _confirm_overwrite(self, profile_name: str) -> bool:
+        response = input(f"Profile '{profile_name}' already exists. Do you want to overwrite it? (y/N): ")
+        if response.lower() != 'y':
+            logger.info("Upload cancelled")
+            return False
+        return True
+
+    def _perform_profile_upload(self, profile_name: str, profile_data: Dict[str, Any]) -> bool:
+        response = self._make_request(
+            'PUT',
+            f"transcodeProfile/{profile_name}",
+            json.dumps(profile_data)
+        )
+        
+        if response.status_code == 200:
+            logger.info(f"Successfully uploaded profile '{profile_name}'")
+            time.sleep(2)
+            return True
+        elif response.status_code == 409:
+            logger.error(f"Profile '{profile_name}' already exists")
+            return False
+        
+        logger.error(f"Failed to upload profile '{profile_name}': {response.content.decode('utf-8')}")
+        return False
+
+def parse_args() -> argparse.Namespace:
+    """Parse and validate command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Upload custom transcode profiles to AWS MediaTailor'
     )
-    if response.status_code == 200:
-        # Check if the request was successful
-        print(f"MediaTailor custom transcode profile '{profile_name}' already exists in account")
-        downloaded_profile = response.content.decode('utf-8')
-        return downloaded_profile
+    parser.add_argument(
+        '--profile-path',
+        required=True,
+        help='Path to the JSON profile file to upload',
+        type=str
+    )
+    parser.add_argument(
+        '--profile-name',
+        help='Name to use when loading the profile into AWS (default: derived from file path)',
+        type=str
+    )
+    parser.add_argument(
+        '--profile',
+        help='AWS profile name',
+        type=str
+    )
+    parser.add_argument(
+        '--region',
+        help='AWS region'
+    )
+    return parser.parse_args()
 
-    print(f"MediaTailor custom transcode profile '{profile_name}' does not exist in account")
-    return None
-
-def upload_custom_transcode_profile(session, aws_region, service_name, profile_name, profile_file):
-
-    endpoint_url = "https://api.mediatailor.%s.amazonaws.com/transcodeProfile/%s" % (aws_region, profile_name)
-
-    # Read profile data from profile_file into a byte array with exception handling
+def main() -> None:
+    """Main entry point for the script."""
+    args = parse_args()
+    
     try:
-        profile_data = load_custom_transcode_profile_from_file( profile_file )
+        # Validate profile path
+        if not args.profile_path.endswith('.json'):
+            logger.error(f"Profile path must point to a JSON file")
+            sys.exit(1)
+
+        # Determine profile name
+        profile_name = args.profile_name
+        if not profile_name:
+            # Extract directory and filename
+            path_parts = args.profile_path.split('/')
+            directory = path_parts[-2] if len(path_parts) > 1 else ''
+            filename = path_parts[-1]
+            # Remove .json extension and construct name
+            filename_no_ext = filename[:-5] if filename.endswith('.json') else filename
+            profile_name = f"{directory}-{filename_no_ext}" if directory else filename_no_ext
+
+        config = AWSConfig.create_from_args(args.profile, args.region)
+        
+        # Log execution environment
+        logger.info("Operating environment:")
+        logger.info(f"AWS Account ID: {config.account_id}")
+        logger.info(f"AWS Region: {config.region}")
+        logger.info(f"Profile to upload: {profile_name}")
+        logger.info(f"Profile path: {args.profile_path}")
+        
+        # Confirm operation
+        if input("Proceed with profile upload? (y/N): ").lower() != 'y':
+            logger.info("Operation cancelled")
+            return
+            
+        # Check account enablement
+        api = MediaTailorAPI(config)
+        if not api.check_account_enabled():
+            logger.error(
+                "MediaTailor custom transcode profiles are not enabled for this account.\n"
+                "Please contact AWS support to enable this feature."
+            )
+            sys.exit(1)
+            
+        # Process profile
+        try:
+            with open(args.profile_path, 'r') as f:
+                profile_data = json.load(f)
+        except FileNotFoundError:
+            logger.error(f"Profile file not found: {args.profile_path}")
+            sys.exit(1)
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in profile file: {args.profile_path}")
+            sys.exit(1)
+            
+        # Upload profile
+        if not api.upload_profile(profile_name, profile_data):
+            logger.error(f"Failed to upload profile {profile_name}")
+            sys.exit(1)
+            
+        sys.exit(0)
+        
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logger.error(f"Script execution failed: {str(e)}")
         sys.exit(1)
 
-    print("Profile data loaded successfully from file")
-    print("Loading custom transcode profile")
-    response = call_put_api(session, aws_region, service_name, endpoint_url, profile_data)
-    if response.status_code == 200:
-        # Check if the request was successful
-        print(f"MediaTailor custom transcode profile '{profile_name}' successfully uploaded")
-        downloaded_profile = response.content.decode('utf-8')
-    else:
-        print(f"MediaTailor custom transcode profile '{profile_name}' failed to upload")
-        print(f"Response status code: {response.status_code}")
-        print(f"Response content: {response.content}")
-
-
-# Load custom transcode profile json from file and returns as an object
-def load_custom_transcode_profile_from_file( ctp_definition_file ):
-
-    # Raise an error if ctp_definition_file file sdoes not exist
-    if not os.path.exists(ctp_definition_file):
-        error_message = f"Custom transcode profile '{ctp_definition_file}' file does not exist"
-        raise FileNotFoundError(error_message)
-
-    with open(ctp_definition_file, 'rb') as f:
-        profile_data = f.read()
-
-    # Raise an error if profile_data is an empty string
-    if not profile_data:
-        error_message = "Specified custom transcode profile file is empty"
-        raise ValueError(error_message)
-
-    try:
-        parsed_data = json.loads(profile_data)
-    except json.JSONDecodeError as e:
-        error_message = f"Error: Unable to parse the provided data as JSON. {e}"
-        raise RuntimeError(error_message) from e
-    except Exception as e:
-        error_message = f"Error: An unexpected error occurred while parsing the JSON data. {e}"
-        raise RuntimeError(error_message) from e
-
-    return json.dumps(parsed_data)
-
-def check_account_enabled_for_ctp(session, aws_region, service_name):
-
-    endpoint_url = "https://api.mediatailor.%s.amazonaws.com/transcodeProfile/nonExistentProfile" % aws_region
-
-    response = call_get_api(session, aws_region, service_name, endpoint_url)
-    if response.status_code == 404:
-        # Check if the request was successful
-        return True
-
-    print(f"Response status code: {response.status_code}")
-    print(f"Response content: {response.content}")
-
-    return False
-
-def call_get_api(session, region_name, service_name, endpoint_url):
-
-    # Create a request object
-    request = AWSRequest(
-        method='GET',
-        url=f"{endpoint_url}",
-        headers={'Content-Type': 'application/json'},
-        data=b''
-    )
-
-    # Create a SigV4 auth object
-    auth = SigV4Auth(session.get_credentials(), service_name, region_name)
-
-    # Add authentication to the request
-    auth.add_auth(request)
-
-    try:
-        # Send the request
-        response = urllib3session.send(request.prepare())
-
-    except urllib3.exceptions.HTTPError as e:
-        # Handle HTTP errors
-        print(f"HTTP Error: {e}")
-
-    except Exception as e:
-        # Handle other exceptions
-        print(f"Error: {e}")
-
-    # Return the response
-    return response
-
-def call_put_api(session, region_name, service_name, endpoint_url, data):
-
-    # Create a request object
-    request = AWSRequest(
-        method='PUT',
-        url=f"{endpoint_url}",
-        headers={'Content-Type': 'application/json'},
-        data=data
-    )
-
-    # Create a SigV4 auth object
-    auth = SigV4Auth(session.get_credentials(), service_name, region_name)
-
-    # Add authentication to the request
-    auth.add_auth(request)
-
-    try:
-        # Send the request
-        response = urllib3session.send(request.prepare())
-
-    except urllib3.exceptions.HTTPError as e:
-        # Handle HTTP errors
-        print(f"HTTP Error: {e}")
-
-    except Exception as e:
-        # Handle other exceptions
-        print(f"Error: {e}")
-
-    # Return the response
-    return response
-
-def signal_handler(signal, frame):
-    print("\nExiting script...")
+def signal_handler(sig, frame):
+    """Handle interrupt signal."""
+    logger.info("\nOperation cancelled by user")
     sys.exit(0)
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
     main()

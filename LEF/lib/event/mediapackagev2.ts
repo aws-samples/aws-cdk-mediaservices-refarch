@@ -19,7 +19,10 @@ import {
   aws_mediapackagev2 as mediapackagev2,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { IMediaPackageChannelConfig, IMediaPackageEndpointConfig } from './eventConfigInterface';
+import {
+  IMediaPackageChannelConfig,
+  IMediaPackageEndpointConfig,
+} from "./eventConfigInterface";
 
 const SUPPORTED_MANIFEST_TYPE_EXTENSIONS = {
   hlsManifests: "m3u8",
@@ -134,7 +137,8 @@ export class MediaPackageV2 extends Construct {
       for (const [manifestType, manifestExtension] of Object.entries(
         SUPPORTED_MANIFEST_TYPE_EXTENSIONS,
       )) {
-        const manifests = endpointConfig[manifestType as keyof typeof endpointConfig];        
+        const manifests =
+          endpointConfig[manifestType as keyof typeof endpointConfig];
 
         // Skip if no manifests of this type
         if (!manifests || !Array.isArray(manifests)) {
@@ -166,8 +170,7 @@ export class MediaPackageV2 extends Construct {
 
   // Create Origin Endpoint
   createOriginEndpoint(id: string, props: IMediaPackageEndpointConfig) {
-
-    const endpointProps : mediapackagev2.CfnOriginEndpointProps = {
+    const endpointProps: mediapackagev2.CfnOriginEndpointProps = {
       channelName: this.channelName,
       channelGroupName: this.channelGroupName,
       originEndpointName: props.originEndpointName,
@@ -175,14 +178,15 @@ export class MediaPackageV2 extends Construct {
       dashManifests: props.dashManifests,
       hlsManifests: props.hlsManifests,
       lowLatencyHlsManifests: props.lowLatencyHlsManifests,
-      segment: props.segment as mediapackagev2.CfnOriginEndpoint.SegmentProperty,
-      startoverWindowSeconds: props.startoverWindowSeconds
+      segment:
+        props.segment as mediapackagev2.CfnOriginEndpoint.SegmentProperty,
+      startoverWindowSeconds: props.startoverWindowSeconds,
     };
 
     const endpoint = new mediapackagev2.CfnOriginEndpoint(
       this,
       id,
-      endpointProps
+      endpointProps,
     );
 
     return endpoint;
@@ -195,14 +199,14 @@ export class MediaPackageV2 extends Construct {
     cloudFrontDistributionArn: string,
     resourcePolicyType: string,
   ) {
-
     // Set origin endpoint policy
     const policyStatements = [];
     if (resourcePolicyType == "PUBLIC") {
-
-      Annotations.of(this).addWarning('A public policy is being used for the '
-        + 'MediaPackage V2 Origin Endpoint. This allows unrestricted public '
-        + 'access to the endpoint and is not recommended for production workloads.');
+      Annotations.of(this).addWarning(
+        "A public policy is being used for the " +
+          "MediaPackage V2 Origin Endpoint. This allows unrestricted public " +
+          "access to the endpoint and is not recommended for production workloads.",
+      );
 
       // Use a PUBLIC policy
       policyStatements.push(
@@ -212,9 +216,9 @@ export class MediaPackageV2 extends Construct {
           actions: ["mediapackagev2:GetObject", "mediapackagev2:GetHeadObject"],
           principals: [new iam.AnyPrincipal()],
           resources: [originEndpoint.attrArn],
-        }));
+        }),
+      );
     } else {
-
       // Default to a CUSTOM policy
       policyStatements.push(
         // Policy allowing SigV4 signed requests from the 'mediaTailorPlaybackConfigurationArn'
@@ -222,13 +226,8 @@ export class MediaPackageV2 extends Construct {
         new iam.PolicyStatement({
           sid: "AllowRequestsFromMediaTailorPlaybackConfiguration",
           effect: iam.Effect.ALLOW,
-          actions: [
-            "mediapackagev2:GetObject",
-            "mediapackagev2:GetHeadObject",
-          ],
-          principals: [
-            new iam.ServicePrincipal("mediatailor.amazonaws.com"),
-          ],
+          actions: ["mediapackagev2:GetObject", "mediapackagev2:GetHeadObject"],
+          principals: [new iam.ServicePrincipal("mediatailor.amazonaws.com")],
           resources: [originEndpoint.attrArn],
           conditions: {
             StringEquals: {
@@ -245,13 +244,8 @@ export class MediaPackageV2 extends Construct {
         new iam.PolicyStatement({
           sid: "AllowRequestsFromCloudFront",
           effect: iam.Effect.ALLOW,
-          actions: [
-            "mediapackagev2:GetObject",
-            "mediapackagev2:GetHeadObject",
-          ],
-          principals: [
-            new iam.ServicePrincipal("cloudfront.amazonaws.com"),
-          ],
+          actions: ["mediapackagev2:GetObject", "mediapackagev2:GetHeadObject"],
+          principals: [new iam.ServicePrincipal("cloudfront.amazonaws.com")],
           resources: [originEndpoint.attrArn],
           conditions: {
             StringEquals: {

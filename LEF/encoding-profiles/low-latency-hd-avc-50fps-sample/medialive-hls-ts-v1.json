@@ -22,6 +22,12 @@
     }
   ],
   "captionDescriptions": [],
+  "globalConfiguration": {
+    "inputEndAction": "NONE",
+    "outputLockingMode": "PIPELINE_LOCKING",
+    "outputTimingSource": "SYSTEM_CLOCK",
+    "supportLowFramerateInputs": "DISABLED"
+  },
   "outputGroups": [
     {
       "outputGroupSettings": {
@@ -95,9 +101,7 @@
           "outputSettings": {
             "mediaPackageOutputSettings": {}
           },
-          "audioDescriptionNames": [
-            "audio_aac_128000_ENG"
-          ]
+          "audioDescriptionNames": ["audio_aac_128000_ENG"]
         }
       ]
     }

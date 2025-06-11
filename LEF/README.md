@@ -4,13 +4,14 @@
 
 | Date       |      Entry      | Version | Comment                            |
 | ---------- | :-------------: | :-----: | ---------------------------------- |
-| 04/02/2025 | Update |  1.0.2  | Update |
+| 03/04/2025 |     Update      |  1.0.3  | Update                             |
+| 04/02/2025 |     Update      |  1.0.2  | Update                             |
 | 13/10/2024 | initial release |  0.0.2  | initial release of the application |
 | 29/02/2024 |     created     |  0.0.1  |                                    |
 
 ## Disclaimer
 
-The sample code; software libraries; command line tools; proofs of concept; templates; or other related technology is provided to you as AWS Content under the AWS Customer Agreement, or the relevant written agreement between you and AWS (whichever applies). You are responsible for testing, securing, and optimizing the AWS Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards. 
+The sample code; software libraries; command line tools; proofs of concept; templates; or other related technology is provided to you as AWS Content under the AWS Customer Agreement, or the relevant written agreement between you and AWS (whichever applies). You are responsible for testing, securing, and optimizing the AWS Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards.
 
 **You should not use this AWS Content in your production accounts, or on production or other critical data.**
 
@@ -56,7 +57,7 @@ This README does not go into the details of every architectural decision made in
 
 Over time this project may be updated and/or refactored to reflect the best practises and feature set of the day. The project will not necessarily be updated to maintain backward compatibility with previous configurations or features.
 
-Where AWS Services offered configuration options capable of being enabled concurrently, and these configuration options improve the customer experience they have been enabled. For example, the sample encoding profiles and event group configurations enable both I-frame only and Image-based [trick-play](https://docs.aws.amazon.com/mediapackage/latest/userguide/trick-play.html) rather than making a decision to use only one option.
+Where AWS Services offered configuration options capable of being enabled concurrently, and these configuration options improve the customer experience, they have been enabled. For example, the sample encoding profiles and event group configurations enable both I-frame only and Image-based [trick-play](https://docs.aws.amazon.com/mediapackage/latest/userguide/trick-play.html) rather than making a decision to use only one option.
 
 More details of the key opinionated architecture decisions made in the implementation of this project can be found in the Architecture section below.
 
@@ -303,10 +304,9 @@ You can check your channel status by logging in to your AWS console ==> MediaLiv
 Once on the MediaLive Channel dashboard identify your channel and tick the box on the left side of the channel list.<br>
 Then click on the button stop and wait for the channel to be in idle state before you proceed with the destroy command.<br>
 
-1. The default eventConfiguration uses a public policy for MediaPackage V2 endpoints making the endpoints publicly available on the internet. Best practise workflows should *NOT* use public endpoint policies. Custom policies restrict which services can make requests to the MediaPackage origin endpoint limiting the risk of a large volume of requests being made to the origin exceeding service limits. The Live Event Framework will be updated to use a custom policy by default when ther MediaTailor feature to sign origin requests is made generally available. For production workflows requiring custom policies now, raise a MediaTailor support ticket requesting MediaTailor signing of origin requests be enabled on the account.
-2. The default eventConfiguration sets "includeIframeOnlyStreams: false" on the MediaPackage segments. This value was intended to be set to 'true' but needed to be disabled because this was causing an issue getting MediaTailor Dynamic DASH ad transcoding working. Once this is resolved the default value will be changed back to 'true'.
-3. The segmentLengthInSeconds has been set to 4s to avoid an issue with the MediaPackage V2 segment combining logic. Once this issue has been addressed the segment size should be changed back to 2s. Using a 2 value enables more granular segment harvesting.
-4. MediaTailor does not support setting the logPercentage using CDK/CloudFormation. Once the **MediaTailorLogger** role has been created the default log percentage of 100% will be applied to MediaTailor Configurations deployed using the Live Event Framework. At scale, the volume of logs and associated charges can become significant. AWS recommend reducing the log percentage to 10% or less. Retaining a small amount of log sampling will enable the health of the service to be observed while reducing charges for CloudWatch logs.
+1. The default eventConfiguration sets "includeIframeOnlyStreams: false" on the MediaPackage segments. This value was intended to be set to 'true' but needed to be disabled because this was causing an issue getting MediaTailor Dynamic DASH ad transcoding working. Once this is resolved the default value will be changed back to 'true'.
+2. The segmentLengthInSeconds has been set to 4s to avoid an issue with the MediaPackage V2 segment combining logic. Once this issue has been addressed the segment size should be changed back to 2s. Using a 2 value enables more granular segment harvesting.
+3. MediaTailor does not support setting the logPercentage using CDK/CloudFormation. Once the **MediaTailorLogger** role has been created the default log percentage of 100% will be applied to MediaTailor Configurations deployed using the Live Event Framework. At scale, the volume of logs and associated charges can become significant. AWS recommend reducing the log percentage to 10% or less. Retaining a small amount of log sampling will enable the health of the service to be observed while reducing charges for CloudWatch logs.
 
 <a name="advancedconfigurationoptions"></a>
 
@@ -322,16 +322,22 @@ Enabling the Secure Media Delivery at the Edge on AWS solution will incur additi
 
 ### Configuring Workflow to use preferred MediaLive Profile
 
-The default 'config/eventConfiguration.yaml' refers to the 'encoding-profiles/sample-profiles/hd-avc-50fps-sample-medialive-hls-ts-v1.json' as the default MediaLive encoding profile. For an initial test to verify the workflow this will often be sufficient but in many cases users would prefer to define their own adaptive bitrate ladder. The adaptive bitrate ladder can be customize by either:
+The default [config/default/eventConfiguration.yaml](config/default/eventConfiguration.ts) refers to the [encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json](encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json) as the default MediaLive encoding profile. For an initial test to verify the workflow this will often be sufficient but in many cases users would prefer to define their own adaptive bitrate ladder. The adaptive bitrate ladder can be customize by either:
 
 1. Using the [Encoding Profile Set Generator](tools/encoding-profile-generator/README.md) to simplify the creation of a MediaLive profile.
-2. Copying a working profile (such as 'encoding-profiles/sample-profiles/hd-avc-50fps-sample-medialive-hls-ts-v1.json') and making modifications manually and modifying the event configuration yaml to refer to the new encoding configuration.
+2. Copying a working profile (such as [encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json](encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json)) and making modifications manually and modifying the event configuration yaml to refer to the new encoding configuration.
 
 ### Configuring Workflow to use MediaTailor Custom Transcode Profiles
 
 MediaTailor will automatically transcode HLS/TS, HLS/CMAF and DASH ad creative for insertion into live streams. Unfortunately, it is not possible to perfectly match the ad transcode to the live stream without additional information about the live encoder configuration. In some cases minor discrepancies between the ad transcodes and live stream can result in certain playback devices experiencing issues transitioning in and out of ad breaks. In these cases MediaTailor supports custom ad transcode profiles. Custom ad transcode profiles define the parameters used in the ad transcode to more closely align the ad transcode with the live stream.
 
 See the [Custom Transcode Profiles README.md](tools/custom-transcode-profiles/README.md) on enabling and configuring custom transcode profiles in your account.
+
+### Configuring Workflow to use AWS Elemental MediaLive Anywhere
+
+The Live Event Framework supports the deployment of AWS resources for workflows using [AWS Elemental MediaLive Anywhere](https://aws.amazon.com/medialive/features/anywhere/) for on-premise encoding.
+
+See the [AWS Elemental MediaLive Anywhere README.md](tools/medialive-anywhere/README.md) for instructions to setup a workflow using an AWS Elemental MediaLive Anywhere channel.
 
 ### Configuring Workflow to use Elemental Live Appliances
 

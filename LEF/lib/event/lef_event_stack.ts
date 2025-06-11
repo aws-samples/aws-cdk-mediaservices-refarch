@@ -15,10 +15,22 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { MediaPackageV2 } from "./mediapackagev2";
 import { MediaLive } from "./medialive";
-import { Aws, Fn, CfnParameter, CfnOutput, aws_iam as iam } from "aws-cdk-lib";
-import { IEventConfig, IMediaPackageChannelConfig } from './eventConfigInterface';
+import {
+  Aws,
+  Tags,
+  Fn,
+  aws_iam as iam,
+  CfnParameter,
+  CfnOutput,
+} from "aws-cdk-lib";
+import {
+  IEventConfig,
+  IMediaPackageChannelConfig,
+} from "./eventConfigInterface";
+import { LefBaseStack } from "../lef_base_stack";
+import { ConfigurationError } from "../config/configValidator";
 
-export class LefEventStack extends cdk.Stack {
+export class LefEventStack extends LefBaseStack {
   constructor(
     scope: Construct,
     id: string,
@@ -69,6 +81,9 @@ export class LefEventStack extends cdk.Stack {
       },
     );
 
+    const foundationStackName = Fn.importValue(
+      eventGroupStackName + "-Foundation-Stack-Name",
+    );
     const mediaLiveAccessRoleArn = Fn.importValue(
       eventGroupStackName + "-MediaLiveAccessRoleArn",
     );
@@ -87,6 +102,20 @@ export class LefEventStack extends cdk.Stack {
     const mediaTailorSessionPrefix = Fn.importValue(
       eventGroupStackName + "-MediaTailor-Session-Prefix",
     );
+
+    // Tag resources
+    const tags: Record<string, string>[] = [
+      {
+        FoundationStackName: foundationStackName,
+        EventGroupStackName: eventGroupStackName,
+        EventStackName: Aws.STACK_NAME,
+        StackType: "LefEventStack",
+        LiveEventFrameworkVersion: scope.node.tryGetContext(
+          "LiveEventFrameworkVersion",
+        ),
+      },
+    ];
+    this.tagResources(tags);
 
     /*
      * Define Event output parameters
@@ -174,132 +203,153 @@ export class LefEventStack extends cdk.Stack {
     }
   }
 
-  // load event configuration
-  loadConfig( configFilePath: string ): IEventConfig {
-
-    try {
-      const config = require(configFilePath);
-      return config.EVENT_CONFIG;
-    } catch (err) {
-      if (err instanceof Error) {
-        throw new Error(
-          `Failed to load configuration file (${configFilePath}): ${err.message}`,
-        );
-      } else {
-        throw new Error(
-          `Failed to load configuration file (${configFilePath}): ${String(err)}`,
-        );
-      }
-    }
+  loadConfig(configFilePath: string): IEventConfig {
+    return this.getConfig<IEventConfig>(configFilePath, "EVENT_CONFIG");
   }
 
   // set dependent configuration parameters
-  setDependentConfigParameters( config: IEventConfig ) {
-
+  setDependentConfigParameters(config: IEventConfig) {
     // For all origin endpoints set DASH Manifest drmSignaling if encryption enabled and not already specified
-    const mediaPackageConfig : IMediaPackageChannelConfig = config.event.mediaPackage;
-    for (const [endpointReference, endpointConfig] of Object.entries(mediaPackageConfig.endpoints)) {
-
+    const mediaPackageConfig: IMediaPackageChannelConfig =
+      config.event.mediaPackage;
+    for (const [endpointReference, endpointConfig] of Object.entries(
+      mediaPackageConfig.endpoints,
+    )) {
       // Default for DASH drmSignaling only require if encryption is enabled
-      if ( endpointConfig.segment.encryption && endpointConfig.dashManifests && endpointConfig.dashManifests.length > 0 ) {
-
+      if (
+        endpointConfig.segment.encryption &&
+        endpointConfig.dashManifests &&
+        endpointConfig.dashManifests.length > 0
+      ) {
         // For each DASH manifest apply default drmSignaling where a value has not been specified in configuraiton
         for (const manifest of endpointConfig.dashManifests) {
-          if ( !manifest.drmSignaling ) {
-            manifest.drmSignaling = 'REFERENCED';
+          if (!manifest.drmSignaling) {
+            manifest.drmSignaling = "REFERENCED";
           }
         }
       }
     }
 
     // Set default value to passthrough SCTE-35 for MediaLive HLS/TS outputs
-    if ( config.event.mediaLive && !config.event.mediaLive.scte35Behavior ) {
-      config.event.mediaLive.scte35Behavior = 'PASSTHROUGH';
+    if (config.event.mediaLive && !config.event.mediaLive.scte35Behavior) {
+      config.event.mediaLive.scte35Behavior = "PASSTHROUGH";
     }
 
     // Set a default value for a medialive minimum segment length if not specified
-    if ( config.event.mediaLive && config.event.mediaLive.minimumSegmentLengthInSeconds === undefined ) {
+    if (
+      config.event.mediaLive &&
+      config.event.mediaLive.minimumSegmentLengthInSeconds === undefined
+    ) {
       config.event.mediaLive.minimumSegmentLengthInSeconds = 1;
     }
 
     // Set a default value for HLS Ad Markers
-    if ( config.event.mediaLive && config.event.mediaLive.adMarkers === undefined ) {
-      config.event.mediaLive.adMarkers = 'ELEMENTAL_SCTE35';
+    if (
+      config.event.mediaLive &&
+      config.event.mediaLive.adMarkers === undefined
+    ) {
+      config.event.mediaLive.adMarkers = "ELEMENTAL_SCTE35";
     }
   }
 
   // validate event configuration
-  validateConfig( config: IEventConfig ) {
-
-    if (!config.event) {
-      throw new Error('Event configuration is missing');
-    }
-
-    if (config.event.mediaLive && config.event.elementalLive ) {
-      throw new Error('Invalid event type. Must be either "mediaLive" or "elementalLive, not both."');
-    }
-
-    if (!config.event.mediaLive && !config.event.elementalLive) {
-      throw new Error('MediaLive or Elemental Live configuration must be specified');
-    }
-
-    if (!config.event.mediaPackage || Object.keys(config.event.mediaPackage).length === 0) {
-      throw new Error('MediaPackage configuration is missing or empty');
-    }
-
-    // Verify MediaLive output type (i.e. HLS or CMAF Ingest) matches MediaPackage Ingest configuration
+  validateConfig(config: IEventConfig): void {
+    // Additional event-specific validations
     if (config.event.mediaLive) {
       const mediaLiveConfig = config.event.mediaLive;
       const mediaPackageConfig = config.event.mediaPackage;
 
-      // Validate compatibility between MediaLive output and MediaPackage input types
-      const mediaLiveOutputGroupType = this.identifyMediaLiveOutputGroupType(mediaLiveConfig.encodingProfileLocation);
-      if ((mediaLiveOutputGroupType === 'CMAF' && mediaPackageConfig.inputType !== 'CMAF') ||
-          (mediaLiveOutputGroupType === 'HLS' && mediaPackageConfig.inputType !== 'HLS')) {
-          console.error(`In the event configuration the encoding profile [event.medialive.encodingProfileLocation] ` +
-            `must use an output group compatible with the MediaPackage Channel InputType ` +
-            `[event.mediapackage.inputType].`);
-          throw new Error(
-              `MediaLive output type "${mediaLiveOutputGroupType}" is not compatible with ` +
-              `MediaPackage input type "${mediaPackageConfig.inputType}". Both types must match.`
-          );
+      // Verify MediaLive Anywhere configuration and inputs
+      if (
+        mediaLiveConfig.anywhereSettings &&
+        mediaLiveConfig.channelClass == "STANDARD"
+      ) {
+        throw new ConfigurationError(
+          "Invalid MediaLive Configuration. MediaLive Anywhere does not support STANDARD channels.",
+        );
       }
 
+      if (
+        mediaLiveConfig.input.type == "MULTICAST" &&
+        !mediaLiveConfig.input.multicastSettings
+      ) {
+        throw new Error(
+          'Invalid MediaLive Input Configuration. Multicast input require "multicastSettings" to be specified.',
+        );
+      }
+
+      // Identify if input type is a MediaLive Anywhere only input raise and error if the channel is not a MediaLive Anywhere channel
+      if (
+        ["MULTICAST"].includes(mediaLiveConfig.input.type) &&
+        !mediaLiveConfig.anywhereSettings
+      ) {
+        throw new ConfigurationError(
+          `Invalid MediaLive Configuration. '${mediaLiveConfig.input.type}' inputs are only available on MediaLive Anywhere.`,
+        );
+      }
+
+      // Verify MediaLive output type (i.e. HLS or CMAF Ingest) matches MediaPackage Ingest configuration
+      // Validate compatibility between MediaLive output and MediaPackage input types
+      const mediaLiveOutputGroupType = this.identifyMediaLiveOutputGroupType(
+        mediaLiveConfig.encodingProfileLocation,
+      );
+      if (
+        (mediaLiveOutputGroupType === "CMAF" &&
+          mediaPackageConfig.inputType !== "CMAF") ||
+        (mediaLiveOutputGroupType === "HLS" &&
+          mediaPackageConfig.inputType !== "HLS")
+      ) {
+        throw new ConfigurationError(
+          `MediaLive output type "${mediaLiveOutputGroupType}" is not compatible with ` +
+            `MediaPackage input type "${mediaPackageConfig.inputType}". Both types must match.`,
+        );
+      }
     }
 
     // Validate MediaPackage endpoints
-    Object.entries(config.event.mediaPackage.endpoints).forEach(([endpointName, endpoint]) => {
-      if (endpoint.containerType !== 'CMAF' && endpoint.containerType !== 'TS') {
-        throw new Error(`Invalid container type for MediaPackage endpoint "${endpointName}". Must be either "CMAF" or "TS"`);
-      }
-
-      const manifestCount = (endpoint.hlsManifests?.length || 0) +
-        (endpoint.lowLatencyHlsManifests?.length || 0) +
-        (endpoint.dashManifests?.length || 0);
-
-      if (manifestCount === 0) {
-        throw new Error(`MediaPackage endpoint "${endpointName}" must have at least one manifest`);
-      }
-
-      // Validate manifest name uniqueness
-      const manifestNames = new Set<string>();
-      [
-        ...(endpoint.hlsManifests || []),
-        ...(endpoint.lowLatencyHlsManifests || []),
-        ...(endpoint.dashManifests || [])
-      ].forEach(manifest => {
-        if (manifestNames.has(manifest.manifestName)) {
-          throw new Error(`Duplicate manifest name "${manifest.manifestName}" in MediaPackage endpoint "${endpointName}"`);
+    Object.entries(config.event.mediaPackage.endpoints).forEach(
+      ([endpointName, endpoint]) => {
+        if (
+          endpoint.containerType !== "CMAF" &&
+          endpoint.containerType !== "TS"
+        ) {
+          throw new Error(
+            `Invalid container type for MediaPackage endpoint "${endpointName}". Must be either "CMAF" or "TS"`,
+          );
         }
-        manifestNames.add(manifest.manifestName);
-      });
-    });
 
+        const manifestCount =
+          (endpoint.hlsManifests?.length || 0) +
+          (endpoint.lowLatencyHlsManifests?.length || 0) +
+          (endpoint.dashManifests?.length || 0);
+
+        if (manifestCount === 0) {
+          throw new Error(
+            `MediaPackage endpoint "${endpointName}" must have at least one manifest`,
+          );
+        }
+
+        // Validate manifest name uniqueness
+        const manifestNames = new Set<string>();
+        [
+          ...(endpoint.hlsManifests || []),
+          ...(endpoint.lowLatencyHlsManifests || []),
+          ...(endpoint.dashManifests || []),
+        ].forEach((manifest) => {
+          if (manifestNames.has(manifest.manifestName)) {
+            throw new Error(
+              `Duplicate manifest name "${manifest.manifestName}" in MediaPackage endpoint "${endpointName}"`,
+            );
+          }
+          manifestNames.add(manifest.manifestName);
+        });
+      },
+    );
   }
 
   /**
    * Determines the MediaLive output group type by analyzing the encoder settings profile.
-   * 
+   *
    * @param encodingProfile - Path to the encoder settings profile JSON file
    * @returns "CMAF" | "HLS" - The identified output group type
    * @throws Error if the profile cannot be loaded or has invalid settings
@@ -310,6 +360,7 @@ export class LefEventStack extends cdk.Stack {
         outputGroupSettings?: {
           cmafIngestGroupSettings?: unknown;
           mediaPackageGroupSettings?: unknown;
+          hlsGroupSettings?: unknown;
         };
       }>;
     }
@@ -321,33 +372,37 @@ export class LefEventStack extends cdk.Stack {
       encoderSettings = require(encodingProfile);
 
       // Validate the loaded settings
-      if (!encoderSettings || typeof encoderSettings !== 'object') {
-        throw new Error('Invalid encoder settings format');
+      if (!encoderSettings || typeof encoderSettings !== "object") {
+        throw new Error("Invalid encoder settings format");
       }
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
-          `Failed to load encoder settings from ${encodingProfile}: ${error.message}`
+          `Failed to load encoder settings from ${encodingProfile}: ${error.message}`,
         );
       } else {
-        throw new Error('Failed to load encoder settings: Unknown error');
+        throw new Error("Failed to load encoder settings: Unknown error");
       }
     }
 
     // Check output group settings
     if (!encoderSettings.outputGroups?.[0]?.outputGroupSettings) {
-      throw new Error('Invalid encoder settings: Missing output group settings');
+      throw new Error(
+        "Invalid encoder settings: Missing output group settings",
+      );
     }
 
-    const outputGroupSettings = encoderSettings.outputGroups[0].outputGroupSettings;
-
+    const outputGroupSettings =
+      encoderSettings.outputGroups[0].outputGroupSettings;
     if (outputGroupSettings.cmafIngestGroupSettings) {
       return "CMAF";
-    } else if (outputGroupSettings.mediaPackageGroupSettings) {
+    } else if (
+      outputGroupSettings.mediaPackageGroupSettings ||
+      outputGroupSettings.hlsGroupSettings
+    ) {
       return "HLS";
     } else {
-      throw new Error('Invalid MediaLive output group type');
+      throw new Error("Invalid MediaLive output group type");
     }
   }
-
 }

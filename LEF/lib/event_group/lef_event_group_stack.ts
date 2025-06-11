@@ -13,7 +13,8 @@
 
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { IEventGroupConfig } from './eventGroupConfigInterface';
+import { LefBaseStack } from "../lef_base_stack";
+import { IEventGroupConfig } from "./eventGroupConfigInterface";
 import {
   Aws,
   aws_mediapackagev2 as mediapackagev2,
@@ -28,7 +29,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import { MediaTailor } from "./mediatailor";
 import { CloudFront, CloudFrontProps } from "./cloudfront";
 
-export class LefEventGroupStack extends cdk.Stack {
+export class LefEventGroupStack extends LefBaseStack {
   constructor(
     scope: Construct,
     id: string,
@@ -56,14 +57,25 @@ export class LefEventGroupStack extends cdk.Stack {
         allowedPattern: ".+",
         constraintDescription: "Foundation Stack Name cannot be empty",
       },
-    );
+    ).valueAsString;
     const mediaLiveAccessRoleArn = Fn.importValue(
-      foundationStackNameParam.valueAsString + "-MediaLiveAccessRoleArn",
+      foundationStackNameParam + "-MediaLiveAccessRoleArn",
     );
 
-    const snsTopic = Fn.importValue(
-      foundationStackNameParam.valueAsString + "-SnsTopicArn",
-    );
+    const snsTopic = Fn.importValue(foundationStackNameParam + "-SnsTopicArn");
+
+    // Tag resources
+    const tags: Record<string, string>[] = [
+      {
+        FoundationStackName: foundationStackNameParam,
+        EventGroupStackName: Aws.STACK_NAME,
+        StackType: "LefEventGroupStack",
+        LiveEventFrameworkVersion: scope.node.tryGetContext(
+          "LiveEventFrameworkVersion",
+        ),
+      },
+    ];
+    this.tagResources(tags);
 
     // Getting configuration information
     var eventGroupConfig = config;
@@ -90,26 +102,26 @@ export class LefEventGroupStack extends cdk.Stack {
 
     // Define props to create CloudFront Distribution
     const cloudFrontProps: CloudFrontProps = {
-      foundationStackName: foundationStackNameParam.valueAsString,
+      foundationStackName: foundationStackNameParam,
       mediaTailorHostname: mediaTailor.configHostname,
       mediaPackageHostname: channelGroup.attrEgressDomain,
+      mediaPackageChannelGroupName: eventGroupName,
       s3LoggingEnabled: eventGroupConfig.cloudFront.s3LoggingEnabled,
       logFilePrefix: eventGroupName,
-      nominalSegmentLength:
-        eventGroupConfig.cloudFront.nominalSegmentLength,
+      nominalSegmentLength: eventGroupConfig.cloudFront.nominalSegmentLength,
       enableIpv6: eventGroupConfig.cloudFront.enableIpv6,
+      enableOriginShield: eventGroupConfig.cloudFront.enableOriginShield,
+      originShieldRegion: eventGroupConfig.cloudFront.originShieldRegion,
     };
 
     // Set tokenizationFunctionArn if specified in configuration
-    const configuredValue =
-      eventGroupConfig.cloudFront.tokenizationFunctionArn;
+    const configuredValue = eventGroupConfig.cloudFront.tokenizationFunctionArn;
     if (configuredValue && configuredValue.trim().length > 0) {
       cloudFrontProps.tokenizationFunctionArn = configuredValue;
     }
 
     // Set the Trusted Key Groups if specified in configuration
-    const trustedKeyGroups =
-      eventGroupConfig.cloudFront.keyGroupId;
+    const trustedKeyGroups = eventGroupConfig.cloudFront.keyGroupId;
     if (trustedKeyGroups && trustedKeyGroups.length > 0) {
       cloudFrontProps.keyGroupIds = trustedKeyGroups;
     }
@@ -123,7 +135,8 @@ export class LefEventGroupStack extends cdk.Stack {
 
     // Need to perform check to confirm SNS Email Subscription is active before proceeding
     // to create the key resources in the stack
-    const verifySnsTopicTrigger = this.verifySnsTopicSubscriptionState(snsTopic);
+    const verifySnsTopicTrigger =
+      this.verifySnsTopicSubscriptionState(snsTopic);
     mediaTailor.node.addDependency(verifySnsTopicTrigger);
     cloudfront.node.addDependency(verifySnsTopicTrigger);
 
@@ -146,7 +159,7 @@ export class LefEventGroupStack extends cdk.Stack {
       "https://" + cloudfront.distribution.domainName + "/v1/" + emtSessionPath;
 
     new CfnOutput(this, "FoundationStackName", {
-      value: foundationStackNameParam.valueAsString,
+      value: foundationStackNameParam,
       exportName: Aws.STACK_NAME + "-Foundation-Stack-Name",
       description: "Name of the Foundation Stack used bye Event Group.",
     });
@@ -267,37 +280,38 @@ export class LefEventGroupStack extends cdk.Stack {
     return trigger;
   }
 
-  // load event group configuration
-  loadConfig( configFilePath: string ): IEventGroupConfig {
-
-    try {
-      const config = require(configFilePath);
-      return config.EVENT_GROUP_CONFIG;
-    } catch (err) {
-      if (err instanceof Error) {
-        throw new Error(
-          `Failed to load configuration file (${configFilePath}): ${err.message}`,
-        );
-      } else {
-        throw new Error(
-          `Failed to load configuration file (${configFilePath}): ${String(err)}`,
-        );
-      }
-    }
+  loadConfig(configFilePath: string): IEventGroupConfig {
+    return this.getConfig<IEventGroupConfig>(
+      configFilePath,
+      "EVENT_GROUP_CONFIG",
+    );
   }
 
   // validate event group configuration
-  validateConfig( config: IEventGroupConfig ) {
+  validateConfig(config: IEventGroupConfig): void {
+    if (
+      config.cloudFront.tokenizationFunctionArn &&
+      config.cloudFront.keyGroupId
+    ) {
+      throw new Error(
+        "CloudFront configuration cannot have both tokenizationFunctionArn and keyGroupId",
+      );
+    }
 
-    if (!config.cloudFront) {
-      throw new Error('CloudFront configuration is missing in EventGroup config');
-    }
-    if (!config.mediaTailor) {
-      throw new Error('MediaTailor configuration is missing in EventGroup config');
+    // Verify CloudFront Origin Shield is configured correctly
+    if (config.cloudFront.enableOriginShield) {
+      if (!config.cloudFront.originShieldRegion) {
+        throw new Error(
+          "When origin shield is enabled, originShieldRegion must be set",
+        );
+      }
+      if (config.cloudFront.originShieldRegion.trim().length === 0) {
+        throw new Error(
+          "When origin shield is enabled, originShieldRegion cannot be an empty string",
+        );
+      }
     }
 
-    if (config.cloudFront.tokenizationFunctionArn && config.cloudFront.keyGroupId) {
-      throw new Error('CloudFront configuration cannot have both tokenizationFunctionArn and keyGroupId');
-    }
+    // Stack-specific validations can be added here
   }
 }
