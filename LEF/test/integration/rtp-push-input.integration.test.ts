@@ -39,7 +39,7 @@ describe("RTP Push Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineRtpPushInput)
+      .withInputs([singlePipelineRtpPushInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -63,7 +63,7 @@ describe("RTP Push Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInput(standardRtpPushInput)
+      .withInputs([standardRtpPushInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -87,7 +87,7 @@ describe("RTP Push Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(mediaLiveAnywhereInput)
+      .withInputs([mediaLiveAnywhereInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
@@ -112,7 +112,7 @@ describe("RTP Push Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInput(mediaLiveAnywhereInput)
+      .withInputs([mediaLiveAnywhereInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 

@@ -53,7 +53,6 @@ escape_url() {
     echo "$escaped_url"
 }
 
-
 printPlaybackUrls() {
     local export_file="$1"
     local stackname="$2"
@@ -92,7 +91,6 @@ printPlaybackUrls() {
             mediaTailorExplicitSessionInitUrl=$(jq -r ".$stackname.$mediaTailorSessionUrlKey" "$export_file")
         fi
 
-
         # Check for corresponding MediaPackage endpoint
         empKey=$(echo "$key" | sed 's/MediaTailorPlaybackUrl/MediaPackagePlaybackUrl/')
         empValue=$(jq -r ".$stackname | .$empKey" "$export_file")
@@ -100,29 +98,58 @@ printPlaybackUrls() {
         echo -e "\033[1m$printable_stream_type Stream\033[0m"
         echo -e "\033[1m========================================\033[0m"
         echo -e "\033[1mMediaPackage Playback URL :\033[0m $empValue"
-        # echo -e "\033[1mMediaTailor Playback URL (Implicit Session Initialization) :\033[0m $mediaTailorImplicitSessionInitUrl"
-        # escaped_url=`escape_url $mediaTailorImplicitSessionInitUrl`
-        # echo ""
-        # if [[ $stream_type == "dash-cmaf" ]]; then
-        #   echo -e "\033[1mTest DASH-IF player URL   :\033[0m https://reference.dashif.org/dash.js/nightly/samples/dash-if-reference-player/index.html?mpd=$escaped_url"
-        # else
-        #   echo -e "\033[1mTest hls.js player URL    :\033[0m https://hls-js.netlify.app/demo/?src=$escaped_url"
-        # fi
-        # echo ""
-        # Generate URLs for Explicit Session Initialization UI
+        
+        # Generate URLs for Session Initialization UI
         echo -e "\033[1mMediaTailor Session Initialization Demo UI Links:\033[0m"
-        echo -e "\033[1m- Explicit Session Initialization:\033[0m https://d195a5eb2n34sr.cloudfront.net?url=$mediaTailorExplicitSessionInitUrl&playerparams=[{\"key\":\"content_segment_prefix\",\"value\":\"$stream_type\"},{\"key\":\"ad_segment_prefix\",\"value\":\"$stream_type\"}]&serverreporting=true"
-        echo -e "\033[1m- Implicit Session Initialization:\033[0m https://d195a5eb2n34sr.cloudfront.net?url=$value&playerparams=[{\"key\":\"content_segment_prefix\",\"value\":\"$stream_type\"},{\"key\":\"ad_segment_prefix\",\"value\":\"$stream_type\"}]&serverreporting=true"
+        echo -e "  \033[1mExplicit Session Initialization:\033[0m https://d195a5eb2n34sr.cloudfront.net?url=$mediaTailorExplicitSessionInitUrl&playerparams=[{\"key\":\"content_segment_prefix\",\"value\":\"$stream_type\"},{\"key\":\"ad_segment_prefix\",\"value\":\"$stream_type\"}]&serverreporting=true"
+        echo -e "  \033[1mImplicit Session Initialization:\033[0m https://d195a5eb2n34sr.cloudfront.net?url=$value&playerparams=[{\"key\":\"content_segment_prefix\",\"value\":\"$stream_type\"},{\"key\":\"ad_segment_prefix\",\"value\":\"$stream_type\"}]&serverreporting=true"
+        
+        # Direct player URLs for testing
+        echo -e "\033[1mDirect Player Testing URLs:\033[0m"
+        escaped_mediapackage_url=$(escape_url "$empValue")
+        escaped_mediatailor_url=$(escape_url "$mediaTailorImplicitSessionInitUrl")
+        
+        if [[ $stream_type == "dash-cmaf" ]]; then
+          echo -e "  \033[1mDASH-IF Reference Player (MediaPackage):\033[0m https://reference.dashif.org/dash.js/nightly/samples/dash-if-reference-player/index.html?mpd=$escaped_mediapackage_url"
+          echo -e "  \033[1mDASH-IF Reference Player (MediaTailor):\033[0m https://reference.dashif.org/dash.js/nightly/samples/dash-if-reference-player/index.html?mpd=$escaped_mediatailor_url"
+        else
+          echo -e "  \033[1mHLS.js Demo Player (MediaPackage):\033[0m https://hls-js.netlify.app/demo/?src=$escaped_mediapackage_url"
+          echo -e "  \033[1mHLS.js Demo Player (MediaTailor):\033[0m https://hls-js.netlify.app/demo/?src=$escaped_mediatailor_url"
+        fi
         echo ""
 
     done
 }
 
+printUsageInformation() {
+    echo -e "\033[1mUsage Information:\033[0m"
+    echo -e "========================================="
+    echo -e "\033[1mFor Server-Side Ad Insertion:\033[0m"
+    echo -e "  - Use MediaTailor URLs with server reporting enabled"
+    echo -e "  - Ads are stitched directly into the stream by MediaTailor"
+    echo -e "  - Compatible with most video players"
+    echo ""
+    echo -e "\033[1mFor Content Without Ads:\033[0m"
+    echo -e "  - Use MediaPackage URLs directly"
+    echo -e "  - Most cost-effective option when no ad insertion is required"
+    echo ""
+    echo -e "\033[1mTesting Recommendations:\033[0m"
+    echo -e "  - Start with MediaPackage URLs to verify content playback"
+    echo -e "  - Test server-side insertion with MediaTailor URLs"
+    echo -e "  - Use the Session Initialization Demo UI to understand MediaTailor session management"
+    echo ""
+}
+
 # Extract stackname from CDK_EXPORTS_FILE
 stackname=`jq -r 'keys[]' $CDK_EXPORTS_FILE`
 
-# Print session URLs
+echo -e "\033[1mLive Event Framework - Playback URL Generator\033[0m"
+echo -e "=============================================="
+echo -e "\033[1mStack Name:\033[0m $stackname"
+echo -e "\033[1mExports File:\033[0m $CDK_EXPORTS_FILE"
 
 # Print Playback URLs
 printPlaybackUrls $CDK_EXPORTS_FILE $stackname MediaTailorPlaybackUrl
 
+# Print usage information
+printUsageInformation

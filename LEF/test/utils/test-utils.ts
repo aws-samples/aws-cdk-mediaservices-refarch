@@ -84,6 +84,15 @@ export const mediaLiveAssertions = {
       ...settings,
     });
   },
+  
+  /**
+   * Assert multiple MediaLive inputs
+   * @param template CloudFormation template
+   * @param count Expected number of inputs
+   */
+  assertInputCount: (template: Template, count: number): void => {
+    template.resourceCountIs("AWS::MediaLive::Input", count);
+  },
 
   /**
    * Assert resource counts

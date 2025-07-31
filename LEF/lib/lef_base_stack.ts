@@ -12,14 +12,23 @@
  */
 
 import * as cdk from "aws-cdk-lib";
+import { Aws } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { loadConfig } from "./config/configValidator";
 import { TagManager, Tags, aws_iam as iam } from "aws-cdk-lib";
+import { TagArray, TaggingUtils } from "./utils/tagging";
 
 /**
  * Base stack class for LEF stacks with common functionality
  */
 export abstract class LefBaseStack extends cdk.Stack {
+
+  /**
+   * Collection of tags to be applied to resources in this stack
+   * Each derived stack should populate this with appropriate tags
+   */
+  public resourceTags: TagArray = [];
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
   }
@@ -42,25 +51,63 @@ export abstract class LefBaseStack extends cdk.Stack {
     return loadConfig<T>(configFilePath, configKey);
   }
 
-  // Function to selectively tag resources in the stack
-  tagResources(tags: Record<string, string>[]) {
-    // Group all taggable resources
-    const taggableResources = this.node
-      .findAll()
-      .filter(
-        (child) =>
-          TagManager.isTaggable(child) &&
-          !(child instanceof iam.Role) &&
-          !(child instanceof cdk.Stack),
-      );
+  /**
+   * Creates standard resource tags for a stack based on its type and relationships
+   * 
+   * @param scope The construct scope (used to access context values)
+   * @param stackType The type of stack (e.g., "LefFoundationStack", "LefEventGroupStack", "LefEventStack")
+   * @param foundationStackName The name of the foundation stack (optional, for event group and event stacks)
+   * @param eventGroupStackName The name of the event group stack (optional, for event stacks)
+   * @returns An array of tag objects to be used as resourceTags
+   */
+  protected createStandardTags(
+    scope: Construct,
+    stackType: string,
+    foundationStackName?: string,
+    eventGroupStackName?: string,
+    eventStackName?: string,
+  ): TagArray {
+    const tags: Record<string, string> = {
+      StackType: stackType,
+      LiveEventFrameworkVersion: scope.node.tryGetContext("LiveEventFrameworkVersion") || "unknown"
+    };
 
-    // Apply all tags to each taggable resource
-    for (const resource of taggableResources) {
-      for (const tag of tags) {
-        for (const [key, value] of Object.entries(tag)) {
-          Tags.of(resource).add(key, value);
-        }
-      }
+    // Add stack relationships if provided
+    if (foundationStackName) {
+      tags.FoundationStackName = foundationStackName;
     }
+    
+    if (eventGroupStackName) {
+      tags.EventGroupStackName = eventGroupStackName;
+    }
+    
+    // Always add the current stack name
+    // Use the actual stack name from context if available, otherwise fall back to ID or token
+    const contextStackName = scope.node.tryGetContext("stackName");
+    const stackId = contextStackName || this.node.id || Aws.STACK_NAME;
+    tags[`${stackType.replace('Lef', '')}Name`] = stackId;
+
+    return [tags];
+  }
+  
+  /**
+   * Applies the resource tags to all resources in the stack
+   * This method should be called after all resources have been created
+   * 
+   * @example
+   * // In a derived stack constructor:
+   * this.resourceTags = this.createStandardTags(this, "LefFoundationStack");
+   * // Create resources...
+   * this.tagResources();
+   */
+  public tagResources(): void {
+    if (!this.resourceTags || this.resourceTags.length === 0) return;
+    
+    // Apply tags to all resources in the stack
+    this.node.findAll().forEach(child => {
+      if (child instanceof cdk.Resource) {
+        TaggingUtils.applyTagsToResource(child, this.resourceTags);
+      }
+    });
   }
 }

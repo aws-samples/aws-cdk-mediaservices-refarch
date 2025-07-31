@@ -1,6 +1,12 @@
 {
   "audioDescriptions": [
     {
+      "audioTypeControl": "FOLLOW_INPUT",
+      "languageCode": "en-us",
+      "languageCodeControl": "USE_CONFIGURED",
+      "audioSelectorName": "default",
+      "name": "audio_aac_128000_en_us",
+      "streamName": "English",
       "codecSettings": {
         "aacSettings": {
           "inputType": "NORMAL",
@@ -12,13 +18,7 @@
           "rateControlMode": "CBR",
           "sampleRate": 48000
         }
-      },
-      "audioTypeControl": "FOLLOW_INPUT",
-      "languageCode": "eng",
-      "languageCodeControl": "USE_CONFIGURED",
-      "auldioSelectorName": "default",
-      "name": "audio_aac_128000_eng",
-      "streamName": "English"
+      }
     }
   ],
   "captionDescriptions": [],
@@ -96,12 +96,14 @@
           "videoDescriptionName": "-frame-capture"
         },
         {
-          "outputName": "-AAC-LC-128-ENG",
+          "outputName": "-AAC-LC-128-EN-US",
           "captionDescriptionNames": [],
           "outputSettings": {
             "mediaPackageOutputSettings": {}
           },
-          "audioDescriptionNames": ["audio_aac_128000_eng"]
+          "audioDescriptionNames": [
+            "audio_aac_128000_en_us"
+          ]
         }
       ]
     }
@@ -405,5 +407,10 @@
         "noRegionalBlackoutFlag": "FOLLOW"
       }
     }
+  },
+  "blackoutSlate": {
+    "networkEndBlackout": "ENABLED",
+    "networkId": "10.1234/1234-1234-1234-1234-1234-C",
+    "state": "ENABLED"
   }
 }

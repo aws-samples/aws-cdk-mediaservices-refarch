@@ -38,7 +38,7 @@ describe("File Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineFileInput)
+      .withInputs([singlePipelineFileInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -62,7 +62,7 @@ describe("File Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInput(standardChannelFileInput)
+      .withInputs([standardChannelFileInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -86,7 +86,7 @@ describe("File Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineFileInput)
+      .withInputs([singlePipelineFileInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
@@ -112,7 +112,7 @@ describe("File Input Integration Tests", () => {
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInput(standardChannelFileInput)
+        .withInputs([standardChannelFileInput])
         .withAnywhereSettings(ANYWHERE_SETTINGS)
         .writeConfig(testDescriptor);
 

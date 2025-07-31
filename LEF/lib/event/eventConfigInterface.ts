@@ -26,8 +26,6 @@ export type InputMaximumBitrate = "MAX_10_MBPS" | "MAX_20_MBPS" | "MAX_50_MBPS";
 
 export type InputResolution = "SD" | "HD" | "UHD";
 
-export type SourceEndBehavior = "LOOP" | "CONTINUE";
-
 export interface InputSpecification {
   /** Codec for input. */
   codec: InputCodec;
@@ -37,6 +35,27 @@ export interface InputSpecification {
 
   /** Resolution for input. */
   resolution: InputResolution;
+}
+
+export interface ITeletextSourceSettings {
+  /** Page number for teletext source. */
+  pageNumber: string;
+}
+
+export interface ICaptionSelectorSettings {
+  /** Teletext source settings. */
+  teletextSourceSettings: ITeletextSourceSettings;
+}
+
+export interface ICaptionSelector {
+  /** Name of the caption selector. */
+  name: string;
+
+  /** Language code for the captions. */
+  languageCode: string;
+
+  /** Settings for the caption selector. */
+  selectorSettings: ICaptionSelectorSettings;
 }
 
 /**
@@ -94,8 +113,11 @@ export interface IMediaLiveConfig {
    */
   anywhereSettings?: IAnywhereSettingsConfig;
 
-  /** Input configuration for MediaLive. */
-  input: MediaLiveInput;
+  /**
+   * List of input configurations for MediaLive.
+   * Supports multiple inputs for channel switching.
+   */
+  inputs: MediaLiveInput[];
 
   /** Segment length in seconds. */
   segmentLengthInSeconds: number;
@@ -111,13 +133,15 @@ export interface IMediaLiveConfig {
 
   /** Input specification for MediaLive. */
   inputSpecification: InputSpecification;
-
-  /**
-   * Source end behavior.
-   * @remarks Only applies to MP4_FILE, TS_FILE, RTMP_PULL, URL_PULL inputs.
-   * All other inputs will use the 'CONTINUE' source end behaviour.
-   */
-  sourceEndBehavior: SourceEndBehavior;
+  
+  /** Enable Input Prepare Schedule Actions */
+  enableInputPrepareScheduleActions?: boolean;
+  
+  /** Enable Output Static Image Overlay Schedule Actions */
+  enableStaticImageOverlayScheduleActions?: boolean;
+  
+  /** Caption selectors configuration */
+  captionSelectors?: ICaptionSelector[];
 }
 
 /**
@@ -173,6 +197,68 @@ export interface IMediaPackageEndpointsConfig {
 }
 
 /**
+ * Configuration for MediaPackage input switching based on MQCS.
+ */
+export interface IInputSwitchConfig {
+  /** 
+   * When true, AWS Elemental MediaPackage performs input switching based on the MQCS.
+   * Default is true. This setting is valid only when inputType is CMAF.
+   */
+  mqcsInputSwitching?: boolean;
+
+  /** 
+   * Input switching mode for failover behavior.
+   * @values "FAILOVER_ON_AVERAGE" | "FAILOVER_ON_INSTANTANEOUS"
+   */
+  inputSwitchingMode?: "FAILOVER_ON_AVERAGE" | "FAILOVER_ON_INSTANTANEOUS";
+
+  /** 
+   * Threshold for input switching (0-100).
+   * Lower values make switching more sensitive.
+   */
+  switchingThreshold?: number;
+}
+
+/**
+ * Configuration for MediaPackage output header settings.
+ */
+export interface IOutputHeaderConfig {
+  /** 
+   * When true, AWS Elemental MediaPackage includes the MQCS in responses to the CDN.
+   * This setting is valid only when inputType is CMAF.
+   */
+  publishMqcs?: boolean;
+
+  /** Additional CMSD headers to include in responses */
+  additionalHeaders?: {
+    /** Include buffer health information in CMSD headers */
+    includeBufferHealth?: boolean;
+    /** Include throughput information in CMSD headers */
+    includeThroughput?: boolean;
+  };
+}
+
+/**
+ * Configuration for MediaPackage channel policy.
+ */
+export interface IChannelPolicyConfig {
+  /** Enable automatic channel policy attachment */
+  enabled: boolean;
+
+  /** 
+   * Array of CIDR blocks allowed to push content to the channel.
+   * If specified, only these IP ranges can send content to MediaPackage.
+   */
+  allowedCidrBlocks?: string[];
+
+  /** 
+   * Custom IAM policy statements to add to the channel policy.
+   * Use this for advanced access control scenarios.
+   */
+  customPolicyStatements?: any[]; // Will be converted to iam.PolicyStatement[]
+}
+
+/**
  * Configuration for a MediaPackage channel.
  */
 export interface IMediaPackageChannelConfig {
@@ -180,6 +266,24 @@ export interface IMediaPackageChannelConfig {
    * @values "HLS" | "CMAF"
    */
   inputType: "HLS" | "CMAF";
+
+  /** Custom description for the channel */
+  description?: string;
+
+  /** 
+   * Configuration for input switching based on the media quality confidence score (MQCS) 
+   * as provided from AWS Elemental MediaLive. Only applies to CMAF input type.
+   */
+  inputSwitchConfiguration?: IInputSwitchConfig;
+
+  /** 
+   * Settings for what common media server data (CMSD) headers AWS Elemental MediaPackage 
+   * includes in responses to the CDN. Only applies to CMAF input type.
+   */
+  outputHeaderConfiguration?: IOutputHeaderConfig;
+
+  /** Channel policy configuration */
+  channelPolicy?: IChannelPolicyConfig;
 
   endpoints: IMediaPackageEndpointsConfig;
 }
@@ -229,7 +333,7 @@ export interface IMediaPackageEndpointConfig {
 /**
  * Configuration for a manifest.
  */
-interface IManifestConfig {
+export interface IManifestConfig {
   /** Name of the manifest. */
   manifestName: string;
 
@@ -241,6 +345,12 @@ interface IManifestConfig {
 
   /** Program date time interval in seconds. */
   programDateTimeIntervalSeconds: number;
+
+  /** 
+   * Whether to URL encode child manifest URLs in the parent manifest.
+   * Default is true.
+   */
+  urlEncodeChildManifest?: boolean;
 
   /** Configuration for SCTE in HLS. */
   scteHls: {

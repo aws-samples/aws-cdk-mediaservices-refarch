@@ -36,17 +36,8 @@ export class LefFoundationStack extends LefBaseStack {
     // Validate foundation configuration
     this.validateConfig(config);
 
-    // Tag resources
-    const tags: Record<string, string>[] = [
-      {
-        FoundationStackName: Aws.STACK_NAME,
-        StackType: "LefFoundationStack",
-        LiveEventFrameworkVersion: scope.node.tryGetContext(
-          "LiveEventFrameworkVersion",
-        ),
-      },
-    ];
-    this.tagResources(tags);
+    // Create standard tags for foundation stack
+    this.resourceTags = this.createStandardTags(scope, "LefFoundationStack", Aws.STACK_NAME);
 
     // Define parameter to capture email address to subscribe to SNS topic
     const userEmail = new CfnParameter(this, "userEmail", {
@@ -61,6 +52,7 @@ export class LefFoundationStack extends LefBaseStack {
     const cloudfront = new Foundation(this, "CloudFrontFoundation", {
       userEmail: userEmail,
       config: config.cloudFront,
+      tags: this.resourceTags,
     });
   }
 

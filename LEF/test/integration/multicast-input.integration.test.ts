@@ -39,7 +39,7 @@ describe("Multicast Input Integration Tests", () => {
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("SINGLE_PIPELINE")
-        .withInput(singlePipelineMulticastInput)
+        .withInputs([singlePipelineMulticastInput])
         .writeConfig(testDescriptor);
 
       const lefStack = createEventStack(app, testDescriptor);
@@ -67,7 +67,7 @@ describe("Multicast Input Integration Tests", () => {
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInput(standardChannelMulticastInput)
+        .withInputs([standardChannelMulticastInput])
         .writeConfig(testDescriptor);
 
       const lefStack = createEventStack(app, testDescriptor);
@@ -94,7 +94,7 @@ describe("Multicast Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineMulticastInput)
+      .withInputs([singlePipelineMulticastInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
@@ -120,7 +120,7 @@ describe("Multicast Input Integration Tests", () => {
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInput(standardChannelMulticastInput)
+        .withInputs([standardChannelMulticastInput])
         .withAnywhereSettings(ANYWHERE_SETTINGS)
         .writeConfig(testDescriptor);
 

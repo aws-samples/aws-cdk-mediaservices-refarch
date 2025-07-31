@@ -13,7 +13,7 @@
 
 export interface IEventGroupConfig {
   cloudFront: IEventGroupCloudFrontConfig;
-  mediaTailor: IEventGroupMediaTailorConfig;
+  mediaTailor: IEventGroupMediaTailorConfig[];
 }
 
 export interface IEventGroupCloudFrontConfig {
@@ -50,16 +50,25 @@ export interface IEventGroupCloudFrontConfig {
 }
 
 export interface IEventGroupMediaTailorConfig {
+  /**
+   * Name of the MediaTailor configuration
+   * This will be used as part of the configuration name and in the CloudFront path pattern
+   */
+  name?: string;
   adDecisionServerUrl: string;
-  contentSegmentUrl: string;
-  adSegmentUrl: string;
-  adMarkerPassthrough: boolean;
+  contentSegmentUrlPrefix: string;
+  adSegmentUrlPrefix: string;
+  adMarkerPassthrough?: boolean;
   /**
    * Defines the maximum duration of underfilled ad time (in seconds) allowed in an ad break
    * before MediaTailor will abandon personalization of the ad break.
    */
   personalizationThreshold?: number | undefined;
-  slateAdUrl: string;
+  /**
+   * URL for slate ad content that will be used if ad content is not available
+   * @default ""
+   */
+  slateAdUrl?: string;
   /**
    * Bumper
    * Documentation - https://docs.aws.amazon.com/mediatailor/latest/ug/bumpers.html
@@ -104,16 +113,32 @@ export interface IEventGroupMediaTailorConfig {
     fillPolicy: "PARTIAL_AVAIL" | "FULL_AVAIL_ONLY";
   };
   /**
-   * PENDING IMPLEMENTATION: logPrecentageEnabled has not yet been implemented.
-   * The logPercentage enabled has been set to the default value of 100 percent. Valid values are between 0 and 100.
-   * For integration it is useful to log all sessions to simplify troubleshooting. For production deployments logging
-   * 100% of sessions can incur significant CloudWatch Log charges. In these cases it may be more cost effective to reduce
-   * the log percentage to a value less than 100% (perhaps 5%). Using log sampling it is still possible to get reasonable
-   * visibility of how the service is operating while reducing overall costs.
-   * Remember if a specific session needs to be logged this can be achieved by adding the aws.logMode=DEBUG to the session
-   * initialization.
+   * MediaTailor log percentage configuration (0-100).
+   * 
+   * Controls what percentage of MediaTailor sessions are logged to CloudWatch.
+   * 
+   * Recommended values:
+   * - Development: 100 (full logging for debugging)
+   * - Production: 10 or less (cost-optimized)
+   * - High-volume: 5 or less (minimal cost impact)
+   * 
+   * Note: Individual sessions can be forced to log by adding aws.logMode=DEBUG
+   * to session initialization, regardless of this global setting.
+   * 
+   * @default 100 (if not specified)
+   * @minimum 0
+   * @maximum 100
    */
-  logPrecentageEnabled?: number;
+  logPercentageEnabled?: number;
+  /**
+   * Insertion mode for MediaTailor ad insertion
+   * @values 'STITCHED_ONLY' | 'PLAYER_SELECT'
+   * @default 'STITCHED_ONLY' (if not specified)
+   * @remarks
+   * - STITCHED_ONLY: Traditional server-side ad insertion (default behavior)
+   * - PLAYER_SELECT: Client-side ad insertion with player control over ad playback
+   */
+  insertionMode?: 'STITCHED_ONLY' | 'PLAYER_SELECT';
   /**
    * Specify custom transcode profiles to be used for HLS and DASH outputs.
    * If not specified, MediaTailor will create a dynamic transcode profiles.

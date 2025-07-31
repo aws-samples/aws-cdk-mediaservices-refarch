@@ -14,10 +14,9 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { MediaPackageV2 } from "./mediapackagev2";
-import { MediaLive } from "./medialive";
+import { MediaLive, MediaLiveOutputGroupType } from "./medialive";
 import {
   Aws,
-  Tags,
   Fn,
   aws_iam as iam,
   CfnParameter,
@@ -25,10 +24,20 @@ import {
 } from "aws-cdk-lib";
 import {
   IEventConfig,
+  IMediaLiveConfig,
   IMediaPackageChannelConfig,
 } from "./eventConfigInterface";
 import { LefBaseStack } from "../lef_base_stack";
 import { ConfigurationError } from "../config/configValidator";
+import * as fs from 'fs';
+import { TaggingUtils } from "../utils/tagging";
+
+interface CaptionDescription {
+  name: string;
+  captionSelectorName: string;
+  languageCode?: string;
+  languageDescription?: string;
+}
 
 export class LefEventStack extends LefBaseStack {
   constructor(
@@ -42,7 +51,8 @@ export class LefEventStack extends LefBaseStack {
     // Import event configuration
     const config = this.loadConfig(configFilePath);
 
-    // Sets basic defaults for DRM Signaling in DASH manifests
+    // Sets various default configuration values based on the 
+    // to ensure configuration is coherent.
     this.setDependentConfigParameters(config);
 
     // Validate event configuration
@@ -68,19 +78,6 @@ export class LefEventStack extends LefBaseStack {
     const channelName = Aws.STACK_NAME;
     const eventGroupStackName = eventGroupStackNameParam.valueAsString;
 
-    /*
-     * Create MediaPackage Channel
-     */
-    const mediaPackageChannel = new MediaPackageV2(
-      this,
-      "MediaPackageChannel",
-      {
-        channelName: channelName,
-        channelGroupName: eventGroupStackName,
-        configuration: configuration.mediaPackage,
-      },
-    );
-
     const foundationStackName = Fn.importValue(
       eventGroupStackName + "-Foundation-Stack-Name",
     );
@@ -103,19 +100,28 @@ export class LefEventStack extends LefBaseStack {
       eventGroupStackName + "-MediaTailor-Session-Prefix",
     );
 
-    // Tag resources
-    const tags: Record<string, string>[] = [
+    // Create standard tags for event stack
+    this.resourceTags = this.createStandardTags(
+      scope,
+      "LefEventStack",
+      foundationStackName,
+      eventGroupStackName,
+      Aws.STACK_NAME,
+    );
+
+    /*
+     * Create MediaPackage Channel
+     */
+    const mediaPackageChannel = new MediaPackageV2(
+      this,
+      "MediaPackageChannel",
       {
-        FoundationStackName: foundationStackName,
-        EventGroupStackName: eventGroupStackName,
-        EventStackName: Aws.STACK_NAME,
-        StackType: "LefEventStack",
-        LiveEventFrameworkVersion: scope.node.tryGetContext(
-          "LiveEventFrameworkVersion",
-        ),
+        channelName: channelName,
+        channelGroupName: eventGroupStackName,
+        configuration: configuration.mediaPackage,
+        tags: this.resourceTags,
       },
-    ];
-    this.tagResources(tags);
+    );
 
     /*
      * Define Event output parameters
@@ -166,13 +172,31 @@ export class LefEventStack extends LefBaseStack {
       /*
        * Create MediaLive Channel
        */
+      // Determine the actual MediaLive output group type from the encoding profile
+      const mediaLiveOutputGroupType = this.identifyMediaLiveOutputGroupType(
+        configuration.mediaLive.encodingProfileLocation,
+      );
+
       const mediaLiveChannel = new MediaLive(this, "MediaLiveChannel", {
         channelName: channelName,
         mediaLiveAccessRoleArn: mediaLiveAccessRoleArn,
         configuration: configuration.mediaLive,
-        outputGroupType: mediaPackageChannel.channelInputType,
-        hlsIngestEndpoint1: mediaPackageChannel.channelIngestEndpoint1,
-        hlsIngestEndpoint2: mediaPackageChannel.channelIngestEndpoint2,
+        destinationConfig: mediaLiveOutputGroupType === MediaLiveOutputGroupType.MEDIAPACKAGE ? {
+          type: MediaLiveOutputGroupType.MEDIAPACKAGE,
+          channelClass: configuration.mediaLive.channelClass,
+          mediaPackage: {
+            channelName: channelName,
+            channelGroup: eventGroupStackName
+          }
+        } : {
+          type: mediaLiveOutputGroupType,
+          channelClass: configuration.mediaLive.channelClass,
+          endpoints: {
+            primary: mediaPackageChannel.channelIngestEndpoint1,
+            secondary: mediaPackageChannel.channelIngestEndpoint2
+          }
+        },
+        tags: this.resourceTags,
       });
       // MediaLive needed to create the an IAM role before it could be included in the
       // MediaPackage channel policy.
@@ -230,26 +254,37 @@ export class LefEventStack extends LefBaseStack {
       }
     }
 
-    // Set default value to passthrough SCTE-35 for MediaLive HLS/TS outputs
-    if (config.event.mediaLive && !config.event.mediaLive.scte35Behavior) {
-      config.event.mediaLive.scte35Behavior = "PASSTHROUGH";
+    // Set defaults for MediaLive parameters if not set explicitly
+    if ( config.event.mediaLive ) {
+
+      // Set default value to passthrough SCTE-35 for MediaLive HLS/TS outputs
+      if (!config.event.mediaLive.scte35Behavior) {
+        config.event.mediaLive.scte35Behavior = "PASSTHROUGH";
+      }
+
+      // Set a default value for a medialive minimum segment length if not specified
+      if (config.event.mediaLive.minimumSegmentLengthInSeconds === undefined) {
+        config.event.mediaLive.minimumSegmentLengthInSeconds = 1;
+      }
+
+      // Set a default value for HLS Ad Markers
+      if (config.event.mediaLive.adMarkers === undefined) {
+        config.event.mediaLive.adMarkers = "ELEMENTAL_SCTE35";
+      }
+
+      // Set enableInputPrepareScheduleActions feature activiation 
+      // if not explicitly set in configuration
+      if (config.event.mediaLive.enableInputPrepareScheduleActions===undefined) {
+        config.event.mediaLive.enableInputPrepareScheduleActions = true;
+      }
+
+      // Set enableInputPrepareScheduleActions feature activiation 
+      // if not explicitly set in configuration
+      if (config.event.mediaLive.enableStaticImageOverlayScheduleActions===undefined) {
+        config.event.mediaLive.enableStaticImageOverlayScheduleActions = true;
+      }
     }
 
-    // Set a default value for a medialive minimum segment length if not specified
-    if (
-      config.event.mediaLive &&
-      config.event.mediaLive.minimumSegmentLengthInSeconds === undefined
-    ) {
-      config.event.mediaLive.minimumSegmentLengthInSeconds = 1;
-    }
-
-    // Set a default value for HLS Ad Markers
-    if (
-      config.event.mediaLive &&
-      config.event.mediaLive.adMarkers === undefined
-    ) {
-      config.event.mediaLive.adMarkers = "ELEMENTAL_SCTE35";
-    }
   }
 
   // validate event configuration
@@ -258,6 +293,9 @@ export class LefEventStack extends LefBaseStack {
     if (config.event.mediaLive) {
       const mediaLiveConfig = config.event.mediaLive;
       const mediaPackageConfig = config.event.mediaPackage;
+
+      // // Perform basic validation of MediaLive encoding profile location
+      const encoderSettings = this.loadAndValidateEncodingProfile(mediaLiveConfig);
 
       // Verify MediaLive Anywhere configuration and inputs
       if (
@@ -269,23 +307,30 @@ export class LefEventStack extends LefBaseStack {
         );
       }
 
-      if (
-        mediaLiveConfig.input.type == "MULTICAST" &&
-        !mediaLiveConfig.input.multicastSettings
-      ) {
-        throw new Error(
-          'Invalid MediaLive Input Configuration. Multicast input require "multicastSettings" to be specified.',
-        );
-      }
+      // Validate Media Live inputs
+      if (mediaLiveConfig.inputs) {
+        mediaLiveConfig.inputs.forEach((input) => {
+         
+          if (
+            input.type == "MULTICAST" &&
+            !input.multicastSettings
+          ) {
+            throw new Error(
+              'Invalid MediaLive Input Configuration. Multicast input require "multicastSettings" to be specified.',
+            );
+          }
 
-      // Identify if input type is a MediaLive Anywhere only input raise and error if the channel is not a MediaLive Anywhere channel
-      if (
-        ["MULTICAST"].includes(mediaLiveConfig.input.type) &&
-        !mediaLiveConfig.anywhereSettings
-      ) {
-        throw new ConfigurationError(
-          `Invalid MediaLive Configuration. '${mediaLiveConfig.input.type}' inputs are only available on MediaLive Anywhere.`,
-        );
+          // Identify if input type is a MediaLive Anywhere only input raise and error if the channel is not a MediaLive Anywhere channel
+          if (
+            ["MULTICAST"].includes(input.type) &&
+            !mediaLiveConfig.anywhereSettings
+          ) {
+            throw new ConfigurationError(
+              `Invalid MediaLive Configuration. '${input.type}' inputs are only available on MediaLive Anywhere.`,
+            );
+          }
+
+        });
       }
 
       // Verify MediaLive output type (i.e. HLS or CMAF Ingest) matches MediaPackage Ingest configuration
@@ -304,6 +349,9 @@ export class LefEventStack extends LefBaseStack {
             `MediaPackage input type "${mediaPackageConfig.inputType}". Both types must match.`,
         );
       }
+
+      // Encoding profile captions configuration match MediaLive input configuration
+      this.validateCaptionsConfig( mediaLiveConfig, encoderSettings );
     }
 
     // Validate MediaPackage endpoints
@@ -348,13 +396,116 @@ export class LefEventStack extends LefBaseStack {
   }
 
   /**
+   * Loads and validates MediaLive encoding profile by checking file existence and JSON format
+   * @param mediaLiveConfig - Configuration object containing encoding profile location
+   * @returns The parsed JSON content of the encoding profile
+   * @throws ConfigurationError if file doesn't exist or contains invalid JSON
+   */
+  private loadAndValidateEncodingProfile(mediaLiveConfig: IMediaLiveConfig, ): any {
+
+    // Check if file exists
+    const encodingProfileLocation = mediaLiveConfig.encodingProfileLocation;
+
+    if (!this.fileExists(encodingProfileLocation)) {
+      throw new ConfigurationError(
+        `Encoding profile location file "${encodingProfileLocation}" does not exist.`
+      );
+    }
+
+    try {
+      // Read and parse the JSON file
+      const fileContent = fs.readFileSync(encodingProfileLocation, 'utf8');
+      return JSON.parse(fileContent);
+    } catch (error: unknown) {
+      if (error instanceof SyntaxError) {
+        throw new ConfigurationError(
+          `Encoding profile at "${encodingProfileLocation}" contains invalid JSON: ${error.message}`
+        );
+      }
+      // Handle unknown error type safely
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error occurred';
+      
+      throw new ConfigurationError(
+        `Failed to read encoding profile at "${encodingProfileLocation}": ${errorMessage}`
+      );
+    }
+  }
+
+  /**
+   * Checks if a file exists at the specified path
+   * @param filePath - Path to the file to check
+   * @returns true if file exists, false otherwise or if error occurs
+   */
+  private fileExists(filePath: string): boolean {
+    try {
+      return fs.existsSync(filePath);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Validates the caption configuration by ensuring all caption selectors referenced in the encoder settings
+   * exist in the MediaLive configuration.
+   * 
+   * @param medialiveConfig - The MediaLive configuration object containing caption selectors
+   * @param encoderSettings - The encoder settings object containing caption descriptions
+   * @throws ConfigurationError if a caption selector referenced in encoder settings is not found in MediaLive config
+   */
+  validateCaptionsConfig(
+    medialiveConfig: IMediaLiveConfig, 
+    encoderSettings: {
+      captionDescriptions?: Array<CaptionDescription>
+    }
+  ): void {
+
+    // Get caption selectors from MediaLive Input settings
+    const inputCaptionSelectors = medialiveConfig.captionSelectors || [];
+
+    // Get caption selectors referenced in encoder settings
+    const encoderCaptionSelectors = this.getCaptionSelectorNames(
+      encoderSettings.captionDescriptions || []
+    );
+
+    // Skip validation if no caption selectors are referenced
+    if (!encoderCaptionSelectors.length) {
+      return;
+    }
+
+    // Create a Set for O(1) lookup performance
+    const availableCaptionSelectors = new Set(
+      inputCaptionSelectors.map(selector => selector.name)
+    );
+
+    // Validate each encoder caption selector exists in MediaLive config
+    for (const captionSelector of encoderCaptionSelectors) {
+      if (!availableCaptionSelectors.has(captionSelector)) {
+        throw new ConfigurationError(
+          `Caption selector "${captionSelector}" in the encoding profile is not present in the MediaLive configuration.`
+        );
+      }
+    }
+  }
+
+  /**
+   * Returns an array of caption selector names from MediaLive caption descriptions
+   * @param captionDescriptions - Array of MediaLive caption description objects
+   * @returns Array of caption selector names as strings
+   */
+  getCaptionSelectorNames(captionDescriptions: CaptionDescription[]): string[] {
+    return captionDescriptions.map(desc => desc.captionSelectorName);
+  }
+
+  /**
    * Determines the MediaLive output group type by analyzing the encoder settings profile.
    *
    * @param encodingProfile - Path to the encoder settings profile JSON file
-   * @returns "CMAF" | "HLS" - The identified output group type
+   * @returns MediaLiveOutputGroupType - The identified output group type
    * @throws Error if the profile cannot be loaded or has invalid settings
    */
-  identifyMediaLiveOutputGroupType(encodingProfile: string): "CMAF" | "HLS" {
+  identifyMediaLiveOutputGroupType(encodingProfile: string): MediaLiveOutputGroupType {
     interface EncoderSettings {
       outputGroups?: Array<{
         outputGroupSettings?: {
@@ -369,7 +520,9 @@ export class LefEventStack extends LefBaseStack {
 
     // load encoding profile
     try {
-      encoderSettings = require(encodingProfile);
+      // Use fs.readFileSync instead of require to read the file
+      const fileContent = fs.readFileSync(encodingProfile, 'utf8');
+      encoderSettings = JSON.parse(fileContent);
 
       // Validate the loaded settings
       if (!encoderSettings || typeof encoderSettings !== "object") {
@@ -391,16 +544,15 @@ export class LefEventStack extends LefBaseStack {
         "Invalid encoder settings: Missing output group settings",
       );
     }
-
+    
     const outputGroupSettings =
-      encoderSettings.outputGroups[0].outputGroupSettings;
+    encoderSettings.outputGroups[0].outputGroupSettings;
     if (outputGroupSettings.cmafIngestGroupSettings) {
-      return "CMAF";
-    } else if (
-      outputGroupSettings.mediaPackageGroupSettings ||
-      outputGroupSettings.hlsGroupSettings
-    ) {
-      return "HLS";
+      return MediaLiveOutputGroupType.CMAF;
+    } else if (outputGroupSettings.mediaPackageGroupSettings) {
+      return MediaLiveOutputGroupType.MEDIAPACKAGE;
+    } else if (outputGroupSettings.hlsGroupSettings) {
+      return MediaLiveOutputGroupType.HLS;
     } else {
       throw new Error("Invalid MediaLive output group type");
     }

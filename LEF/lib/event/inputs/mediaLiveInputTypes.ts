@@ -11,14 +11,25 @@
  *  and limitations under the License.
  */
 
+export type SourceEndBehavior = "LOOP" | "CONTINUE";
+
 /**
  * Base interface for all MediaLive input types.
  * @interface IBaseInput
  * @property {string} [inputName] - Optional name identifier for the input
+ * @property {string} [sourceEndBehavior] - Optional source end behavior ("LOOP" | "CONTINUE")
  */
 export interface IBaseInput {
   /** Optional name identifier for the input */
   inputName?: string;
+  
+  /**
+   * Source end behavior.
+   * @remarks Only applies to MP4_FILE, TS_FILE, RTMP_PULL, URL_PULL inputs.
+   * All other inputs will use the 'CONTINUE' source end behaviour.
+   * @values "LOOP" | "CONTINUE"
+   */
+  sourceEndBehavior?: SourceEndBehavior;
 }
 
 /**
