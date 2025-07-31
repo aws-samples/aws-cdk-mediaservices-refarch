@@ -1,5 +1,5 @@
 import { App, Aspects } from "aws-cdk-lib";
-import { AudioOnlyEndcodingStack } from "./stack/encoding-stack";
+import { AudioOnlyEndcodingStack } from "../lib/stack/encoding-stack";
 import { AwsSolutionsChecks } from "cdk-nag";
 
 export const STACK_PREFIX_NAME = "MediaServicesRefArch";

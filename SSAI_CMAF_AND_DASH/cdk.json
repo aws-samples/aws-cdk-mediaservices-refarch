@@ -38,7 +38,7 @@
       "aws",
       "aws-cn"
     ], 
-    "stackName": "MediaServicesRefArch-SSAI_CMAF_AND_DASH",
+    "stackName": "MediaServicesRefArch-SSAI-CMAF-AND-DASH",
     "stackDescription": "AWS CDK MediaServices Reference Architectures: Ad insertion workflow using CMAF- CDK demo using AWS MediaLive, MediaPackage, MediaTailor and Amazon CloudFront."
   }
 }
