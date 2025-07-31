@@ -1,5 +1,54 @@
 # Release Notes
 
+## v1.0.4 (2024-07-30)
+
+### New Features
+- Add support for multiple MediaLive inputs in a single channel.
+- Set Medialive 'Enable Blackout Slate' so encoder blanking encoder responds to Network Start and Network End scheduled
+  actions.
+- Create tools/medialive-scheduled-actions/sendMediaLiveScheduledActions.py to simplify sending scheduled actions to
+  MediaLive from the command line.
+- Add support for configuring MediaPackage Output Group on MediaLive Channel. Default configurations continue to use HLS/TS Ingest.
+- Enable the 'Enable input switch based on MQCS' and 'Enable MQCS publishing in Common Media Server Data (CMSD)' options by default for MediaPackage CMAF Ingest channels
+- **MediaTailor Insertion Mode Configuration**: Added support for configuring MediaTailor insertion mode in event group configurations
+  - Added `insertionMode` property to `IEventGroupMediaTailorConfig` interface
+  - Supports both `STITCHED_ONLY` (default) and `PLAYER_SELECT` modes
+  - Enables client-side ad insertion scenarios when using `PLAYER_SELECT`
+  - Updated `generate_uris.sh` script to focus on server-side ad insertion and MediaPackage playback URLs
+  - Simplified URL generation for better usability and testing workflows
+
+### Improvements
+
+- CloudFront '/v1/w*' behaviour was changed to '/v1/webvtt/<ACCOUNT_ID>/*'. This behaviour is used to retrieve WebVTT captions
+  segments from MediaTailor during ad breaks. This is to ensure players continue to have a captions track during ad breaks
+  even though ads often do not include captions. The more explicit naming also provides more information about the purpose of
+  the behaviour.
+- Implement support for Teletext captions. Support for additional captions formats (already supported by MediaLive) can be
+  implemented at a later date based on demand.
+- Added support for configuration of the `urlEncodeChildManifest` setting on HLS and low latency HLS manifests. This setting has been defaulted to `true` to make HLS timeshift responses compatible with common players.
+- Simplified implementation by setting MediaTailor contentSegmentUrlPrefix and adSegmentUrlPrefix to '/'. This makes URLs in
+  manifests relative to the root and removes the complication of the '../' notation. This also avoids the need to pass
+  content_segment_prefix and ad_segment_prefix query strings when initializing a session.
+- Update CloudFront Origins to reference `segments.mediatailor.${Aws.REGION}.amazonaws.com` for ad segments. The previously configured domain is a legacy domain and new customers should use the new domain.
+- Update tools/encoding-profile-generator to set framerates in custom transcode profiles with a timescale multiplier of 1000. This will produce video segments more aligned with the output of MediaPackage V2 and reduce likelihood of players encountering issues on ad transitions.
+- Enable support for logConfiguration in eventGroupConfiguration. This addresses the previous known limitation.
+- Update CloudFront Origin for MediaTailor to reference `manifests.mediatailor.${Aws.REGION}.amazonaws.com`. This change allows multiple MediaTailor configurations to be utilised without requiring CloudFront behaviours to be modified for each Playback configuration.
+- Updated '/v1/*segment/*' behaviour to pass headers in origin request. This is to ensure MediaTailor has client header information to include in server side beacon calls.
+- Update default configurations to use the MediaPackage output group rather than the CMAF Ingest Output group. Over time the MediaPackage Output group will provide access to more advanced features not supported by the CMAF Ingest standard.
+
+### Bug Fixes
+
+- Fix issue in generate_encoding_profile_set.py. Forces languageCode in encoding profiles to be valid ISO 639-2 three letter
+  codes and raise warning if invalid codes are specified.
+- Fixed issue to make sure key resources in the project are appropriately tagged.
+
+### Breaking Changes
+
+- The implementation of support for multiple MediaTailor Playback configurations in an Event Group will required a redeployment
+  of all the stacks as new output parameters have been introduced in the Event Group stack and the Event stack requires these
+  values.
+- The Foundation stack needs to be updated following this release as the "mediapackagev2:GetChannel" action was added to the MediaLive Role. Without this role MediaLive will be unable to push content to a MediaPackage V2 channel using the MediaPackage Output Group in MediaLive.
+
 ## v1.0.3 (2024-04-03)
 
 ### New Features
@@ -8,6 +57,7 @@
 - Introduced configuration option in foundation configuration for CloudFront to pass 'ALL' query strings through to MediaTailor.
 - Add '/v1/i-media/\*' behaviour to CloudFront Distribution to support Server Guided Ad Insertion.
 - Implemented 'enableOriginShield' and 'originShieldRegion' configuration parameters for CloudFront Origin Shield in Event Group Stack
+- Support the configuration of multiple MediaTailor Playback configuration in an Event Group.
 
 ### Improvements
 

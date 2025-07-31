@@ -4,6 +4,7 @@
 
 | Date       |      Entry      | Version | Comment                            |
 | ---------- | :-------------: | :-----: | ---------------------------------- |
+| 30/07/2025 |     Update      |  1.0.4  | Update                             |
 | 03/04/2025 |     Update      |  1.0.3  | Update                             |
 | 04/02/2025 |     Update      |  1.0.2  | Update                             |
 | 13/10/2024 | initial release |  0.0.2  | initial release of the application |
@@ -118,18 +119,22 @@ For example, the CloudFront Distribution includes a number of timeouts based on 
 
 6. To minimize the client side integration the implementation uses [server-side reporting](https://docs.aws.amazon.com/mediatailor/latest/ug/ad-reporting-server-side.html) so the MediaTailor service can report ad consumption directly to the ad tracking URL when media segments are requested. There should be nothing in the implementation preventing the use of [client-side reporting](https://docs.aws.amazon.com/mediatailor/latest/ug/ad-reporting-client-side.html) but this does require additional implementation on the clients.
 
-7. While [MediaPackage V2](https://docs.aws.amazon.com/mediapackage/latest/userguide/supported-inputs-live.html#suported-inputs-codecs-live) supports HLS/TS, HLS/CMAF and DASH/CMAF endpoints this implementation only supports HLS/CMAF and DASH/CMAF. There is no technical barrier to implementing HLS/TS as well but it would add complexity to the architecture for little benefit. Considerations in making this decision included:
+7. The framework supports configuring multiple MediaLive inputs for a single channel, enabling input switching capabilities. This allows for primary and backup stream configurations or switching between different content sources. Multiple inputs can be configured using the `inputs` array in the event configuration.
+
+8. While [MediaPackage V2](https://docs.aws.amazon.com/mediapackage/latest/userguide/supported-inputs-live.html#suported-inputs-codecs-live) supports HLS/TS, HLS/CMAF and DASH/CMAF endpoints this implementation only supports HLS/CMAF and DASH/CMAF. There is no technical barrier to implementing HLS/TS as well but it would add complexity to the architecture for little benefit. Considerations in making this decision included:
 
    - HLS/TS is largely a legacy format and most players today will support HLS/CMAF as well
    - The TS container is less efficient than the CMAF container increasing the cost of delivering HLS/TS relative to HLS/CMAF
    - HLS/CMAF and DASH/CMAF streams can use segments from the same endpoint provided the encryption types are the same. This reduces the MediaPackage Live Origination (reducing cost) and improves CDN cache hit ratios (improving customer experience)
 
-8. MediaTailor provides two options for [session initialization](https://docs.aws.amazon.com/mediatailor/latest/ug/ad-id-session-state.html). This implementation recommends the use of explicit session initialization rather than implicit session initialization because:
+9. MediaTailor provides two options for [session initialization](https://docs.aws.amazon.com/mediatailor/latest/ug/ad-id-session-state.html). This implementation recommends the use of explicit session initialization rather than implicit session initialization because:
 
    - using explicit session initialization a backend API can initialize the session for a client without the need for ad targeting parameters to be passed to the client. Using this approach prevents the potentially sensitive targeting information from being exposed to viewers.
    - using implicit session initialization the CloudFront Distribution policies would need to be modified each time a new targeting parameter was added or the CloudFront origin request policy would need to be quite permissive (potentially compromising security).
 
    The implementation does allow sessions to be established using implicit session initialization but this is primarily to make it easier for customers to play demonstration streams.
+
+10. The framework supports both server-side (STITCHED_ONLY) and client-side (PLAYER_SELECT) ad insertion modes. The default configuration uses STITCHED_ONLY for broader compatibility, but PLAYER_SELECT can be enabled for use cases requiring client-side ad control. When using PLAYER_SELECT mode, ensure your video players support client-side ad insertion and implement appropriate ad tracking mechanisms.
 
 ### Service Limits
 
@@ -205,7 +210,7 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 6. From the command line, use CDK to deploy the LefEventGroupStack stack. The LefEventGroupStack uses some of the resources deployed in the LefFoundationStack and requires the name of the foundation stack to be passed as a paramater:
 
    ```bash
-   npx cdk deploy LefEventGroupStack --context stackName=LefEventGroup1 --parameters foundationStackName=LefFoundation1 --outputs-file ./cdk-exports-event-group.json [--context eventGroupConfigFile=../../config/default/eventGroupConfiguration.ts]
+   npx cdk deploy LefEventGroupStack --context stackName=LefGroup1 --parameters foundationStackName=LefFoundation1 --outputs-file ./cdk-exports-event-group.json [--context eventGroupConfigFile=../../config/default/eventGroupConfiguration.ts]
    ```
 
    Multiple event groups can be created using the same foundation stack but each event group must have a unique stack name.
@@ -213,10 +218,24 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 7. From the command line, use CDK to deploy the LefEventStack stack. Because the LefEventStack resources need to be associated with an existing event group the name of the event group must be passed as a parameter.
 
    ```bash
-   npx cdk deploy LefEventStack --context stackName=LefEvent1 --parameters eventGroupStackName=LefEventGroup1 --outputs-file ./cdk-exports-event.json [--context eventConfigFile=../../config/default/eventConfiguration.ts]
+   npx cdk deploy LefEventStack --context stackName=LefGroup1Event1 --parameters eventGroupStackName=LefGroup1 --outputs-file ./cdk-exports-event.json [--context eventConfigFile=../../config/default/eventConfiguration.ts]
    ```
 
    Multiple events can be created in the same event group but each event must have a unique stack name. There is an upper limit on the number of MediaPackage Channels which can be deployed in a MediaPackage Channel Group. An increase in this limit can be requested through _Service Quotas_ service in the _AWS Console_.
+
+### MediaTailor Logging Configuration
+
+The framework now supports configuring MediaTailor log percentage directly through CDK. The default configurations are set at 10% logging.
+
+To customize logging percentage, modify the `logPercentageEnabled` value in your event group configuration file before deployment.
+
+For development and debugging, you may want to increase this to 100%. At scale, the volume of logs and associated charges can become significant. AWS recommends using 10% or less for production deployments. Retaining a small amount of log sampling enables service health observation while reducing CloudWatch log charges.
+
+**Note:** Individual sessions can still be logged at 100% by adding `aws.logMode=DEBUG` to the session initialization, regardless of the global percentage setting.
+
+### MediaLive Scheduled Actions Tool
+
+The Live Event Framework includes a tool for sending scheduled actions to MediaLive channels. For detailed usage instructions, see the [MediaLive Scheduled Actions Tool README](tools/medialive-scheduled-actions/README.md).
 
 ### Testing
 
@@ -240,30 +259,35 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
 
 2. Generating sample Playing URLs
 
-   The **_tools/generate_uris.sh_** script parses the CloudFormation stack output file and will print out the URLs for SSAI and non-SSAI playback.
+   The **_tools/generate_uris.sh_** script parses the CloudFormation stack output file and will print out the URLs for server-side ad insertion scenarios, as well as direct MediaPackage URLs.
 
-   The output of **generate_uris.sh** provides a links to the [Server Side Ad Insertion Test Player](https://d195a5eb2n34sr.cloudfront.net) with options for initiating a session using either explicit or implicit session initialization. The Server Side Ad Insertion Test Player is a useful tool for understanding how to initiate sessions in MediaTailor.
+   The output of **generate_uris.sh** provides links to the [Server Side Ad Insertion Test Player](https://d195a5eb2n34sr.cloudfront.net) with options for session initialization:
+   - **Explicit Session Initialization**: Backend-controlled session initialization with targeting parameters
+   - **Implicit Session Initialization**: Direct session initialization with parameters in the URL
+   - **Direct Player URLs**: Links to test players (DASH-IF Reference Player, HLS.js Demo) for both MediaPackage and MediaTailor streams
 
    ```bash
    ./tools/generate_uris.sh
    ```
+
+   The script also provides comprehensive usage information and testing recommendations for different playback scenarios.
 
    Below is an example output from a generate_uris.sh execution:
 
    ```console
    DASH/CMAF Stream
    ========================================
-   MediaPackage Playback URL : https://d2kzr1fexample.cloudfront.net/out/v1/LefEventGroup1/LefEvent1/cmaf/dash.mpd
+   MediaPackage Playback URL : https://d2kzr1fexample.cloudfront.net/out/v1/LefGroup1/LefGroup1Event1/cmaf/dash.mpd
    MediaTailor Session Initialization Demo UI Links:
-   - Explicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/dash.mpd&playerparams=[{"key":"content_segment_prefix","value":"dash-cmaf"},{"key":"ad_segment_prefix","value":"dash-cmaf"}]&serverreporting=true
-   - Implicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/dash/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/dash.mpd&playerparams=[{"key":"content_segment_prefix","value":"dash-cmaf"},{"key":"ad_segment_prefix","value":"dash-cmaf"}]&serverreporting=true
+   - Explicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/dash.mpd&playerparams=[{"key":"content_segment_prefix","value":"dash-cmaf"},{"key":"ad_segment_prefix","value":"dash-cmaf"}]&serverreporting=true
+   - Implicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/dash/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/dash.mpd&playerparams=[{"key":"content_segment_prefix","value":"dash-cmaf"},{"key":"ad_segment_prefix","value":"dash-cmaf"}]&serverreporting=true
 
    HLS/CMAF Stream
    ========================================
-   MediaPackage Playback URL : https://d2kzr1fexample.cloudfront.net/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8
+   MediaPackage Playback URL : https://d2kzr1fexample.cloudfront.net/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8
    MediaTailor Session Initialization Demo UI Links:
-   - Explicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8&playerparams=[{"key":"content_segment_prefix","value":"hls-cmaf"},{"key":"ad_segment_prefix","value":"hls-cmaf"}]&serverreporting=true
-   - Implicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8&playerparams=[{"key":"content_segment_prefix","value":"hls-cmaf"},{"key":"ad_segment_prefix","value":"hls-cmaf"}]&serverreporting=true
+   - Explicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8&playerparams=[{"key":"content_segment_prefix","value":"hls-cmaf"},{"key":"ad_segment_prefix","value":"hls-cmaf"}]&serverreporting=true
+   - Implicit Session Initialization: https://d195a5eb2n34sr.cloudfront.net?url=https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8&playerparams=[{"key":"content_segment_prefix","value":"hls-cmaf"},{"key":"ad_segment_prefix","value":"hls-cmaf"}]&serverreporting=true
    ```
 
 3. Open the **Server Side Ad Insertion Test Player** link generated above to get a better understanding of the options available when initializing a MediaTailor session and test these options.
@@ -284,11 +308,11 @@ More information on [CDK best practice](https://docs.aws.amazon.com/cdk/latest/g
    ```
 2. Destroy the event stack
    ```bash
-   npx cdk destroy LefEventStack --context stackName=LefEvent1 --profile $AWS_PROFILE
+   npx cdk destroy LefEventStack --context stackName=LefGroup1Event1 --profile $AWS_PROFILE
    ```
 3. Destroy the event group stack
    ```bash
-   npx cdk destroy LefEventGroupStack --context stackName=LefEventGroup1 --profile $AWS_PROFILE
+   npx cdk destroy LefEventGroupStack --context stackName=LefGroup1 --profile $AWS_PROFILE
    ```
 4. Destroy the foundation stack
    ```bash
@@ -306,11 +330,45 @@ Then click on the button stop and wait for the channel to be in idle state befor
 
 1. The default eventConfiguration sets "includeIframeOnlyStreams: false" on the MediaPackage segments. This value was intended to be set to 'true' but needed to be disabled because this was causing an issue getting MediaTailor Dynamic DASH ad transcoding working. Once this is resolved the default value will be changed back to 'true'.
 2. The segmentLengthInSeconds has been set to 4s to avoid an issue with the MediaPackage V2 segment combining logic. Once this issue has been addressed the segment size should be changed back to 2s. Using a 2 value enables more granular segment harvesting.
-3. MediaTailor does not support setting the logPercentage using CDK/CloudFormation. Once the **MediaTailorLogger** role has been created the default log percentage of 100% will be applied to MediaTailor Configurations deployed using the Live Event Framework. At scale, the volume of logs and associated charges can become significant. AWS recommend reducing the log percentage to 10% or less. Retaining a small amount of log sampling will enable the health of the service to be observed while reducing charges for CloudWatch logs.
 
 <a name="advancedconfigurationoptions"></a>
 
 ## Advanced Configuration Options
+
+### Configuring MediaTailor Log Percentage
+
+MediaTailor log percentage can be configured in the event group configuration files:
+
+**Location:** `config/default/eventGroupConfiguration.ts` or `config/low-latency/eventGroupConfiguration.ts`
+
+```typescript
+mediaTailor: [
+  {
+    name: "",
+    // ... other configuration
+    logPercentageEnabled: 10, // Valid values: 0-100
+  }
+]
+```
+
+**Recommended Values:**
+- **Development/Testing**: 100% (full logging for debugging)
+- **Production**: 10% or less (cost-optimized with adequate visibility)
+- **High-volume production**: 5% or less (minimal cost impact)
+
+
+### MediaTailor Logging Cost Optimization
+
+MediaTailor logging costs can be significant at scale. The framework provides built-in cost optimization:
+
+1. **Pre-configured percentages**: Default configurations use production-ready log percentages
+2. **Flexible configuration**: Easily adjust `logPercentageEnabled` in event group configuration
+3. **Debug capability**: Individual sessions can still be fully logged using `aws.logMode=DEBUG`
+
+**Cost Impact Examples:**
+- 100% logging: Full CloudWatch costs for all sessions
+- 10% logging: ~90% reduction in CloudWatch log costs
+- 5% logging: ~95% reduction in CloudWatch log costs
 
 ### Configuring Workflow to use Secure Media Delivery at the Edge on AWS Solution
 
@@ -319,6 +377,8 @@ Deploying the Secure Media Delivery at the Edge on AWS solution in conjunction w
 After deploying the Secure Media Delivery at the Edge on AWS solution it can be enabled on specific event groups by setting the **eventGroup.cloudFront.tokenizationFunctionArn** configuration parameter in the eventGroupConfiguration file to the value of the **CheckTokenFunction ARN** deployed by the solution.
 
 Enabling the Secure Media Delivery at the Edge on AWS solution will incur additional costs. For a more detailed breakdown of the potential costs [see this page](https://docs.aws.amazon.com/solutions/latest/secure-media-delivery-at-the-edge-on-aws/cost.html).
+
+**Note:** When configuring Secure Media Delivery At The Edge to work with the Live Event Framework the MediaTailor Content Segment Prefix and Ad Segment Prefix values respectively be set to "[player_params.content_segment_prefix]" and "[player_params.ad_segment_prefix]". 
 
 ### Configuring Workflow to use preferred MediaLive Profile
 
@@ -402,7 +462,7 @@ function mediaTailorExplicitSessionInit() {
     return 0
 }
 
-sessionUrl="https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8"
+sessionUrl="https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8"
 streamType='hls-cmaf'
 mediaTailorExplicitSessionInit $sessionUrl $streamType
 ```
@@ -410,15 +470,15 @@ mediaTailorExplicitSessionInit $sessionUrl $streamType
 Below is example output from the _mediaTailorExplicitSessionInit_ function for a MediaTailor HLS Session. The Playback URL is the URL the player needs to call to initiate playback. Note how the playback URL has a single query parameter of 'aws.sessionId'.
 
 ```bash
-MediaTailor Session URL: https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8
+MediaTailor Session URL: https://d2kzr1fexample.cloudfront.net/v1/session/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8
 MediaTailor Stream Type: hls-cmaf
 CloudFront Distribution Hostname: d2kzr1fexample.cloudfront.net
 MediaTailor Session Init Response:
 {
-  "manifestUrl": "/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8?aws.sessionId=4f0e823f-2f49-4001-8382-ffa96fa24bb1",
-  "trackingUrl": "/v1/tracking/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/4f0e823f-2f49-4001-8382-ffa96fa24bb1"
+  "manifestUrl": "/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8?aws.sessionId=4f0e823f-2f49-4001-8382-ffa96fa24bb1",
+  "trackingUrl": "/v1/tracking/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/4f0e823f-2f49-4001-8382-ffa96fa24bb1"
 }
-Playback URL: https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8?aws.sessionId=4f0e823f-2f49-4001-8382-ffa96fa24bb1
+Playback URL: https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8?aws.sessionId=4f0e823f-2f49-4001-8382-ffa96fa24bb1
 ```
 
 ### MediaTailor Implicit Session Initialization Example
@@ -432,7 +492,7 @@ For a HLS playback URL when MediaTailor recieves a valid implicit session initia
 The curl command below shows an example of how a MediaTailor session can be implicitly initialized from a bash command line and and example of a returned multi-variant manifest.
 
 ```console
-curl "https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8?playerParams.content_segment_prefix=hls-cmaf&playerParams.ad_segment_prefix=hls-cmaf"
+curl "https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8?playerParams.content_segment_prefix=hls-cmaf&playerParams.ad_segment_prefix=hls-cmaf"
 ```
 
 Below is an example of a HLS multi-variant manifest returned by MediaTailor. Note each of the links to the variant manifests includes the '1685679a-7b9b-4fc7-9a60-f0f66e0d4048' session Id in the path.
@@ -441,19 +501,19 @@ Below is an example of a HLS multi-variant manifest returned by MediaTailor. Not
 #EXTM3U
 #EXT-X-VERSION:6
 #EXT-X-INDEPENDENT-SEGMENTS
-#EXT-X-MEDIA:LANGUAGE="en",AUTOSELECT=YES,CHANNELS="2",FORCED=NO,TYPE=AUDIO,URI="../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/7.m3u8",GROUP-ID="aac",DEFAULT=YES,NAME="English"
+#EXT-X-MEDIA:LANGUAGE="en",AUTOSELECT=YES,CHANNELS="2",FORCED=NO,TYPE=AUDIO,URI="../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/7.m3u8",GROUP-ID="aac",DEFAULT=YES,NAME="English"
 #EXT-X-STREAM-INF:CODECS="mp4a.40.2,avc1.64001F",AVERAGE-BANDWIDTH=3440800,RESOLUTION=960x540,VIDEO-RANGE=SDR,FRAME-RATE=50.0,BANDWIDTH=3968798,AUDIO="aac"
-../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/1.m3u8
+../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/1.m3u8
 #EXT-X-STREAM-INF:CODECS="mp4a.40.2,avc1.64002A",AVERAGE-BANDWIDTH=8390800,RESOLUTION=1920x1080,VIDEO-RANGE=SDR,FRAME-RATE=50.0,BANDWIDTH=9710798,AUDIO="aac"
-../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/2.m3u8
+../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/2.m3u8
 #EXT-X-STREAM-INF:CODECS="mp4a.40.2,avc1.640020",AVERAGE-BANDWIDTH=5090800,RESOLUTION=1280x720,VIDEO-RANGE=SDR,FRAME-RATE=50.0,BANDWIDTH=5882797,AUDIO="aac"
-../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/3.m3u8
+../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/3.m3u8
 #EXT-X-STREAM-INF:CODECS="mp4a.40.2,avc1.64001F",AVERAGE-BANDWIDTH=2120800,RESOLUTION=640x360,VIDEO-RANGE=SDR,FRAME-RATE=50.0,BANDWIDTH=2437598,AUDIO="aac"
-../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/4.m3u8
+../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/4.m3u8
 #EXT-X-STREAM-INF:CODECS="mp4a.40.2,avc1.64001E",AVERAGE-BANDWIDTH=1240800,RESOLUTION=480x270,VIDEO-RANGE=SDR,FRAME-RATE=50.0,BANDWIDTH=1416797,AUDIO="aac"
-../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/5.m3u8
+../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/5.m3u8
 #EXT-X-STREAM-INF:CODECS="mp4a.40.2,avc1.640015",AVERAGE-BANDWIDTH=800800,RESOLUTION=320x180,VIDEO-RANGE=SDR,FRAME-RATE=50.0,BANDWIDTH=906397,AUDIO="aac"
-../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/6.m3u8
+../../../../../../../../manifest/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/1685679a-7b9b-4fc7-9a60-f0f66e0d4048/6.m3u8
 ```
 
 #### DASH Implicit Session Initialization Example
@@ -463,7 +523,7 @@ For a DASH playback URL when MediaTailor recieves a valid implicit session initi
 The curl command below shows an example of how a MediaTailor session can be implicitly initialized from a bash command line.
 
 ```console
-curl -v "https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/index.m3u8?playerParams.content_segment_prefix=dash-cmaf&playerParams.ad_segment_prefix=dash-cmaf"
+curl -v "https://d2kzr1fexample.cloudfront.net/v1/master/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/index.m3u8?playerParams.content_segment_prefix=dash-cmaf&playerParams.ad_segment_prefix=dash-cmaf"
 ```
 
 Below is an extract of the returned redirect when using the curl command above. Note the 'aws.sessionId' parameter has been appended to the 'location' where the client is redirected.
@@ -473,7 +533,7 @@ HTTP/2 302
 content-type: application/dash+xml
 content-length: 0
 x-amzn-errortype: GetDashManifestRedirectException
-location: /v1/dash/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefEventGroup1/out/v1/LefEventGroup1/LefEvent1/cmaf/dash.mpd?playerParams.content_segment_prefix=dash-cmaf&playerParams.ad_segment_prefix=dash-cmaf&aws.sessionId=e780a8ea-0757-4a53-bfc3-dfb44524cf3b
+location: /v1/dash/64aeecfad278cEXAMPLEbb569fe792461EXAMPLE/LefGroup1/out/v1/LefGroup1/LefGroup1Event1/cmaf/dash.mpd?playerParams.content_segment_prefix=dash-cmaf&playerParams.ad_segment_prefix=dash-cmaf&aws.sessionId=e780a8ea-0757-4a53-bfc3-dfb44524cf3b
 x-cache: Miss from cloudfront
 ```
 
@@ -494,9 +554,6 @@ More about AWS CDK v2 reference documentation [here](https://docs.aws.amazon.com
 - `cdk deploy` deploy this stack to your default AWS account/region
 - `cdk diff` compare deployed stack with current state
 - `cdk docs` open CDK documentation
-- `cdk deploy` deploy this stack to your default AWS account/region
-- `cdk diff` compare deployed stack with current state
-- `cdk synth` emits the synthesized CloudFormation template
 
 ### Best practice
 

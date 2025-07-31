@@ -38,7 +38,7 @@ describe("Input Device Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineInputDeviceInput)
+      .withInputs([singlePipelineInputDeviceInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -62,7 +62,7 @@ describe("Input Device Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInput(standardChannelInputDeviceInput)
+      .withInputs([standardChannelInputDeviceInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -86,7 +86,7 @@ describe("Input Device Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineInputDeviceInput)
+      .withInputs([singlePipelineInputDeviceInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
@@ -112,7 +112,7 @@ describe("Input Device Input Integration Tests", () => {
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInput(standardChannelInputDeviceInput)
+        .withInputs([standardChannelInputDeviceInput])
         .withAnywhereSettings(ANYWHERE_SETTINGS)
         .writeConfig(testDescriptor);
 

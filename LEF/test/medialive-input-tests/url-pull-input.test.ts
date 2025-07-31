@@ -45,7 +45,7 @@ describe("LEF Event Stack", () => {
         // Create default configuration and modify with test parameters
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(singlePipelineUrlPullInput)
+          .withInputs([singlePipelineUrlPullInput])
           .writeConfig(testDescriptor2);
 
         // Build stack
@@ -88,7 +88,7 @@ describe("LEF Event Stack", () => {
         // Create default configuration and modify with test parameters
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(standardChannelUrlPullInput)
+          .withInputs([standardChannelUrlPullInput])
           .writeConfig(testDescriptor2);
 
         // Build stack

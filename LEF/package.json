@@ -1,6 +1,6 @@
 {
   "name": "lef",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "bin": {
     "lef": "bin/lef.js"
   },
@@ -11,25 +11,25 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@aws-cdk/integ-tests-alpha": "2.185.0-alpha.0",
-    "@types/jest": "29.5.14",
+    "@aws-cdk/integ-tests-alpha": "2.206.0-alpha.0",
+    "@types/jest": "30.0.0",
     "@types/js-yaml": "4.0.9",
-    "@types/node": "22.13.13",
-    "aws-cdk": "2.1005.0",
+    "@types/node": "24.1.0",
+    "aws-cdk": "2.1021.0",
     "deepmerge-ts": "7.1.5",
-    "jest": "29.7.0",
+    "jest": "30.0.5",
     "js-yaml": "4.1.0",
-    "prettier": "3.5.3",
-    "ts-jest": "29.3.0",
+    "prettier": "3.6.2",
+    "ts-jest": "29.4.0",
     "ts-node": "10.9.2",
-    "typescript": "5.8.2",
-    "yaml": "2.7.0"
+    "typescript": "5.8.3",
+    "yaml": "2.8.0"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.185.0",
-    "cdk-nag": "2.35.55",
+    "aws-cdk-lib": "2.206.0",
+    "cdk-nag": "2.36.44",
     "constructs": "10.4.2",
-    "glob": "11.0.1",
+    "glob": "11.0.3",
     "source-map-support": "0.5.21"
   }
 }

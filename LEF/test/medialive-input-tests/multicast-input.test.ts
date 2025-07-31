@@ -21,6 +21,7 @@ import {
 } from "../fixtures/multicast-input.fixture";
 import { ConfigurationError } from "../../lib/config/configValidator";
 import { TestConfigBuilder } from "../utils/test-config-builder";
+import * as path from "path";
 
 const ConfigService = {
   defaultConfig: EVENT_CONFIG,
@@ -51,7 +52,7 @@ describe("LEF Event Stack", () => {
         // Create default configuration and modify with test parameters
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(singlePipelineMulticastInput)
+          .withInputs([singlePipelineMulticastInput])
           .withAnywhereSettings(anywhereSettings)
           .writeConfig(testDescriptor2);
 
@@ -100,7 +101,7 @@ describe("LEF Event Stack", () => {
         // Create default configuration and modify with test parameters
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(singlePipelineMulticastInput)
+          .withInputs([singlePipelineMulticastInput])
           .writeConfig(testDescriptor2);
       });
 
@@ -125,7 +126,7 @@ describe("LEF Event Stack", () => {
         // Create default configuration and modify with test parameters
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(standardChannelMulticastInput)
+          .withInputs([standardChannelMulticastInput])
           .withAnywhereSettings(anywhereSettings)
           .writeConfig(testDescriptor2);
       });

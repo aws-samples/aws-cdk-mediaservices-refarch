@@ -4,7 +4,7 @@ export const EVENT_CONFIG: IEventConfig = {
   event: {
     mediaLive: {
       encodingProfileLocation:
-        "../../encoding-profiles/hd-avc-50fps-sample/medialive-hls-ts-v1.json",
+        "../../encoding-profiles/hd-avc-50fps-sample/medialive-mediapackage-v1.json",
       channelClass: "STANDARD",
       segmentLengthInSeconds: 4,
       inputSpecification: {
@@ -12,18 +12,20 @@ export const EVENT_CONFIG: IEventConfig = {
         maximumBitrate: "MAX_20_MBPS",
         resolution: "HD",
       },
-      input: {
-        type: "URL_PULL",
-        urls: [
-          {
-            url: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
-          },
-          {
-            url: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
-          },
-        ],
-      },
-      sourceEndBehavior: "LOOP",
+      inputs: [
+        {
+          inputName: "LiveStream",
+          type: "URL_PULL",
+          urls: [
+            {
+              url: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
+            },
+            {
+              url: "https://fcd796e21ed48a1abb4824e834c02632.p05sqb.channel-assembly.mediatailor.us-west-2.amazonaws.com/v1/channel/Live-event-framework-source-DO-NOT-DELETE/index.m3u8",
+            },
+          ],
+        },
+      ],
     },
     // /****** Elemental Live Configuration ***********************************************************************
     //  * To use an Elemental Live Encoder rather than MediaLive, a configuration similar to the below can be used.
@@ -36,7 +38,7 @@ export const EVENT_CONFIG: IEventConfig = {
     //   ]
     // },
     mediaPackage: {
-      inputType: "HLS",
+      inputType: "CMAF",
       endpoints: {
         cmafEndpoint: {
           containerType: "CMAF",
@@ -65,12 +67,12 @@ export const EVENT_CONFIG: IEventConfig = {
               manifestName: "dash",
               manifestWindowSeconds: 60,
               minUpdatePeriodSeconds: 5,
-              minBufferTimeSeconds: 4,
+              minBufferTimeSeconds: 8,
               scteDash: {
                 adMarkerDash: "XML",
               },
               segmentTemplateFormat: "NUMBER_WITH_TIMELINE",
-              suggestedPresentationDelaySeconds: 10,
+              suggestedPresentationDelaySeconds: 12,
               // filterConfiguration: {
               //   manifestFilter: "video_height:1-720",
               //   start: "YYYY-MM-DDThh:mm:ss+00:00",

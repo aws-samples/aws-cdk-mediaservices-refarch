@@ -30,6 +30,7 @@ import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NagSuppressions } from "cdk-nag";
 import { ICloudFrontConfig } from "./foundationConfigInterface";
+import { TaggingUtils } from "../utils/tagging";
 
 const ONE_YEAR_IN_SECONDS = 31536000;
 const ONE_DAY_IN_SECONDS = 86400;
@@ -37,14 +38,18 @@ const ONE_DAY_IN_SECONDS = 86400;
 export interface FoundationProps {
   userEmail: string;
   config: ICloudFrontConfig;
+  tags: Record<string, string>[];
 }
 
 export class Foundation extends Construct {
   private allowedMediaPackageManifestQueryStrings: string[] = [];
   private allowedMediaTailorManifestQueryStrings: "ALL" | string[] = [];
+  private tags: Record<string, string>[] = [];
 
   constructor(scope: Construct, id: string, props: FoundationProps) {
     super(scope, id);
+
+    this.tags = props.tags;
 
     this.allowedMediaPackageManifestQueryStrings =
       props.config.allowedMediaPackageManifestQueryStrings;
@@ -101,6 +106,7 @@ export class Foundation extends Construct {
         restrictPublicBuckets: true,
       }),
     });
+    TaggingUtils.applyTagsToResource(s3LogsBucket, this.tags);
 
     // Set lifecycle policy to remove logs from S3 bucket after LOG_RETENTION_PERIOD_DAYS
     s3LogsBucket.addLifecycleRule({
@@ -181,6 +187,34 @@ export class Foundation extends Construct {
       description: "Origin Request Policy Id for MediaTailor Manifests",
     });
 
+    /*
+     * Create MediaTailor Ad Redirect Policies
+     */
+    const mediaTailorAdRedirectOriginRequestPolicy =
+      new cloudfront.OriginRequestPolicy(
+        this,
+        "MediaTailorAdRedirectOriginRequestPolicy",
+        {
+          originRequestPolicyName:
+            Aws.STACK_NAME + "-EMT-AdRedirectOriginRequestPolicy",
+          comment:
+            "Policy to FWD select query strings and all headers to the origin for ad redirect requests",
+          // Pass 'All viewer headers' to MediaTailor. This allows the 'Accept-Encoding' header to be passed
+          // to MediaTailor and for compressed responses to be delivered when appropriate. This will reduce
+          // the size of manifests returned to clients and minimise costs. This will also allow the server
+          // side beacon requests to include the appropriate headers from the client
+          headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
+          cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
+          queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
+        },
+      );
+    new CfnOutput(this, "MediaTailorAdRedirectOriginRequestPolicyOutput", {
+      value: mediaTailorAdRedirectOriginRequestPolicy.originRequestPolicyId,
+      exportName:
+        Aws.STACK_NAME + "-MediaTailor-AdRedirect-OriginRequestPolicyId",
+      description: "Origin Request Policy Id for MediaTailor Ad Redirect",
+    });
+ 
     /*
      * Create CloudFront MediaPackage Manifest Policies
      */
@@ -278,6 +312,7 @@ export class Foundation extends Construct {
       description:
         "Role for the CheckMediaTailorLoggerLambdaRole Lambda function",
     });
+    TaggingUtils.applyTagsToResource(lambdaRole, this.tags);
 
     // Create a custom policy statement for for creating role
     const iamPolicy = new iam.PolicyStatement({
@@ -320,6 +355,7 @@ export class Foundation extends Construct {
         role: lambdaRole,
       },
     );
+    TaggingUtils.applyTagsToResource(trigger, this.tags);
 
     NagSuppressions.addResourceSuppressions(lambdaRole, [
       {
@@ -370,7 +406,7 @@ export class Foundation extends Construct {
             "ec2:deleteNetworkInterface",
             "ec2:deleteNetworkInterfacePermission",
             "ec2:describeSecurityGroups",
-            "mediapackage:DescribeChannel",
+            "mediapackagev2:GetChannel",
             "mediapackagev2:PutObject",
           ],
         }),
@@ -384,6 +420,7 @@ export class Foundation extends Construct {
       },
       assumedBy: new iam.ServicePrincipal("medialive.amazonaws.com"),
     });
+    TaggingUtils.applyTagsToResource(role, this.tags);
 
     new CfnOutput(this, "MediaLiveAccessRoleArn", {
       value: role.roleArn,
@@ -413,6 +450,7 @@ export class Foundation extends Construct {
       description:
         "Role for the DailyMediaLiveNotificationRole Lambda function",
     });
+    TaggingUtils.applyTagsToResource(lambdaRole, this.tags);
 
     // Create a medialive policy statement querying
     const medialivePolicy = new iam.PolicyStatement({
@@ -478,6 +516,7 @@ export class Foundation extends Construct {
         role: lambdaRole,
       },
     );
+    TaggingUtils.applyTagsToResource(lambdaFunction, this.tags);
 
     // Create a rule to invoke the lambda function at midnight UTC each night
     new events.Rule(this, "DailyMediaLiveNotificationRule", {
@@ -510,6 +549,7 @@ export class Foundation extends Construct {
       masterKey: awsSNSKey,
       enforceSSL: true,
     });
+    TaggingUtils.applyTagsToResource(snsTopic, this.tags);
 
     // Subscribe userEmail to SNS topic
     snsTopic.addSubscription(new subscriptions.EmailSubscription(userEmail));

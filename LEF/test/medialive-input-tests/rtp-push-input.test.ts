@@ -45,7 +45,7 @@ describe("LEF Event Stack", () => {
       beforeEach(() => {
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(singlePipelineRtpPushInput)
+          .withInputs([singlePipelineRtpPushInput])
           .writeConfig(testDescriptor2);
 
         const lefStack = createEventStack(app, testDescriptor2);
@@ -93,7 +93,7 @@ describe("LEF Event Stack", () => {
       beforeEach(() => {
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
-          .withInput(standardRtpPushInput)
+          .withInputs([standardRtpPushInput])
           .writeConfig(testDescriptor2);
 
         const lefStack = createEventStack(app, testDescriptor2);

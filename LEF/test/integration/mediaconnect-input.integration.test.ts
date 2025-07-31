@@ -38,7 +38,7 @@ describe("MediaConnect Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineMediaConnectInput)
+      .withInputs([singlePipelineMediaConnectInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -62,7 +62,7 @@ describe("MediaConnect Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInput(standardChannelMediaConnectInput)
+      .withInputs([standardChannelMediaConnectInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
@@ -86,7 +86,7 @@ describe("MediaConnect Input Integration Tests", () => {
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInput(singlePipelineMediaConnectInput)
+      .withInputs([singlePipelineMediaConnectInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
@@ -112,7 +112,7 @@ describe("MediaConnect Input Integration Tests", () => {
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInput(standardChannelMediaConnectInput)
+        .withInputs([standardChannelMediaConnectInput])
         .withAnywhereSettings(ANYWHERE_SETTINGS)
         .writeConfig(testDescriptor);
 

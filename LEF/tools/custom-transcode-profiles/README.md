@@ -9,10 +9,11 @@ To setup a custom transcode profile in an AWS account:
 3. Load custom transcode profiles into AWS account using [Custom Transcode Profile Loader](#custom-transcode-profile-loader).
 4. Add a 'transcodeProfiles' section in the event group configuration under eventGroup.mediaTailor. In this configuration specify the custom transcode profiles for 'hlsCmaf' and 'dashCmaf'. Below is an example of the transcodeProfiles configuration using the sample profiles.
 
-   ```yaml
-   transcodeProfiles:
-     hlsCmaf: hd-avc-50fps-sample-mediatailor-hls-cmaf-v1
-     dashCmaf: hd-avc-50fps-sample-mediatailor-dash-v1
+   ```typescript
+    transcodeProfiles: {
+      hlsCmaf: "hd-avc-50fps-sample-mediatailor-hls-cmaf-v1",
+      dashCmaf: "hd-avc-50fps-sample-mediatailor-dash-v1"
+    },
    ```
 
    When the 'transcodeProfiles' configuration is enabled on an event group the Live Event Framework:

@@ -56,7 +56,7 @@ outputs:
     width: 960
     height: 540
     codec: FRAME_CAPTURE
-  - name: "-AAC-LC-128-ENG"
+  - name: "-AAC-LC-128-EN-US"
     # The profile generator sets the first encoding profile listed as the default.
     # For CMAF Ingest Output Groups:
     # - The first audio track will have set 'MAIN' in 'AudioDashRoles'.
@@ -70,7 +70,7 @@ outputs:
     codingProfile: LC
     sampleRate: 48000 # Is this required? Could it just be the default?
     streamName: English
-    languageCode: ENG
+    languageCode: "en-us"
     # Audio normalization is only applied to custom transcode profiles
     audioNormalIzationSettings:
       algorithm: ITU_BS_1770_3
@@ -79,10 +79,10 @@ outputs:
       targetLkfs: -23
   # TODO: Captions need to be implemented but it could be challenging setting up the
   # input on the encoder
-  # - name: "-CAPTIONS-ENG"
+  # - name: "-CAPTIONS-EN-US"
   #   codec: CAPTIONS
   #   captionsSelectorName: Captions-English
-  #   languageCode: eng
+  #   languageCode: "en-us"
   #   languageDescription: English
   #   accessibility: DOES_NOT_IMPLEMENT_ACCESSIBILITY_FEATURES  # does not apply to HLS/TS Output Groupts
   #   styleControl: PASSTHROUGH

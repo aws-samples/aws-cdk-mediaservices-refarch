@@ -14,6 +14,7 @@
 import { IEventConfig } from "../event/eventConfigInterface";
 import { IEventGroupConfig } from "../event_group/eventGroupConfigInterface";
 import { IFoundationConfig } from "../foundation/foundationConfigInterface";
+import * as path from 'path';
 
 export type ConfigType = IEventConfig | IEventGroupConfig | IFoundationConfig;
 
@@ -39,8 +40,28 @@ export function loadConfig<T>(configFilePath: string, configKey: string): T {
       );
     }
 
+    // Check if the loaded config has mediaLive configuration
+    if (loadedConfig.event?.mediaLive?.encodingProfileLocation) {
+      const encodingProfilePath = loadedConfig.event.mediaLive.encodingProfileLocation;
+      
+      // CDK commands to deploy/synth need to be executed from the project root directory
+      // The actual cdk command run is in 'node_modules/.bin'.
+      // Many of the resources referenced in this project are relative to the
+      // 'node_modules/.bin' directory.
+
+      // Check if the path is relative
+      if (!path.isAbsolute(encodingProfilePath)) {
+        // Convert relative path to absolute path
+        loadedConfig.event.mediaLive.encodingProfileLocation = path.resolve(
+          process.cwd(),
+          'node_modules/.bin',
+          encodingProfilePath
+        );
+      }
+    }
+
     return loadedConfig;
-  } catch (err) {
+  } catch (err: unknown) {
     if (err instanceof ConfigurationError) {
       throw err;
     }
