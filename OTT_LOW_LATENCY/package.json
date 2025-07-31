@@ -14,7 +14,7 @@
     "@types/jest": "^27.5.2",
     "@types/node": "10.17.27",
     "@types/prettier": "2.6.0",
-    "aws-cdk": "2.108.1",
+    "aws-cdk": "2.1023.0",
     "jest": "^27.5.1",
     "prettier": "3.0.3",
     "ts-jest": "^27.1.4",
@@ -22,7 +22,7 @@
     "typescript": "~3.9.7"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.204.0",
+    "aws-cdk-lib": "2.208.0",
     "cdk-nag": "^2.21.53",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"

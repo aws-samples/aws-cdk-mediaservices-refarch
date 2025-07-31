@@ -13,7 +13,7 @@ export function createHarvestCompleteFn(stack: Stack, props: IHarvestCompletedIn
   return new Fn(stack, "harvested-complete-fn", {
     code: Code.fromAsset("./dist"),
     handler: "harvest-complete.handler",
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_22_X,
     timeout: Duration.seconds(30),
     role,
     environment: {

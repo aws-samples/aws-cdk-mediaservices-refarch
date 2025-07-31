@@ -6,7 +6,7 @@ export function createHarvestClipLambda(scope: Stack, playoutBucketName: string,
   return new Fn(scope, "start-harvest-fn", {
     code: Code.fromAsset("./dist"),
     handler: "start-harvest.handler",
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_22_X,
     role,
     timeout: Duration.seconds(30),
     environment: {
