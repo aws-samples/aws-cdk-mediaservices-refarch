@@ -10,3 +10,4 @@ cdk-exports.json
 cdk.out
 
 .DS_Store
+cdk.context.json

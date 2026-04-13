@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
+    "target": "ES2020",
     "module": "commonjs",
     "lib": [
-      "es2018"
+      "es2020"
     ],
     "declaration": true,
     "strict": true,
@@ -22,6 +22,7 @@
     "typeRoots": [
       "./node_modules/@types"
     ],
+    "types": ["node"],
     "rootDirs": ["bin", "lib"],
   },
   "exclude": [

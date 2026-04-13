@@ -2,7 +2,7 @@
   "name": "live2vod-workflow",
   "version": "0.1.0",
   "engines": {
-    "node": ">=14.0.0 <=18.12.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "prebuild": "rimraf dist",
@@ -16,18 +16,19 @@
     "@types/prettier": "2.6.0",
     "@typescript-eslint/eslint-plugin": "^5.40.1",
     "@typescript-eslint/parser": "^5.40.1",
-    "aws-cdk": "2.1023.0",
-    "aws-cdk-lib": "2.208.0",
+    "aws-cdk": "2.1118.0",
+    "aws-cdk-lib": "^2.248.0",
     "cdk-nag": "2.21.50",
     "constructs": "^10.0.0",
-    "jest": "^27.5.1",
+    "jest": "^30.2.0",
     "rimraf": "^4.4.0",
     "shx": "^0.3.4",
-    "ts-jest": "^27.1.4",
+    "ts-jest": "^29.4.9",
     "ts-node": "10.4.0",
-    "typescript": "4.4.4"
+    "typescript": "~6.0.2"
   },
   "dependencies": {
+    "@types/node": "^25.6.0",
     "aws-lambda": "1.0.6",
     "aws-sdk": "^2.1354.0",
     "source-map-support": "^0.5.21"

@@ -6,7 +6,7 @@ export function createThumbnailLambda(scope: Stack, role: Role, bucketName: stri
   return new Fn(scope, "thumbnailsfn", {
     code: Code.fromAsset("./dist"),
     handler: "fetch-thumbnails.handler",
-    runtime: Runtime.NODEJS_22_X,
+    runtime: Runtime.NODEJS_24_X,
     role,
     timeout: Duration.seconds(30),
     environment: {
