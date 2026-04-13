@@ -26,7 +26,7 @@
     "yaml": "2.8.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.206.0",
+    "aws-cdk-lib": "2.248.0",
     "cdk-nag": "2.36.44",
     "constructs": "10.4.2",
     "glob": "11.1.0",
