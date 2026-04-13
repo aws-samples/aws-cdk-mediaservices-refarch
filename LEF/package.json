@@ -23,7 +23,7 @@
     "ts-jest": "29.4.0",
     "ts-node": "10.9.2",
     "typescript": "5.8.3",
-    "yaml": "2.8.0"
+    "yaml": "2.8.3"
   },
   "dependencies": {
     "aws-cdk-lib": "2.206.0",
