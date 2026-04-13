@@ -6,7 +6,7 @@ export function createFileDeleteLambda(scope: Stack, role: Role, bucketName: str
   return new Fn(scope, "deletethumbnailfn", {
     code: Code.fromAsset("./dist"),
     handler: "delete-thumbnails-contents.handler",
-    runtime: Runtime.NODEJS_22_X,
+    runtime: Runtime.NODEJS_24_X,
     role,
     timeout: Duration.seconds(30),
     environment: {
