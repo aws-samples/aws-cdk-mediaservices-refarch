@@ -11,24 +11,24 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@aws-cdk/integ-tests-alpha": "2.206.0-alpha.0",
+    "@aws-cdk/integ-tests-alpha": "^2.248.0-alpha.0",
     "@types/jest": "30.0.0",
     "@types/js-yaml": "4.0.9",
-    "@types/node": "24.1.0",
-    "aws-cdk": "2.1021.0",
+    "@types/node": "^25.6.0",
+    "aws-cdk": "^2.1118.0",
     "deepmerge-ts": "7.1.5",
     "jest": "30.0.5",
-    "js-yaml": "4.1.0",
+    "js-yaml": "^4.1.1",
     "prettier": "3.6.2",
-    "ts-jest": "29.4.0",
+    "ts-jest": "^29.4.9",
     "ts-node": "10.9.2",
-    "typescript": "5.8.3",
+    "typescript": "~6.0.2",
     "yaml": "2.8.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.206.0",
+    "aws-cdk-lib": "^2.248.0",
     "cdk-nag": "2.36.44",
-    "constructs": "10.4.2",
+    "constructs": "^10.6.0",
     "glob": "11.1.0",
     "source-map-support": "0.5.21"
   }
