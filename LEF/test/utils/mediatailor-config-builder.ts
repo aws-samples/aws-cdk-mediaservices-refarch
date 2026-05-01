@@ -11,7 +11,10 @@
  *  and limitations under the License.
  */
 
-import { IEventGroupConfig, IEventGroupMediaTailorConfig } from "../../lib/event_group/eventGroupConfigInterface";
+import {
+  IEventGroupConfig,
+  IEventGroupMediaTailorConfig,
+} from "../../lib/event_group/eventGroupConfigInterface";
 
 /**
  * Builder class for creating MediaTailor test configurations
@@ -25,7 +28,7 @@ export class MediaTailorConfigBuilder {
       adDecisionServerUrl: "https://ads.example.com",
       contentSegmentUrlPrefix: "/",
       adSegmentUrlPrefix: "/",
-      slateAdUrl: "https://slate.example.com/slate.mov"
+      slateAdUrl: "https://slate.example.com/slate.mov",
     };
   }
 
@@ -67,12 +70,15 @@ export class MediaTailorConfigBuilder {
   withBumpers(startUrl: string, endUrl: string): MediaTailorConfigBuilder {
     this.config.bumper = {
       startUrl,
-      endUrl
+      endUrl,
     };
     return this;
   }
 
-  withPreRoll(adDecisionServerUrl: string, duration: number): MediaTailorConfigBuilder {
+  withPreRoll(
+    adDecisionServerUrl: string,
+    duration: number,
+  ): MediaTailorConfigBuilder {
     this.config.preRolladDecisionServerUrl = adDecisionServerUrl;
     this.config.preRollDuration = duration;
     return this;
@@ -81,12 +87,12 @@ export class MediaTailorConfigBuilder {
   withAvailSuppression(
     mode: "OFF" | "BEHIND_LIVE_EDGE" | "AFTER_LIVE_EDGE",
     value: string,
-    fillPolicy: "PARTIAL_AVAIL" | "FULL_AVAIL_ONLY"
+    fillPolicy: "PARTIAL_AVAIL" | "FULL_AVAIL_ONLY",
   ): MediaTailorConfigBuilder {
     this.config.availSuppression = {
       mode,
       value,
-      fillPolicy
+      fillPolicy,
     };
     return this;
   }
@@ -109,10 +115,13 @@ export class MediaTailorConfigBuilder {
     return this;
   }
 
-  withTranscodeProfiles(hlsCmaf: string, dashCmaf: string): MediaTailorConfigBuilder {
+  withTranscodeProfiles(
+    hlsCmaf: string,
+    dashCmaf: string,
+  ): MediaTailorConfigBuilder {
     this.config.transcodeProfiles = {
       hlsCmaf,
-      dashCmaf
+      dashCmaf,
     };
     return this;
   }
@@ -133,21 +142,21 @@ export class EventGroupConfigBuilder {
       cloudFront: {
         nominalSegmentLength: 4,
         s3LoggingEnabled: false,
-        enableIpv6: true
+        enableIpv6: true,
       },
-      mediaTailor: []
+      mediaTailor: [],
     };
   }
 
   withCloudFrontConfig(
     nominalSegmentLength: number,
     s3LoggingEnabled: boolean = false,
-    enableIpv6: boolean = true
+    enableIpv6: boolean = true,
   ): EventGroupConfigBuilder {
     this.config.cloudFront = {
       nominalSegmentLength,
       s3LoggingEnabled,
-      enableIpv6
+      enableIpv6,
     };
     return this;
   }
@@ -170,12 +179,16 @@ export class EventGroupConfigBuilder {
     return this;
   }
 
-  withMediaTailorConfig(config: IEventGroupMediaTailorConfig): EventGroupConfigBuilder {
+  withMediaTailorConfig(
+    config: IEventGroupMediaTailorConfig,
+  ): EventGroupConfigBuilder {
     this.config.mediaTailor.push(config);
     return this;
   }
 
-  withMediaTailorConfigs(configs: IEventGroupMediaTailorConfig[]): EventGroupConfigBuilder {
+  withMediaTailorConfigs(
+    configs: IEventGroupMediaTailorConfig[],
+  ): EventGroupConfigBuilder {
     this.config.mediaTailor = [...configs];
     return this;
   }
@@ -232,7 +245,10 @@ export class MediaTailorTestConfigs {
     const advancedConfig = new MediaTailorConfigBuilder("advanced")
       .withAdMarkerPassthrough(true)
       .withPersonalizationThreshold(10)
-      .withBumpers("https://bumper.example.com/start.mov", "https://bumper.example.com/end.mov")
+      .withBumpers(
+        "https://bumper.example.com/start.mov",
+        "https://bumper.example.com/end.mov",
+      )
       .withPreRoll("https://preroll.example.com", 30)
       .withAvailSuppression("BEHIND_LIVE_EDGE", "00:01:00", "PARTIAL_AVAIL")
       .withTranscodeProfiles("advanced-hls", "advanced-dash")

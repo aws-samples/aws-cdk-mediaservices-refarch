@@ -12,7 +12,7 @@
  */
 
 import { aws_medialive as medialive, Aws, CfnOutput, Fn } from "aws-cdk-lib";
-import * as fs from 'fs';
+import * as fs from "fs";
 import { Construct } from "constructs";
 import {
   IMediaLiveConfig,
@@ -21,8 +21,8 @@ import {
 
 export enum MediaLiveOutputGroupType {
   CMAF = "CMAF",
-  HLS = "HLS", 
-  MEDIAPACKAGE = "MEDIAPACKAGE"
+  HLS = "HLS",
+  MEDIAPACKAGE = "MEDIAPACKAGE",
 }
 
 interface BaseDestinationConfig {
@@ -45,7 +45,9 @@ interface EndpointDestinationConfig extends BaseDestinationConfig {
   };
 }
 
-type DestinationConfig = MediaPackageDestinationConfig | EndpointDestinationConfig;
+type DestinationConfig =
+  | MediaPackageDestinationConfig
+  | EndpointDestinationConfig;
 
 interface OutputDestinationSettings {
   url: string;
@@ -168,6 +170,40 @@ export class MediaLive extends Construct {
             };
           }),
         };
+
+      case "SMPTE_2110":
+        // TODO: CDK 2.243.0+ has native CfnInput.Smpte2110ReceiverGroupSettingsProperty types.
+        // Refactor to use typed properties instead of addPropertyOverride workaround.
+        return {
+          ...baseProps,
+          type: "SMPTE_2110",
+          // Store SMPTE 2110 settings for later override
+          _smpte2110Settings: {
+            ReceiversGroupId:
+              input.smpte2110ReceiverGroupSettings.receiverGroupId,
+            Receivers: input.smpte2110ReceiverGroupSettings.receivers.map(
+              (receiver) => ({
+                ReceiverId: receiver.receiverId,
+                MulticastIp: receiver.multicastIp,
+                Port: receiver.port,
+                ...(receiver.interfaceId && {
+                  InterfaceId: receiver.interfaceId,
+                }),
+                StreamType: receiver.streamType,
+              }),
+            ),
+          },
+        } as any;
+
+      case "SRT_CALLER":
+        // TODO: CDK 2.243.0+ has native CfnInput.SrtCallerSourceRequestProperty types.
+        // Refactor to use typed properties instead of addOverride workaround.
+        return {
+          ...baseProps,
+          type: "SRT_CALLER",
+          roleArn: mediaLiveAccessRole,
+          sources: [{}], // Initialize empty source for property override
+        } as any;
     }
 
     throw new Error(
@@ -179,20 +215,19 @@ export class MediaLive extends Construct {
     // Determine the sourceEndBehavior to use
     // First check if the input has sourceEndBehavior defined
     // If not, use "CONTINUE" as default
-    const sourceEndBehavior = input.sourceEndBehavior ||
-                             "CONTINUE";
-    
+    const sourceEndBehavior = input.sourceEndBehavior || "CONTINUE";
+
     if (input.type == "URL_PULL" && input.urls[0].url.endsWith(".m3u8")) {
       // HLS Input Attachments require additional parameters to be set
       // MediaLive can extract SCTE markers from either the HLS Manifests or Segments.
       // By default SCTE markers are read from segments. For this project the default m3u8
       // is generated using MediaTailor Channel assembly and the SCTE need to be read from
       // the manifest files.
-      
+
       // bufferSegments must be set to 10 or less for HLS inputs when multiple inputs are configured
       // This is required for Channel Schedule input switch actions
       const hasMultipleInputs = this.configuration.inputs.length > 1;
-      
+
       return {
         sourceEndBehavior: sourceEndBehavior,
         networkInputSettings: {
@@ -203,7 +238,7 @@ export class MediaLive extends Construct {
             // Increasing the bufferSegments will also increase stream latency
             // Note: Three is a conservative value for bufferSegments and will increase the stream latency. This
             // value can be set to 2 to lower latency. Where latency is important consider using another input format.
-            ...(hasMultipleInputs ? { bufferSegments: 3 } : {})
+            ...(hasMultipleInputs ? { bufferSegments: 3 } : {}),
           },
         },
         captionSelectors: this.configuration.captionSelectors,
@@ -217,6 +252,8 @@ export class MediaLive extends Construct {
         "RTP_PUSH",
         "RTMP_PUSH",
         "RTMP_PULL",
+        "SMPTE_2110",
+        "SRT_CALLER",
       ].includes(input.type)
     ) {
       // Listed inputs do not support 'LOOP' sourceEndBehaviour
@@ -232,48 +269,58 @@ export class MediaLive extends Construct {
 
   private createDestinationSettings(): medialive.CfnChannel.OutputDestinationProperty {
     const destinationFactory = {
-      [MediaLiveOutputGroupType.MEDIAPACKAGE]: () => this.createMediaPackageDestination(),
+      [MediaLiveOutputGroupType.MEDIAPACKAGE]: () =>
+        this.createMediaPackageDestination(),
       [MediaLiveOutputGroupType.CMAF]: () => this.createUrlDestination(),
-      [MediaLiveOutputGroupType.HLS]: () => this.createUrlDestination()
+      [MediaLiveOutputGroupType.HLS]: () => this.createUrlDestination(),
     };
 
     const factory = destinationFactory[this.outputConfig.type];
     if (!factory) {
-      throw new Error(`Unsupported output group type: ${this.outputConfig.type}`);
+      throw new Error(
+        `Unsupported output group type: ${this.outputConfig.type}`,
+      );
     }
-    
+
     return factory();
   }
 
   private createMediaPackageDestination(): medialive.CfnChannel.OutputDestinationProperty {
     if (this.outputConfig.type !== MediaLiveOutputGroupType.MEDIAPACKAGE) {
-      throw new Error("MediaPackage configuration is required for MEDIAPACKAGE output group type");
+      throw new Error(
+        "MediaPackage configuration is required for MEDIAPACKAGE output group type",
+      );
     }
 
     return {
       id: "media-destination",
-      mediaPackageSettings: [{
-        channelName: this.outputConfig.mediaPackage.channelName,
-        channelGroup: this.outputConfig.mediaPackage.channelGroup
-      }] as MediaPackageOutputDestinationSettings[],
+      mediaPackageSettings: [
+        {
+          channelName: this.outputConfig.mediaPackage.channelName,
+          channelGroup: this.outputConfig.mediaPackage.channelGroup,
+        },
+      ] as MediaPackageOutputDestinationSettings[],
     } as medialive.CfnChannel.OutputDestinationProperty;
   }
 
   private createUrlDestination(): medialive.CfnChannel.OutputDestinationProperty {
     if (this.outputConfig.type === MediaLiveOutputGroupType.MEDIAPACKAGE) {
-      throw new Error("Endpoint configuration is required for CMAF/HLS output group types");
+      throw new Error(
+        "Endpoint configuration is required for CMAF/HLS output group types",
+      );
     }
 
-    const settings = this.outputConfig.channelClass === "SINGLE_PIPELINE" 
-      ? [{ url: this.outputConfig.endpoints.primary }]
-      : [
-          { url: this.outputConfig.endpoints.primary }, 
-          { url: this.outputConfig.endpoints.secondary }
-        ];
-        
+    const settings =
+      this.outputConfig.channelClass === "SINGLE_PIPELINE"
+        ? [{ url: this.outputConfig.endpoints.primary }]
+        : [
+            { url: this.outputConfig.endpoints.primary },
+            { url: this.outputConfig.endpoints.secondary },
+          ];
+
     return {
       id: "media-destination",
-      settings
+      settings,
     } as medialive.CfnChannel.OutputDestinationProperty;
   }
 
@@ -285,8 +332,8 @@ export class MediaLive extends Construct {
           nielsenId3Behavior: "NO_PASSTHROUGH",
           scte35Type: "SCTE_35_WITHOUT_SEGMENTATION",
           segmentLength: this.configuration.segmentLengthInSeconds,
-          segmentLengthUnits: "SECONDS"
-        }
+          segmentLengthUnits: "SECONDS",
+        },
       },
       [MediaLiveOutputGroupType.HLS]: {
         hlsGroupSettings: {
@@ -297,8 +344,8 @@ export class MediaLive extends Construct {
               connectionRetryInterval: 1,
               filecacheDuration: 300,
               numRetries: 10,
-              restartDelay: 15
-            }
+              restartDelay: 15,
+            },
           },
           hlsId3SegmentTagging: "ENABLED",
           inputLossAction: "PAUSE_OUTPUT",
@@ -307,20 +354,20 @@ export class MediaLive extends Construct {
           programDateTime: "INCLUDE",
           programDateTimeClock: "SYSTEM_CLOCK",
           programDateTimePeriod: this.configuration.segmentLengthInSeconds,
-        }
+        },
       },
       [MediaLiveOutputGroupType.MEDIAPACKAGE]: {
         mediaPackageGroupSettings: {
-          destination: { destinationRefId: "media-destination" }
-        }
-      }
+          destination: { destinationRefId: "media-destination" },
+        },
+      },
     };
 
     const config = outputGroupConfigs[this.outputConfig.type];
     if (!config) {
       throw new Error(`Unknown output group type: ${this.outputConfig.type}`);
     }
-    
+
     return config;
   }
 
@@ -401,14 +448,14 @@ export class MediaLive extends Construct {
 
   private setMediaPackageOutputGroupSpecificSettings(encoderSettings: any) {
     // Method to configure settings specific to MediaPackage output groups
-    
+
     // Set output settings for each output in the output group
     for (var output of encoderSettings.outputGroups[0].outputs) {
       // MediaPackage output groups use mediaPackageOutputSettings
       if (!output.outputSettings) {
         output.outputSettings = {};
       }
-      
+
       // Ensure mediaPackageOutputSettings is set (should already be from the profile)
       if (!output.outputSettings.mediaPackageOutputSettings) {
         output.outputSettings.mediaPackageOutputSettings = {};
@@ -435,25 +482,64 @@ export class MediaLive extends Construct {
 
     // Create all the MediaLive Inputs
     const inputAttachments: medialive.CfnChannel.InputAttachmentProperty[] = [];
-    
+
     inputsToProcess.forEach((inputConfig, index) => {
-      const inputName = 
-        inputConfig.inputName || 
+      const inputName =
+        inputConfig.inputName ||
         `${Aws.STACK_NAME}_${inputConfig.type}_MediaLiveInput_${index + 1}`;
+      const inputTags = TaggingUtils.createResourceTags(props.tags, {
+        LefChannel: props.channelName,
+      });
+      const inputProps = this.createInputProps(
+        inputName,
+        inputConfig,
+        mediaLiveAccessRoleArn,
+        inputTags,
+      );
+
       const mediaLiveInput = new medialive.CfnInput(
         this,
         `MediaInputChannel${index + 1}`,
-        this.createInputProps(
-          inputName,
-          inputConfig,
-          mediaLiveAccessRoleArn,
-          props.tags,
-        ),
+        inputProps,
       );
-      
+
+      // Handle SMPTE 2110 settings using property override since CDK types may not be available
+      if (
+        inputConfig.type === "SMPTE_2110" &&
+        (inputProps as any)._smpte2110Settings
+      ) {
+        mediaLiveInput.addPropertyOverride(
+          "Smpte2110Settings",
+          (inputProps as any)._smpte2110Settings,
+        );
+      }
+
+      // Handle SRT Caller settings using property override since CDK types may not be available
+      if (inputConfig.type === "SRT_CALLER") {
+        const srtSettings = {
+          SrtListenerAddress: (inputConfig as any).srtListenerAddress,
+          SrtListenerPort: (inputConfig as any).srtListenerPort || 9000,
+          ...((inputConfig as any).streamId && {
+            StreamId: (inputConfig as any).streamId,
+          }),
+          MinimumLatency: (inputConfig as any).minimumLatency || 120,
+          ...((inputConfig as any).decryption && {
+            Decryption: {
+              Algorithm: (inputConfig as any).decryption.algorithm,
+              PassphraseSecretArn: (inputConfig as any).decryption.passphrase,
+            },
+          }),
+        };
+        mediaLiveInput.addOverride("Properties.Sources", [
+          {
+            SrtCallerSource: srtSettings,
+          },
+        ]);
+      }
+
       // Add to the array of inputs
       this.channelInputs.push(mediaLiveInput);
-      
+
       // Create input attachment for this input
       inputAttachments.push({
         inputId: mediaLiveInput.ref,
@@ -467,11 +553,16 @@ export class MediaLive extends Construct {
     var encoderSettings;
     try {
       // Use fs.readFileSync instead of require to read the file
-      const fs = require('fs');
-      const fileContent = fs.readFileSync(configuration.encodingProfileLocation, 'utf8');
+      const fs = require("fs");
+      const fileContent = fs.readFileSync(
+        configuration.encodingProfileLocation,
+        "utf8",
+      );
       encoderSettings = JSON.parse(fileContent);
     } catch (error) {
-      throw new Error(`Failed to load encoder settings from ${configuration.encodingProfileLocation}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load encoder settings from ${configuration.encodingProfileLocation}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
     // Configure output group settings
     encoderSettings.outputGroups[0].outputGroupSettings =
@@ -479,31 +570,40 @@ export class MediaLive extends Construct {
 
     // Configure featureActivations
     encoderSettings.featureActivations = {
-      inputPrepareScheduleActions: configuration.enableInputPrepareScheduleActions===true ? "ENABLED" : "DISABLED",
-      outputStaticImageOverlayScheduleActions: configuration.enableStaticImageOverlayScheduleActions===true ? "ENABLED" : "DISABLED",
+      inputPrepareScheduleActions:
+        configuration.enableInputPrepareScheduleActions === true
+          ? "ENABLED"
+          : "DISABLED",
+      outputStaticImageOverlayScheduleActions:
+        configuration.enableStaticImageOverlayScheduleActions === true
+          ? "ENABLED"
+          : "DISABLED",
     };
 
     if (this.outputConfig.type === MediaLiveOutputGroupType.HLS) {
       // Set unique output configuration required for HLS output groups
       // CMAF and MediaPackage Output groups require significantly less configuration
       this.setHlsOutputGroupSpecificSettings(encoderSettings);
-    } else if (this.outputConfig.type === MediaLiveOutputGroupType.MEDIAPACKAGE) {
+    } else if (
+      this.outputConfig.type === MediaLiveOutputGroupType.MEDIAPACKAGE
+    ) {
       // Set unique output configuration required for MediaPackage output groups
       this.setMediaPackageOutputGroupSpecificSettings(encoderSettings);
     }
-      
+
     // Set additional MediaLive Anywhere configuration if specified
     var anywhereSettings:
       | medialive.CfnChannel.AnywhereSettingsProperty
       | undefined = configuration.anywhereSettings;
 
+    const channelTags = TaggingUtils.createResourceTags(props.tags, {
+      LefChannel: props.channelName,
+    });
     const channelLive = new medialive.CfnChannel(this, "MediaLiveChannel", {
       channelClass: configuration.channelClass,
       anywhereSettings: anywhereSettings,
-      destinations: [
-        this.createDestinationSettings(),
-      ],
-      tags: TaggingUtils.convertToMapTags(props.tags),
+      destinations: [this.createDestinationSettings()],
+      tags: TaggingUtils.convertToMapTags(channelTags),
       inputSpecification: {
         codec: configuration.inputSpecification.codec,
         resolution: configuration.inputSpecification.resolution,
@@ -526,7 +626,7 @@ export class MediaLive extends Construct {
       exportName: Aws.STACK_NAME + "mediaLiveChannelArn",
       description: "The Arn of the MediaLive Channel",
     });
-    
+
     // Export information about each input
     this.channelInputs.forEach((input, index) => {
       new CfnOutput(this, `MediaLiveChannelInputName${index + 1}`, {

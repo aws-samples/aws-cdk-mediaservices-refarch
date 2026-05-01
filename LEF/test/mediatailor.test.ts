@@ -35,7 +35,8 @@ describe("MediaTailor", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
+      cdnDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -63,7 +64,7 @@ describe("MediaTailor", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -87,7 +88,7 @@ describe("MediaTailor", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -100,8 +101,8 @@ describe("MediaTailor", () => {
         "player_params.content_segment_prefix": {
           "hls-cmaf": "../../../../..",
           "dash-cmaf": "../../../../../../../../..",
-        }
-      }
+        },
+      },
     });
   });
 
@@ -116,7 +117,7 @@ describe("MediaTailor", () => {
         adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
         slateAdUrl: "https://example.com/slate.mov",
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -129,8 +130,8 @@ describe("MediaTailor", () => {
         "player_params.ad_segment_prefix": {
           "hls-cmaf": "../../../../../..",
           "dash-cmaf": "../../../../../../../../..",
-        }
-      }
+        },
+      },
     });
   });
 
@@ -146,10 +147,10 @@ describe("MediaTailor", () => {
         slateAdUrl: "https://example.com/slate.mov",
         transcodeProfiles: {
           hlsCmaf: "hls-profile",
-          dashCmaf: "dash-profile"
-        }
+          dashCmaf: "dash-profile",
+        },
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -163,8 +164,8 @@ describe("MediaTailor", () => {
         "player_params.transcode_profile": {
           "hls-cmaf": "hls-profile",
           "dash-cmaf": "dash-profile",
-        }
-      }
+        },
+      },
     });
   });
 
@@ -180,10 +181,10 @@ describe("MediaTailor", () => {
         slateAdUrl: "https://example.com/slate.mov",
         transcodeProfiles: {
           hlsCmaf: "",
-          dashCmaf: ""
-        }
+          dashCmaf: "",
+        },
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -192,7 +193,7 @@ describe("MediaTailor", () => {
 
     // Assert
     template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-      TranscodeProfileName: "[player_params.transcode_profile]"
+      TranscodeProfileName: "[player_params.transcode_profile]",
     });
   });
 
@@ -207,7 +208,7 @@ describe("MediaTailor", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act
@@ -232,7 +233,7 @@ describe("MediaTailor", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
       },
-      originHostname: "example-origin.mediapackagev2.com",
+      originDomainName: "example-origin.mediapackagev2.com",
     };
 
     // Act

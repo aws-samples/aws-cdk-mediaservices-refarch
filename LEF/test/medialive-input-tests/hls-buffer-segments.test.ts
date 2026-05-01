@@ -64,7 +64,8 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -80,7 +81,7 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
               {
                 url: "https://example1.com/primary.m3u8",
                 username: "user1",
-                password: "param1",
+                password: "param1", // pragma: allowlist secret
               },
             ],
           },
@@ -91,7 +92,7 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
               {
                 url: "https://example2.com/backup.m3u8",
                 username: "user2",
-                password: "param2",
+                password: "param2", // pragma: allowlist secret
               },
             ],
           },
@@ -102,8 +103,8 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -115,14 +116,20 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(2);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that both input attachments have bufferSegments set to 10 in hlsInputSettings
-    expect(channelArgs.inputAttachments[0].inputSettings.networkInputSettings.hlsInputSettings.bufferSegments).toBe(3);
-    expect(channelArgs.inputAttachments[1].inputSettings.networkInputSettings.hlsInputSettings.bufferSegments).toBe(3);
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.networkInputSettings
+        .hlsInputSettings.bufferSegments,
+    ).toBe(3);
+    expect(
+      channelArgs.inputAttachments[1].inputSettings.networkInputSettings
+        .hlsInputSettings.bufferSegments,
+    ).toBe(3);
   });
 
   test("should not set bufferSegments for HLS inputs when only one input is configured", () => {
@@ -131,7 +138,8 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -147,7 +155,7 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
               {
                 url: "https://example.com/stream.m3u8",
                 username: "user",
-                password: "pass",
+                password: "pass", // pragma: allowlist secret
               },
             ],
           },
@@ -158,8 +166,8 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -171,13 +179,16 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(1);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that the input attachment does not have bufferSegments set
-    expect(channelArgs.inputAttachments[0].inputSettings.networkInputSettings.hlsInputSettings.bufferSegments).toBeUndefined();
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.networkInputSettings
+        .hlsInputSettings.bufferSegments,
+    ).toBeUndefined();
   });
 
   test("should not affect non-HLS inputs when multiple inputs are configured", () => {
@@ -186,7 +197,8 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -202,7 +214,7 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
               {
                 url: "https://example.com/stream.m3u8",
                 username: "user1",
-                password: "pass1",
+                password: "pass1", // pragma: allowlist secret
               },
             ],
           },
@@ -218,8 +230,8 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -231,15 +243,20 @@ describe("MediaLive HLS Input bufferSegments Configuration", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(2);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that the HLS input has bufferSegments set to 3
-    expect(channelArgs.inputAttachments[0].inputSettings.networkInputSettings.hlsInputSettings.bufferSegments).toBe(3);
-    
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.networkInputSettings
+        .hlsInputSettings.bufferSegments,
+    ).toBe(3);
+
     // Verify that the MP4 input doesn't have networkInputSettings.hlsInputSettings
-    expect(channelArgs.inputAttachments[1].inputSettings.networkInputSettings).toBeUndefined();
+    expect(
+      channelArgs.inputAttachments[1].inputSettings.networkInputSettings,
+    ).toBeUndefined();
   });
 });

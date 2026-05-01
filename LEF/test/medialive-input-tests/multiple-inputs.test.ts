@@ -53,12 +53,12 @@ describe("LEF Event Stack", () => {
                 {
                   url: "https://example1.com/primary.m3u8",
                   username: "user1",
-                  password: "param1",
+                  password: "param1", // pragma: allowlist secret
                 },
                 {
                   url: "https://example2.com/primary.m3u8",
                   username: "user2",
-                  password: "param2",
+                  password: "param2", // pragma: allowlist secret
                 },
               ],
             },
@@ -69,12 +69,12 @@ describe("LEF Event Stack", () => {
                 {
                   url: "https://example1.com/backup.m3u8",
                   username: "user3",
-                  password: "param3",
+                  password: "param3", // pragma: allowlist secret
                 },
                 {
                   url: "https://example2.com/backup.m3u8",
                   username: "user4",
-                  password: "param4",
+                  password: "param4", // pragma: allowlist secret
                 },
               ],
             },
@@ -105,12 +105,12 @@ describe("LEF Event Stack", () => {
             {
               Url: "https://example1.com/primary.m3u8",
               Username: "user1",
-              PasswordParam: "param1",
+              PasswordParam: "param1", // pragma: allowlist secret
             },
             {
               Url: "https://example2.com/primary.m3u8",
               Username: "user2",
-              PasswordParam: "param2",
+              PasswordParam: "param2", // pragma: allowlist secret
             },
           ],
         });
@@ -124,12 +124,12 @@ describe("LEF Event Stack", () => {
             {
               Url: "https://example1.com/backup.m3u8",
               Username: "user3",
-              PasswordParam: "param3",
+              PasswordParam: "param3", // pragma: allowlist secret
             },
             {
               Url: "https://example2.com/backup.m3u8",
               Username: "user4",
-              PasswordParam: "param4",
+              PasswordParam: "param4", // pragma: allowlist secret
             },
           ],
         });
@@ -137,10 +137,12 @@ describe("LEF Event Stack", () => {
 
       it("should attach both inputs to the channel", () => {
         // Check that the channel has two input attachments
-        const channelResources = template.findResources("AWS::MediaLive::Channel");
+        const channelResources = template.findResources(
+          "AWS::MediaLive::Channel",
+        );
         const channelKeys = Object.keys(channelResources);
         const channelProperties = channelResources[channelKeys[0]].Properties;
-        
+
         expect(channelProperties.InputAttachments).toHaveLength(2);
       });
     });

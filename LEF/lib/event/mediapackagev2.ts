@@ -73,7 +73,7 @@ export class MediaPackageV2 extends Construct {
 
     // Apply defaults for CMAF input type
     const configWithDefaults = this.applyDefaults(props.configuration);
-    
+
     // Validate configuration
     this.validateConfiguration(configWithDefaults);
 
@@ -83,17 +83,24 @@ export class MediaPackageV2 extends Construct {
     const channelProps: mediapackagev2.CfnChannelProps = {
       channelName: this.channelName,
       channelGroupName: this.channelGroupName,
-      description: props.configuration.description || `Channel for ${Aws.STACK_NAME}`,
+      description:
+        props.configuration.description || `Channel for ${Aws.STACK_NAME}`,
       inputType: this.channelInputType,
       tags: TaggingUtils.convertToCfnTags(props.tags),
       // Add input switch configuration if provided and input type is CMAF
-      ...(configWithDefaults.inputSwitchConfiguration && this.channelInputType === "CMAF" && {
-        inputSwitchConfiguration: this.buildInputSwitchConfiguration(configWithDefaults.inputSwitchConfiguration),
-      }),
+      ...(configWithDefaults.inputSwitchConfiguration &&
+        this.channelInputType === "CMAF" && {
+          inputSwitchConfiguration: this.buildInputSwitchConfiguration(
+            configWithDefaults.inputSwitchConfiguration,
+          ),
+        }),
       // Add output header configuration if provided and input type is CMAF
-      ...(configWithDefaults.outputHeaderConfiguration && this.channelInputType === "CMAF" && {
-        outputHeaderConfiguration: this.buildOutputHeaderConfiguration(configWithDefaults.outputHeaderConfiguration),
-      }),
+      ...(configWithDefaults.outputHeaderConfiguration &&
+        this.channelInputType === "CMAF" && {
+          outputHeaderConfiguration: this.buildOutputHeaderConfiguration(
+            configWithDefaults.outputHeaderConfiguration,
+          ),
+        }),
     };
 
     this.channel = new mediapackagev2.CfnChannel(
@@ -101,6 +108,18 @@ export class MediaPackageV2 extends Construct {
       "MediaPackageV2Channel",
       channelProps,
     );
+
+    // Add preferredInput property override if configured (for CDK versions that don't support it in types)
+    if (
+      configWithDefaults.inputSwitchConfiguration?.preferredInput !==
+        undefined &&
+      this.channelInputType === "CMAF"
+    ) {
+      this.channel.addPropertyOverride(
+        "InputSwitchConfiguration.PreferredInput",
+        configWithDefaults.inputSwitchConfiguration.preferredInput,
+      );
+    }
 
     // Set CloudFront Distribution ARN using the CloudFront Distribution ID
     const cloudFrontDistributionId = Fn.importValue(
@@ -116,7 +135,10 @@ export class MediaPackageV2 extends Construct {
     const mediaTailorPlaybackConfigurationArnListImport = Fn.importValue(
       this.channelGroupName + "-MediaTailor-Playback-Configuration-Arn-List",
     );
-    const mediaTailorPlaybackConfigurationArnList = Fn.split('|', mediaTailorPlaybackConfigurationArnListImport);
+    const mediaTailorPlaybackConfigurationArnList = Fn.split(
+      "|",
+      mediaTailorPlaybackConfigurationArnListImport,
+    );
 
     // Define export variables for channel inputs
     this.channelIngestEndpoint1 = Fn.select(
@@ -138,26 +160,39 @@ export class MediaPackageV2 extends Construct {
     )) {
       // Process HLS manifests to set default values
       let processedEndpointConfig = { ...endpointConfig };
-      
+
       // Apply defaults to HLS manifests
-      if (processedEndpointConfig.hlsManifests && Array.isArray(processedEndpointConfig.hlsManifests)) {
-        processedEndpointConfig.hlsManifests = processedEndpointConfig.hlsManifests.map(manifest => 
-          this.setHlsManifestDefaults(manifest)
-        );
+      if (
+        processedEndpointConfig.hlsManifests &&
+        Array.isArray(processedEndpointConfig.hlsManifests)
+      ) {
+        processedEndpointConfig.hlsManifests =
+          processedEndpointConfig.hlsManifests.map((manifest) =>
+            this.setHlsManifestDefaults(manifest),
+          );
       }
-      
+
       // Apply defaults to Low Latency HLS manifests
-      if (processedEndpointConfig.lowLatencyHlsManifests && Array.isArray(processedEndpointConfig.lowLatencyHlsManifests)) {
-        processedEndpointConfig.lowLatencyHlsManifests = processedEndpointConfig.lowLatencyHlsManifests.map(manifest => 
-          this.setHlsManifestDefaults(manifest)
-        );
+      if (
+        processedEndpointConfig.lowLatencyHlsManifests &&
+        Array.isArray(processedEndpointConfig.lowLatencyHlsManifests)
+      ) {
+        processedEndpointConfig.lowLatencyHlsManifests =
+          processedEndpointConfig.lowLatencyHlsManifests.map((manifest) =>
+            this.setHlsManifestDefaults(manifest),
+          );
       }
-      
-      // Create origin endpoint
+
+      // Create origin endpoint with resource-specific tags
+      const endpointTags = TaggingUtils.createResourceTags(props.tags, {
+        LefChannelGroup: this.channelGroupName,
+        LefChannel: this.channelName,
+        LefOriginEndpoint: processedEndpointConfig.originEndpointName,
+      });
       const endpoint = this.createOriginEndpoint(
         endpointReference,
         processedEndpointConfig,
-        props.tags,
+        endpointTags,
       );
       endpoint.addDependency(this.channel);
 
@@ -223,9 +258,11 @@ export class MediaPackageV2 extends Construct {
    * @param config - The original configuration
    * @returns Configuration with defaults applied
    */
-  private applyDefaults(config: IMediaPackageChannelConfig): IMediaPackageChannelConfig {
+  private applyDefaults(
+    config: IMediaPackageChannelConfig,
+  ): IMediaPackageChannelConfig {
     const configWithDefaults = { ...config };
-    
+
     // Apply defaults only for CMAF input type
     // TODO: These defaults should be adjusted as best practice settings become clear
     if (config.inputType === "CMAF") {
@@ -235,9 +272,10 @@ export class MediaPackageV2 extends Construct {
           mqcsInputSwitching: true,
           inputSwitchingMode: "FAILOVER_ON_AVERAGE",
           switchingThreshold: 70,
+          // Note: preferredInput is not set by default - it must be explicitly configured
         };
       }
-      
+
       // Set default output header configuration if not provided
       // TODO: These defaults should be adjusted as best practice settings become clear
       if (!config.outputHeaderConfiguration) {
@@ -250,7 +288,7 @@ export class MediaPackageV2 extends Construct {
         };
       }
     }
-    
+
     return configWithDefaults;
   }
 
@@ -259,16 +297,16 @@ export class MediaPackageV2 extends Construct {
    * @param manifest - The original manifest object
    * @returns A new manifest object with default values set
    */
-  private setHlsManifestDefaults(manifest: IManifestConfig): IManifestConfig {
+  private setHlsManifestDefaults<T extends IManifestConfig>(manifest: T): T {
     const manifestCopy = { ...manifest };
-    
+
     // Set urlEncodeChildManifest to true by default if not explicitly set
     if (manifestCopy.urlEncodeChildManifest === undefined) {
       manifestCopy.urlEncodeChildManifest = true;
     }
-    
+
     // Additional default values can be set here in the future
-    
+
     return manifestCopy;
   }
 
@@ -281,14 +319,14 @@ export class MediaPackageV2 extends Construct {
     if (config.inputSwitchConfiguration && config.inputType !== "CMAF") {
       Annotations.of(this).addWarning(
         "inputSwitchConfiguration is only valid when inputType is CMAF. " +
-        "This configuration will be ignored for HLS input type."
+          "This configuration will be ignored for HLS input type.",
       );
     }
 
     if (config.outputHeaderConfiguration && config.inputType !== "CMAF") {
       Annotations.of(this).addWarning(
         "outputHeaderConfiguration is only valid when inputType is CMAF. " +
-        "This configuration will be ignored for HLS input type."
+          "This configuration will be ignored for HLS input type.",
       );
     }
 
@@ -297,8 +335,15 @@ export class MediaPackageV2 extends Construct {
       const threshold = config.inputSwitchConfiguration.switchingThreshold;
       if (threshold < 0 || threshold > 100) {
         Annotations.of(this).addError(
-          "switchingThreshold must be between 0 and 100"
+          "switchingThreshold must be between 0 and 100",
         );
+      }
+    }
+
+    if (config.inputSwitchConfiguration?.preferredInput !== undefined) {
+      const preferredInput = config.inputSwitchConfiguration.preferredInput;
+      if (preferredInput !== 1 && preferredInput !== 2) {
+        Annotations.of(this).addError("preferredInput must be either 1 or 2");
       }
     }
   }
@@ -310,15 +355,21 @@ export class MediaPackageV2 extends Construct {
    */
   private buildInputSwitchConfiguration(config: IInputSwitchConfig): any {
     const inputSwitchConfig: any = {};
-    
+
     if (config.mqcsInputSwitching !== undefined) {
       inputSwitchConfig.mqcsInputSwitching = config.mqcsInputSwitching;
     }
-    
+
+    // Note: preferredInput may not be available in current CDK version
+    // but we include it for future compatibility and CloudFormation support
+    if (config.preferredInput !== undefined) {
+      inputSwitchConfig.preferredInput = config.preferredInput;
+    }
+
     // Add additional configuration options as they become available in CDK
     // Note: inputSwitchingMode and switchingThreshold may not be available yet
     // in the current CDK version but can be added when supported
-    
+
     return inputSwitchConfig;
   }
 
@@ -329,27 +380,68 @@ export class MediaPackageV2 extends Construct {
    */
   private buildOutputHeaderConfiguration(config: IOutputHeaderConfig): any {
     const outputHeaderConfig: any = {};
-    
+
     if (config.publishMqcs !== undefined) {
       outputHeaderConfig.publishMqcs = config.publishMqcs;
     }
-    
+
     // Add additional header configuration options as they become available
     // Note: additionalHeaders may not be available yet in the current CDK version
-    
+
     return outputHeaderConfig;
   }
 
   // Create Origin Endpoint
-  createOriginEndpoint(id: string, props: IMediaPackageEndpointConfig, tags: Record<string, string>[]) {
+  createOriginEndpoint(
+    id: string,
+    props: IMediaPackageEndpointConfig,
+    tags: Record<string, string>[],
+  ) {
+    // Helper function to convert manifests with filter configuration
+    const convertManifests = <T extends { filterConfiguration?: any }>(
+      manifests?: T[],
+    ): any[] | undefined => {
+      if (!manifests) return undefined;
+      return manifests.map((manifest) => {
+        const converted: any = { ...manifest };
+        // Only include filterConfiguration if it exists and has at least one property
+        if (
+          manifest.filterConfiguration &&
+          Object.keys(manifest.filterConfiguration).length > 0
+        ) {
+          converted.filterConfiguration = {
+            ...(manifest.filterConfiguration.manifestFilter && {
+              manifestFilter: manifest.filterConfiguration.manifestFilter,
+            }),
+            ...(manifest.filterConfiguration.start && {
+              start: manifest.filterConfiguration.start,
+            }),
+            ...(manifest.filterConfiguration.end && {
+              end: manifest.filterConfiguration.end,
+            }),
+            ...(manifest.filterConfiguration.timeDelaySeconds !== undefined && {
+              timeDelaySeconds: manifest.filterConfiguration.timeDelaySeconds,
+            }),
+            ...(manifest.filterConfiguration.clipStartTime && {
+              clipStartTime: manifest.filterConfiguration.clipStartTime,
+            }),
+            ...(manifest.filterConfiguration.drmSettings && {
+              drmSettings: manifest.filterConfiguration.drmSettings,
+            }),
+          };
+        }
+        return converted;
+      });
+    };
+
     const endpointProps: mediapackagev2.CfnOriginEndpointProps = {
       channelName: this.channelName,
       channelGroupName: this.channelGroupName,
       originEndpointName: props.originEndpointName,
       containerType: props.containerType,
-      dashManifests: props.dashManifests,
-      hlsManifests: props.hlsManifests,
-      lowLatencyHlsManifests: props.lowLatencyHlsManifests,
+      dashManifests: convertManifests(props.dashManifests),
+      hlsManifests: convertManifests(props.hlsManifests),
+      lowLatencyHlsManifests: convertManifests(props.lowLatencyHlsManifests),
       segment:
         props.segment as mediapackagev2.CfnOriginEndpoint.SegmentProperty,
       startoverWindowSeconds: props.startoverWindowSeconds,
@@ -393,22 +485,8 @@ export class MediaPackageV2 extends Construct {
       );
     } else {
       // Default to a CUSTOM policy
-      policyStatements.push(
-        // Policy allowing SigV4 signed requests from all MediaTailor Playback
-        // Configurations in the group
-        new iam.PolicyStatement({
-          sid: "AllowRequestsFromMediaTailorPlaybackConfiguration",
-          effect: iam.Effect.ALLOW,
-          actions: ["mediapackagev2:GetObject", "mediapackagev2:GetHeadObject"],
-          principals: [new iam.ServicePrincipal("mediatailor.amazonaws.com")],
-          resources: [originEndpoint.attrArn],
-          conditions: {
-            StringEquals: {
-              "aws:SourceArn": mediaTailorPlaybackConfigurationArnList,
-            },
-          },
-        }),
-      );
+      // MediaTailor policy statement removed - MediaTailor now accesses content through CloudFront
+      // rather than directly from MediaPackage for improved security and consistency
 
       // Policy allowing request from the 'cloudFrontDistributionArn' CloudFront Distribution to
       // be service by MediaPackage Endpoint. For policy to work Origin Access Control policy
@@ -448,8 +526,9 @@ export class MediaPackageV2 extends Construct {
   // Channel Policy can only be created once the role has been created
   attachChannelPolicy(roleArn: string, cidrBlocks: Array<string> = []) {
     // Use configured CIDR blocks if available, otherwise use provided ones
-    const effectiveCidrBlocks = this.channelPolicyConfig?.allowedCidrBlocks || cidrBlocks;
-    
+    const effectiveCidrBlocks =
+      this.channelPolicyConfig?.allowedCidrBlocks || cidrBlocks;
+
     // Policy statement for 'roleArn' to put content to MediaPackage V2
     const policyStatements = [
       new iam.PolicyStatement({
@@ -480,15 +559,16 @@ export class MediaPackageV2 extends Construct {
 
     // Add custom policy statements if configured
     if (this.channelPolicyConfig?.customPolicyStatements) {
-      for (const customStatement of this.channelPolicyConfig.customPolicyStatements) {
+      for (const customStatement of this.channelPolicyConfig
+        .customPolicyStatements) {
         // Convert plain object to PolicyStatement
         policyStatements.push(
           new iam.PolicyStatement({
             ...customStatement,
-            principals: customStatement.principals?.map((p: any) => 
-              typeof p === 'string' ? new iam.ArnPrincipal(p) : p
+            principals: customStatement.principals?.map((p: any) =>
+              typeof p === "string" ? new iam.ArnPrincipal(p) : p,
             ),
-          })
+          }),
         );
       }
     }

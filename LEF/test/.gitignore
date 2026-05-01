@@ -1,0 +1,7 @@
+# Ignore integration test snapshots (generated files)
+*.integ.snapshot/
+*.js.snapshot/
+
+# Ignore integration test outputs
+integ.*.js
+integ.*.d.ts

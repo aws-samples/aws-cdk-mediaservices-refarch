@@ -19,6 +19,7 @@ import {
   aws_s3 as s3,
   aws_sns as sns,
   aws_sns_subscriptions as subscriptions,
+  aws_sqs as sqs,
   aws_events as events,
   aws_events_targets as targets,
   CfnOutput,
@@ -28,12 +29,39 @@ import {
 import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import { getRegionCode } from "../utils/region-mapping";
 import { NagSuppressions } from "cdk-nag";
 import { ICloudFrontConfig } from "./foundationConfigInterface";
 import { TaggingUtils } from "../utils/tagging";
 
 const ONE_YEAR_IN_SECONDS = 31536000;
-const ONE_DAY_IN_SECONDS = 86400;
+
+// Consolidated security headers configuration
+const SECURITY_HEADERS_CONFIG: cloudfront.ResponseSecurityHeadersBehavior = {
+  strictTransportSecurity: {
+    accessControlMaxAge: Duration.seconds(31536000),
+    includeSubdomains: true,
+    preload: true,
+    override: true,
+  },
+  contentTypeOptions: {
+    override: true,
+  },
+  frameOptions: {
+    frameOption: cloudfront.HeadersFrameOption.SAMEORIGIN,
+    override: true,
+  },
+  referrerPolicy: {
+    referrerPolicy:
+      cloudfront.HeadersReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN,
+    override: true,
+  },
+  xssProtection: {
+    modeBlock: true,
+    protection: true,
+    override: true,
+  },
+};
 
 export interface FoundationProps {
   userEmail: string;
@@ -46,6 +74,10 @@ export class Foundation extends Construct {
   private allowedMediaTailorManifestQueryStrings: "ALL" | string[] = [];
   private tags: Record<string, string>[] = [];
 
+  // Public properties for direct access by LefFoundationStack
+  public snsTopicArn: string = "";
+  public mediaLiveRoleArn: string = "";
+
   constructor(scope: Construct, id: string, props: FoundationProps) {
     super(scope, id);
 
@@ -56,18 +88,33 @@ export class Foundation extends Construct {
     this.allowedMediaTailorManifestQueryStrings =
       props.config.allowedMediaTailorManifestQueryStrings;
 
-    // Create Sns Topic and subscribe passed in emails
-    const snsTopicArn = this.createSnsTopicWithSubscription(props.userEmail);
+    // Export nominalSegmentLength for use by event group stacks
+    new CfnOutput(this, "NominalSegmentLength", {
+      value: props.config.nominalSegmentLength.toString(),
+      exportName: Aws.STACK_NAME + "-NominalSegmentLength",
+      description: "Nominal segment length for CloudFront timeout calculations",
+    });
+
+    // Create SNS Topic and subscribe email (no waiting)
+    const snsTopic = this.createSnsTopicWithSubscription(props.userEmail);
+    this.snsTopicArn = snsTopic.topicArn;
 
     /*
      * Create S3 bucket for logs
      */
-    this.createS3LoggingBucket(props.config.logging.logRetentionPeriod);
+    const loggingBucket = this.createS3LoggingBucket(
+      props.config.logging.logRetentionPeriod,
+    );
+
+    /*
+     * Create S3 fallback bucket for CloudFront default behavior
+     */
+    this.createCloudFrontFallbackBucket();
 
     /*
      * Create CloudFront MediaTailor Manifest Policies
      */
-    this.createCloudFrontPolicies();
+    this.createCloudFrontPolicies(props.config.nominalSegmentLength);
 
     /*
      * Create MediaTailor Logger Policy & Role
@@ -88,12 +135,18 @@ export class Foundation extends Construct {
      * Create resources to send a daily notification containing a list of running MediaLive channels
      * deployed using Live Event Framework
      */
-    this.createResourcesToSendDailyNotification(snsTopicArn);
+    this.createResourcesToSendDailyNotification(snsTopic.topicArn);
   }
 
-  // Method to create S3 Logging Bucket and associated resources for CloudFront Distribution
-  createS3LoggingBucket(logRetentionPeriod: number) {
-    const s3LogsBucket = new s3.Bucket(this, "LogsBucket", {
+  // Generic method to create S3 buckets with standard settings
+  private createS3Bucket(
+    constructId: string,
+    retentionDays: number,
+    outputId: string,
+    exportName: string,
+    description: string,
+  ) {
+    const bucket = new s3.Bucket(this, constructId, {
       objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
@@ -106,29 +159,87 @@ export class Foundation extends Construct {
         restrictPublicBuckets: true,
       }),
     });
-    TaggingUtils.applyTagsToResource(s3LogsBucket, this.tags);
+    TaggingUtils.applyTagsToResource(bucket, this.tags);
 
-    // Set lifecycle policy to remove logs from S3 bucket after LOG_RETENTION_PERIOD_DAYS
-    s3LogsBucket.addLifecycleRule({
-      id: "DeleteLogsAfter" + logRetentionPeriod + "Days",
+    bucket.addLifecycleRule({
+      id: "DeleteAfter" + retentionDays + "Days",
       enabled: true,
-      expiration: Duration.days(logRetentionPeriod),
+      expiration: Duration.days(retentionDays),
     });
 
-    new CfnOutput(this, "CloudFrontLoggingBucket", {
-      value: s3LogsBucket.bucketName,
-      exportName: Aws.STACK_NAME + "-CloudFrontLoggingBucket",
-      description: "CloudFront Logging Bucket",
+    new CfnOutput(this, outputId, {
+      value: bucket.bucketName,
+      exportName: Aws.STACK_NAME + "-" + exportName,
+      description: description,
     });
 
-    NagSuppressions.addResourceSuppressions(s3LogsBucket, [
+    NagSuppressions.addResourceSuppressions(bucket, [
       {
         id: "AwsSolutions-S1",
         reason: "Remediated through property override.",
       },
     ]);
 
-    return;
+    return bucket;
+  }
+
+  // Method to create S3 Logging Bucket and associated resources for CloudFront Distribution
+  createS3LoggingBucket(logRetentionPeriod: number) {
+    return this.createS3Bucket(
+      "LogsBucket",
+      logRetentionPeriod,
+      "CloudFrontLoggingBucket",
+      "CloudFrontLoggingBucket",
+      "CloudFront Logging Bucket",
+    );
+  }
+
+  // Method to create S3 Fallback Bucket for CloudFront default behavior
+  createCloudFrontFallbackBucket() {
+    const fallbackBucket = this.createS3Bucket(
+      "CloudFrontFallbackBucket",
+      1,
+      "CloudFrontFallbackBucketOutput",
+      "CloudFrontFallbackBucket",
+      "CloudFront Fallback Bucket for default behavior",
+    );
+
+    // Create OAC for fallback bucket
+    const fallbackOac = new cloudfront.CfnOriginAccessControl(
+      this,
+      "FallbackBucketOAC",
+      {
+        originAccessControlConfig: {
+          name: `${Aws.STACK_NAME}-${getRegionCode(this)}-FallbackBucket-OAC`,
+          originAccessControlOriginType: "s3",
+          signingBehavior: "always",
+          signingProtocol: "sigv4",
+        },
+      },
+    );
+
+    // Add bucket policy for OAC access
+    fallbackBucket.addToResourcePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ServicePrincipal("cloudfront.amazonaws.com")],
+        actions: ["s3:GetObject"],
+        resources: [fallbackBucket.arnForObjects("*")],
+        conditions: {
+          StringEquals: {
+            "AWS:SourceArn": `arn:aws:cloudfront::${Aws.ACCOUNT_ID}:distribution/*`,
+          },
+        },
+      }),
+    );
+
+    new CfnOutput(this, "FallbackBucketOACOutput", {
+      value: fallbackOac.ref,
+      exportName: Aws.STACK_NAME + "-FallbackBucketOAC",
+      description: "OAC ID for fallback bucket",
+    });
+
+    return fallbackBucket;
   }
 
   /**
@@ -146,7 +257,7 @@ export class Foundation extends Construct {
    * The policies are configured to handle query strings, headers, and caching behavior
    * based on the specific requirements of each request type.
    */
-  createCloudFrontPolicies() {
+  createCloudFrontPolicies(nominalSegmentLength: number) {
     /*
      * Create MediaTailor Manifest Policies
      */
@@ -168,8 +279,7 @@ export class Foundation extends Construct {
         this,
         "MediaTailorManifestOriginRequestPolicy",
         {
-          originRequestPolicyName:
-            Aws.STACK_NAME + "-EMT-ManifestOriginRequestPolicy",
+          originRequestPolicyName: `${Aws.STACK_NAME}-${getRegionCode(this)}-EMT-ManifestOriginRequestPolicy`,
           comment:
             "Policy to FWD select query strings and all headers to the origin for manifest requests",
           // Pass 'All viewer headers' to MediaTailor. This allows the 'Accept-Encoding' header to be passed
@@ -195,8 +305,7 @@ export class Foundation extends Construct {
         this,
         "MediaTailorAdRedirectOriginRequestPolicy",
         {
-          originRequestPolicyName:
-            Aws.STACK_NAME + "-EMT-AdRedirectOriginRequestPolicy",
+          originRequestPolicyName: `${Aws.STACK_NAME}-${getRegionCode(this)}-EMT-AdRedirectOriginRequestPolicy`,
           comment:
             "Policy to FWD select query strings and all headers to the origin for ad redirect requests",
           // Pass 'All viewer headers' to MediaTailor. This allows the 'Accept-Encoding' header to be passed
@@ -205,7 +314,8 @@ export class Foundation extends Construct {
           // side beacon requests to include the appropriate headers from the client
           headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
           cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-          queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
+          queryStringBehavior:
+            cloudfront.OriginRequestQueryStringBehavior.none(),
         },
       );
     new CfnOutput(this, "MediaTailorAdRedirectOriginRequestPolicyOutput", {
@@ -214,7 +324,7 @@ export class Foundation extends Construct {
         Aws.STACK_NAME + "-MediaTailor-AdRedirect-OriginRequestPolicyId",
       description: "Origin Request Policy Id for MediaTailor Ad Redirect",
     });
- 
+
     /*
      * Create CloudFront MediaPackage Manifest Policies
      */
@@ -223,13 +333,15 @@ export class Foundation extends Construct {
       this,
       "MediaPackageManifestCachePolicy",
       {
-        cachePolicyName: Aws.STACK_NAME + "-EMP-ManifestCachePolicy",
+        cachePolicyName: `${Aws.STACK_NAME}-${getRegionCode(this)}-EMP-ManifestCachePolicy`,
         comment: "Policy for caching Elemental MediaPackage manifest requests",
-        // MediaPackage includes max-age header on responses with a suggested cache value.
+        // MediaPackage includes max-age header on responses with a suggested cache value. As a protection incase
+        // the framework is re-purposed to use another packager, set the defaultTTL to a duration of half the
+        // nominal segment length.
         // The max age will be >= 1 second and less than ONE_DAY_IN_SECONDS. The content will be cached for the time
         // specified in the max-age header. For more information on this behaviour see:
         // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html#expiration-individual-objects
-        defaultTtl: Duration.seconds(ONE_DAY_IN_SECONDS),
+        defaultTtl: Duration.seconds(Math.ceil(nominalSegmentLength / 2)),
         minTtl: Duration.seconds(1),
         maxTtl: Duration.seconds(ONE_YEAR_IN_SECONDS),
         cookieBehavior: cloudfront.CacheCookieBehavior.none(),
@@ -252,9 +364,9 @@ export class Foundation extends Construct {
       this,
       "DefaultResponseHeadersPolicy",
       {
-        responseHeadersPolicyName:
-          Aws.STACK_NAME + "-DefaultResponseHeadersPolicy",
-        comment: "ResponseHeaders Policy for HEAD, GET and OPTIONS CORS",
+        responseHeadersPolicyName: `${Aws.STACK_NAME}-${getRegionCode(this)}-DefaultResponseHeadersPolicy`,
+        comment:
+          "ResponseHeaders Policy for HEAD, GET and OPTIONS CORS with Security Headers",
         corsBehavior: {
           accessControlAllowCredentials: false,
           accessControlAllowHeaders: ["*"],
@@ -263,6 +375,7 @@ export class Foundation extends Construct {
           accessControlMaxAge: Duration.seconds(600),
           originOverride: true,
         },
+        securityHeadersBehavior: SECURITY_HEADERS_CONFIG,
       },
     );
     new CfnOutput(this, "DefaultResponseHeadersPolicyOutput", {
@@ -277,9 +390,8 @@ export class Foundation extends Construct {
       this,
       "PostResponseHeadersPolicy",
       {
-        responseHeadersPolicyName:
-          Aws.STACK_NAME + "-PostResponseHeadersPolicy",
-        comment: "ResponseHeaders Policy for POST CORS",
+        responseHeadersPolicyName: `${Aws.STACK_NAME}-${getRegionCode(this)}-PostResponseHeadersPolicy`,
+        comment: "ResponseHeaders Policy for POST CORS with Security Headers",
         corsBehavior: {
           accessControlAllowCredentials: false,
           accessControlAllowHeaders: ["*"],
@@ -288,6 +400,7 @@ export class Foundation extends Construct {
           accessControlMaxAge: Duration.seconds(600),
           originOverride: true,
         },
+        securityHeadersBehavior: SECURITY_HEADERS_CONFIG,
       },
     );
     new CfnOutput(this, "PostResponseHeadersPolicyOutput", {
@@ -308,7 +421,7 @@ export class Foundation extends Construct {
     // Create an IAM role for the Lambda function
     const lambdaRole = new iam.Role(this, "CheckMediaTailorLoggerLambdaRole", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-      roleName: Aws.STACK_NAME + "-CheckMediaTailorLoggerLambdaRole",
+      roleName: `${Aws.STACK_NAME}-${getRegionCode(this)}-CheckMediaTailorLoggerLambdaRole`,
       description:
         "Role for the CheckMediaTailorLoggerLambdaRole Lambda function",
     });
@@ -346,13 +459,18 @@ export class Foundation extends Construct {
       this,
       "CheckMediaTailorLoggerRoleExists",
       {
-        functionName: Aws.STACK_NAME + "-CheckMediaTailorLoggerRoleExists",
-        runtime: lambda.Runtime.PYTHON_3_13,
+        functionName:
+          Aws.STACK_NAME +
+          "-" +
+          getRegionCode(this) +
+          "-CheckMediaTailorLoggerRoleExists",
+        runtime: lambda.Runtime.PYTHON_3_14,
         handler: "index.lambda_handler",
         code: lambda.Code.fromAsset(
           __dirname + "/../../lambda/check_mediatailor_logger_role",
         ),
         role: lambdaRole,
+        reservedConcurrentExecutions: 1,
       },
     );
     TaggingUtils.applyTagsToResource(trigger, this.tags);
@@ -406,8 +524,13 @@ export class Foundation extends Construct {
             "ec2:deleteNetworkInterface",
             "ec2:deleteNetworkInterfacePermission",
             "ec2:describeSecurityGroups",
+            "ec2:describeAddresses",
+            "ec2:associateAddress",
             "mediapackagev2:GetChannel",
             "mediapackagev2:PutObject",
+            "secretsmanager:GetSecretValue",
+            "elemental-inference:PutMedia",
+            "elemental-inference:GetMetadata",
           ],
         }),
       ],
@@ -418,9 +541,23 @@ export class Foundation extends Construct {
       inlinePolicies: {
         policy: customPolicyMediaLive,
       },
-      assumedBy: new iam.ServicePrincipal("medialive.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"),
+      ],
+      assumedBy: new iam.CompositePrincipal(
+        new iam.ServicePrincipal("medialive.amazonaws.com"),
+      ),
     });
+    role.assumeRolePolicy?.addStatements(
+      new iam.PolicyStatement({
+        actions: ["sts:TagSession"],
+        principals: [new iam.ServicePrincipal("medialive.amazonaws.com")],
+      }),
+    );
     TaggingUtils.applyTagsToResource(role, this.tags);
+
+    // Set public property for direct access
+    this.mediaLiveRoleArn = role.roleArn;
 
     new CfnOutput(this, "MediaLiveAccessRoleArn", {
       value: role.roleArn,
@@ -429,6 +566,13 @@ export class Foundation extends Construct {
     });
 
     NagSuppressions.addResourceSuppressions(role, [
+      {
+        id: "AwsSolutions-IAM4",
+        reason:
+          "AmazonSSMReadOnlyAccess is required by MediaLive to read SSM parameters. " +
+          "This mirrors the MediaLiveAccessRole created by the AWS Console. " +
+          "The role trust policy restricts assumption to medialive.amazonaws.com only.",
+      },
       {
         id: "AwsSolutions-IAM5",
         reason: "Remediated through property override.",
@@ -446,7 +590,7 @@ export class Foundation extends Construct {
     // Create an IAM role for the Lambda function
     const lambdaRole = new iam.Role(this, "DailyMediaLiveNotificationRole", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-      roleName: Aws.STACK_NAME + "-DailyMediaLiveNotificationRole",
+      roleName: `${Aws.STACK_NAME}-${getRegionCode(this)}-DailyMediaLiveNotificationRole`,
       description:
         "Role for the DailyMediaLiveNotificationRole Lambda function",
     });
@@ -500,12 +644,18 @@ export class Foundation extends Construct {
     );
 
     // Create a lambda function to invoke at midnight UTC each night
+    const dlq = new sqs.Queue(this, "DailyNotificationDLQ", {
+      retentionPeriod: Duration.days(14),
+      enforceSSL: true,
+    });
+    TaggingUtils.applyTagsToResource(dlq, this.tags);
+
     const lambdaFunction = new lambda.Function(
       this,
       "DailyNotificationFunction",
       {
         functionName: Aws.STACK_NAME + "-DailyMediaLiveNotificationFunction",
-        runtime: lambda.Runtime.PYTHON_3_13,
+        runtime: lambda.Runtime.PYTHON_3_14,
         handler: "index.lambda_handler",
         code: lambda.Code.fromAsset(
           __dirname + "/../../lambda/daily_medialive_notification",
@@ -514,6 +664,8 @@ export class Foundation extends Construct {
           SNS_TOPIC_ARN: snsTopicArn,
         },
         role: lambdaRole,
+        reservedConcurrentExecutions: 1,
+        deadLetterQueue: dlq,
       },
     );
     TaggingUtils.applyTagsToResource(lambdaFunction, this.tags);
@@ -535,7 +687,7 @@ export class Foundation extends Construct {
   }
 
   // This function creates an SNS topic and subscribes to it using the email address specified in userEmail
-  createSnsTopicWithSubscription(userEmail: string) {
+  createSnsTopicWithSubscription(userEmail: string): sns.Topic {
     // Use the default AWS-provided SNS KMS key
     const awsSNSKey = kms.Alias.fromAliasName(
       this,
@@ -561,6 +713,6 @@ export class Foundation extends Construct {
       description: "SNS topic ARN for LEF events",
     });
 
-    return snsTopic.topicArn;
+    return snsTopic;
   }
 }

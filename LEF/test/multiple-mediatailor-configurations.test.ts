@@ -32,14 +32,14 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adDecisionServerUrl: "https://example.com/ads",
         contentSegmentUrlPrefix: "/",
         adSegmentUrlPrefix: "/",
-        slateAdUrl: "https://example.com/slate.mov"
+        slateAdUrl: "https://example.com/slate.mov",
       };
 
       const mediaTailor = new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configurationNameSuffix: "suffix",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       expect(mediaTailor.configurationName).toBe("test-config-primary");
@@ -50,13 +50,13 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adDecisionServerUrl: "https://example.com/ads",
         contentSegmentUrlPrefix: "/",
         adSegmentUrlPrefix: "/",
-        slateAdUrl: "https://example.com/slate.mov"
+        slateAdUrl: "https://example.com/slate.mov",
       };
 
       const mediaTailor = new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       expect(mediaTailor.configurationName).toBe("test-config");
@@ -72,21 +72,24 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
         transcodeProfiles: {
-          hlsCmaf: "hls-profile-name"
-        }
+          hlsCmaf: "hls-profile-name",
+        },
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        TranscodeProfileName: "[player_params.transcode_profile]"
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          TranscodeProfileName: "[player_params.transcode_profile]",
+        },
+      );
     });
 
     it("should configure DASH-only transcode profile", () => {
@@ -97,21 +100,24 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
         transcodeProfiles: {
-          dashCmaf: "dash-profile-name"
-        }
+          dashCmaf: "dash-profile-name",
+        },
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        TranscodeProfileName: "[player_params.transcode_profile]"
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          TranscodeProfileName: "[player_params.transcode_profile]",
+        },
+      );
     });
 
     it("should handle empty transcode profiles", () => {
@@ -123,23 +129,26 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         slateAdUrl: "https://example.com/slate.mov",
         transcodeProfiles: {
           hlsCmaf: "",
-          dashCmaf: ""
-        }
+          dashCmaf: "",
+        },
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
+
       // The current implementation sets transcode profile even for empty strings
       // This test verifies the current behavior
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        TranscodeProfileName: "[player_params.transcode_profile]"
-      });
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          TranscodeProfileName: "[player_params.transcode_profile]",
+        },
+      );
     });
   });
 
@@ -153,24 +162,27 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         slateAdUrl: "https://example.com/slate.mov",
         bumper: {
           startUrl: "https://example.com/start-bumper.mov",
-          endUrl: "https://example.com/end-bumper.mov"
-        }
+          endUrl: "https://example.com/end-bumper.mov",
+        },
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        Bumper: {
-          StartUrl: "https://example.com/start-bumper.mov",
-          EndUrl: "https://example.com/end-bumper.mov"
-        }
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          Bumper: {
+            StartUrl: "https://example.com/start-bumper.mov",
+            EndUrl: "https://example.com/end-bumper.mov",
+          },
+        },
+      );
     });
 
     it("should configure avail suppression", () => {
@@ -183,25 +195,28 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         availSuppression: {
           mode: "BEHIND_LIVE_EDGE",
           value: "00:00:30",
-          fillPolicy: "PARTIAL_AVAIL"
-        }
+          fillPolicy: "PARTIAL_AVAIL",
+        },
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        AvailSuppression: {
-          Mode: "BEHIND_LIVE_EDGE",
-          Value: "00:00:30",
-          FillPolicy: "PARTIAL_AVAIL"
-        }
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          AvailSuppression: {
+            Mode: "BEHIND_LIVE_EDGE",
+            Value: "00:00:30",
+            FillPolicy: "PARTIAL_AVAIL",
+          },
+        },
+      );
     });
 
     it("should configure pre-roll settings", () => {
@@ -212,23 +227,26 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
         preRolladDecisionServerUrl: "https://example.com/preroll-ads",
-        preRollDuration: 30
+        preRollDuration: 30,
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        LivePreRollConfiguration: {
-          AdDecisionServerUrl: "https://example.com/preroll-ads",
-          MaxDurationSeconds: 30
-        }
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          LivePreRollConfiguration: {
+            AdDecisionServerUrl: "https://example.com/preroll-ads",
+            MaxDurationSeconds: 30,
+          },
+        },
+      );
     });
 
     it("should configure personalization threshold", () => {
@@ -238,20 +256,23 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         contentSegmentUrlPrefix: "/",
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
-        personalizationThreshold: 5
+        personalizationThreshold: 5,
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        PersonalizationThresholdSeconds: 5
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          PersonalizationThresholdSeconds: 5,
+        },
+      );
     });
   });
 
@@ -263,24 +284,27 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         contentSegmentUrlPrefix: "/",
         adSegmentUrlPrefix: "/",
         slateAdUrl: "https://example.com/slate.mov",
-        adMarkerPassthrough: true
+        adMarkerPassthrough: true,
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        ManifestProcessingRules: {
-          AdMarkerPassthrough: {
-            Enabled: true
-          }
-        }
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          ManifestProcessingRules: {
+            AdMarkerPassthrough: {
+              Enabled: true,
+            },
+          },
+        },
+      );
     });
 
     it("should disable ad marker passthrough by default", () => {
@@ -289,24 +313,27 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adDecisionServerUrl: "https://example.com/ads",
         contentSegmentUrlPrefix: "/",
         adSegmentUrlPrefix: "/",
-        slateAdUrl: "https://example.com/slate.mov"
+        slateAdUrl: "https://example.com/slate.mov",
       };
 
       new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       const template = Template.fromStack(stack);
-      
-      template.hasResourceProperties("AWS::MediaTailor::PlaybackConfiguration", {
-        ManifestProcessingRules: {
-          AdMarkerPassthrough: {
-            Enabled: false
-          }
-        }
-      });
+
+      template.hasResourceProperties(
+        "AWS::MediaTailor::PlaybackConfiguration",
+        {
+          ManifestProcessingRules: {
+            AdMarkerPassthrough: {
+              Enabled: false,
+            },
+          },
+        },
+      );
     });
   });
 
@@ -317,13 +344,13 @@ describe("Multiple MediaTailor Playback Configurations", () => {
         adDecisionServerUrl: "https://example.com/ads",
         contentSegmentUrlPrefix: "/",
         adSegmentUrlPrefix: "/",
-        slateAdUrl: "https://example.com/slate.mov"
+        slateAdUrl: "https://example.com/slate.mov",
       };
 
       const mediaTailor = new MediaTailor(stack, "TestMediaTailor", {
         configurationName: "test-config",
         configuration: config,
-        originHostname: "example.com"
+        originDomainName: "example.com",
       });
 
       expect(mediaTailor.hlsEndpoint).toBeDefined();

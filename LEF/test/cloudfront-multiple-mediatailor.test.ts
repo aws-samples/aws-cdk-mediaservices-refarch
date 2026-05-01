@@ -28,18 +28,13 @@ describe("CloudFront Multiple MediaTailor Configurations", () => {
     it("should create CloudFront distribution", () => {
       new CloudFront(stack, "TestCloudFront", {
         foundationStackName: "foundation-stack",
-        mediaTailorConfigs: [
-          {
-            name: "primary",
-            hostname: "primary.mediatailor.us-west-2.amazonaws.com"
-          }
-        ],
+
         mediaPackageHostname: "mediapackage.us-west-2.amazonaws.com",
         mediaPackageChannelGroupName: "test-channel-group",
         s3LoggingEnabled: false,
         logFilePrefix: "logs",
         nominalSegmentLength: 4,
-        enableIpv6: true
+        enableIpv6: true,
       });
 
       const template = Template.fromStack(stack);
@@ -51,22 +46,13 @@ describe("CloudFront Multiple MediaTailor Configurations", () => {
     it("should create CloudFront distribution with multiple origins", () => {
       new CloudFront(stack, "TestCloudFront", {
         foundationStackName: "foundation-stack",
-        mediaTailorConfigs: [
-          {
-            name: "primary",
-            hostname: "primary.mediatailor.us-west-2.amazonaws.com"
-          },
-          {
-            name: "secondary", 
-            hostname: "secondary.mediatailor.us-west-2.amazonaws.com"
-          }
-        ],
+
         mediaPackageHostname: "mediapackage.us-west-2.amazonaws.com",
         mediaPackageChannelGroupName: "test-channel-group",
         s3LoggingEnabled: false,
         logFilePrefix: "logs",
         nominalSegmentLength: 4,
-        enableIpv6: true
+        enableIpv6: true,
       });
 
       const template = Template.fromStack(stack);
@@ -76,26 +62,13 @@ describe("CloudFront Multiple MediaTailor Configurations", () => {
     it("should handle three MediaTailor configurations", () => {
       new CloudFront(stack, "TestCloudFront", {
         foundationStackName: "foundation-stack",
-        mediaTailorConfigs: [
-          {
-            name: "hls-config",
-            hostname: "hls.mediatailor.us-west-2.amazonaws.com"
-          },
-          {
-            name: "dash-config",
-            hostname: "dash.mediatailor.us-west-2.amazonaws.com"
-          },
-          {
-            name: "backup-config",
-            hostname: "backup.mediatailor.us-west-2.amazonaws.com"
-          }
-        ],
+
         mediaPackageHostname: "mediapackage.us-west-2.amazonaws.com",
         mediaPackageChannelGroupName: "test-channel-group",
         s3LoggingEnabled: false,
         logFilePrefix: "logs",
         nominalSegmentLength: 4,
-        enableIpv6: true
+        enableIpv6: true,
       });
 
       const template = Template.fromStack(stack);
@@ -107,18 +80,13 @@ describe("CloudFront Multiple MediaTailor Configurations", () => {
     it("should configure origin timeouts based on segment length", () => {
       new CloudFront(stack, "TestCloudFront", {
         foundationStackName: "foundation-stack",
-        mediaTailorConfigs: [
-          {
-            name: "timeout-test",
-            hostname: "timeout.mediatailor.us-west-2.amazonaws.com"
-          }
-        ],
+
         mediaPackageHostname: "mediapackage.us-west-2.amazonaws.com",
         mediaPackageChannelGroupName: "test-channel-group",
         s3LoggingEnabled: false,
         logFilePrefix: "logs",
         nominalSegmentLength: 6,
-        enableIpv6: true
+        enableIpv6: true,
       });
 
       const template = Template.fromStack(stack);
@@ -128,12 +96,7 @@ describe("CloudFront Multiple MediaTailor Configurations", () => {
     it("should configure Origin Shield when enabled", () => {
       new CloudFront(stack, "TestCloudFront", {
         foundationStackName: "foundation-stack",
-        mediaTailorConfigs: [
-          {
-            name: "shield-test",
-            hostname: "shield.mediatailor.us-west-2.amazonaws.com"
-          }
-        ],
+
         mediaPackageHostname: "mediapackage.us-west-2.amazonaws.com",
         mediaPackageChannelGroupName: "test-channel-group",
         s3LoggingEnabled: false,
@@ -141,7 +104,7 @@ describe("CloudFront Multiple MediaTailor Configurations", () => {
         nominalSegmentLength: 4,
         enableIpv6: true,
         enableOriginShield: true,
-        originShieldRegion: "us-east-1"
+        originShieldRegion: "us-east-1",
       });
 
       const template = Template.fromStack(stack);

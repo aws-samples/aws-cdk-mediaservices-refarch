@@ -29,7 +29,7 @@ jest.mock("../lib/config/configValidator", () => ({
       super(message);
       this.name = "ConfigurationError";
     }
-  }
+  },
 }));
 
 // Mock the TaggingUtils.applyTagsToResource method
@@ -40,9 +40,13 @@ jest.mock("../lib/utils/tagging", () => {
     TaggingUtils: {
       ...originalModule.TaggingUtils,
       applyTagsToResource: jest.fn(),
-      convertToCfnTags: jest.fn().mockImplementation(originalModule.TaggingUtils.convertToCfnTags),
-      convertToMapTags: jest.fn().mockImplementation(originalModule.TaggingUtils.convertToMapTags)
-    }
+      convertToCfnTags: jest
+        .fn()
+        .mockImplementation(originalModule.TaggingUtils.convertToCfnTags),
+      convertToMapTags: jest
+        .fn()
+        .mockImplementation(originalModule.TaggingUtils.convertToMapTags),
+    },
   };
 });
 
@@ -50,7 +54,7 @@ jest.mock("../lib/utils/tagging", () => {
 class TestStack extends LefBaseStack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-    
+
     // Create a test resource that can be tagged
     new s3.Bucket(this, "TestBucket", {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -67,9 +71,14 @@ class TestStack extends LefBaseStack {
     scope: Construct,
     stackType: string,
     foundationStackName?: string,
-    eventGroupStackName?: string
+    eventGroupStackName?: string,
   ): TagArray {
-    return this.createStandardTags(scope, stackType, foundationStackName, eventGroupStackName);
+    return this.createStandardTags(
+      scope,
+      stackType,
+      foundationStackName,
+      eventGroupStackName,
+    );
   }
 
   // Expose protected method for testing
@@ -86,7 +95,7 @@ describe("LefBaseStack", () => {
   test("resourceTags property is initialized as empty array", () => {
     const app = new cdk.App();
     const stack = new TestStack(app, "TestStack");
-    
+
     expect(stack.resourceTags).toEqual([]);
   });
 
@@ -94,57 +103,66 @@ describe("LefBaseStack", () => {
     test("creates foundation stack tags correctly", () => {
       const app = new cdk.App({
         context: {
-          "LiveEventFrameworkVersion": "1.0.0"
-        }
+          LiveEventFrameworkVersion: "1.0.0",
+        },
       });
       const stack = new TestStack(app, "TestStack");
-      
+
       // Act
       const tags = stack.testCreateStandardTags(app, "LefFoundationStack");
-      
+
       // Assert
       expect(tags).toEqual([
         {
           StackType: "LefFoundationStack",
           LiveEventFrameworkVersion: "1.0.0",
-          FoundationStackName: "TestStack"
-        }
+          FoundationStackName: "TestStack",
+        },
       ]);
     });
 
     test("creates event group stack tags correctly", () => {
       const app = new cdk.App({
         context: {
-          "LiveEventFrameworkVersion": "1.0.0"
-        }
+          LiveEventFrameworkVersion: "1.0.0",
+        },
       });
       const stack = new TestStack(app, "TestStack");
-      
+
       // Act
-      const tags = stack.testCreateStandardTags(app, "LefEventGroupStack", "Foundation1");
-      
+      const tags = stack.testCreateStandardTags(
+        app,
+        "LefEventGroupStack",
+        "Foundation1",
+      );
+
       // Assert
       expect(tags).toEqual([
         {
           StackType: "LefEventGroupStack",
           LiveEventFrameworkVersion: "1.0.0",
           FoundationStackName: "Foundation1",
-          EventGroupStackName: "TestStack"
-        }
+          EventGroupStackName: "TestStack",
+        },
       ]);
     });
 
     test("creates event stack tags correctly", () => {
       const app = new cdk.App({
         context: {
-          "LiveEventFrameworkVersion": "1.0.0"
-        }
+          LiveEventFrameworkVersion: "1.0.0",
+        },
       });
       const stack = new TestStack(app, "TestStack");
-      
+
       // Act
-      const tags = stack.testCreateStandardTags(app, "LefEventStack", "Foundation1", "EventGroup1");
-      
+      const tags = stack.testCreateStandardTags(
+        app,
+        "LefEventStack",
+        "Foundation1",
+        "EventGroup1",
+      );
+
       // Assert
       expect(tags).toEqual([
         {
@@ -152,31 +170,31 @@ describe("LefBaseStack", () => {
           LiveEventFrameworkVersion: "1.0.0",
           FoundationStackName: "Foundation1",
           EventGroupStackName: "EventGroup1",
-          EventStackName: "TestStack"
-        }
+          EventStackName: "TestStack",
+        },
       ]);
     });
 
     test("uses 'unknown' for version when context not provided", () => {
       const app = new cdk.App();
       const stack = new TestStack(app, "TestStack");
-      
+
       // Act
       const tags = stack.testCreateStandardTags(app, "LefFoundationStack");
-      
+
       // Assert
       expect(tags[0].LiveEventFrameworkVersion).toEqual("unknown");
     });
   });
-  
+
   describe("getConfig", () => {
     test("returns config from loadConfig function", () => {
       const app = new cdk.App();
       const stack = new TestStack(app, "TestStack");
-      
+
       // Act
       const config = stack.testGetConfig("path/to/config", "configKey");
-      
+
       // Assert
       expect(config).toEqual({ mockConfig: true });
     });
@@ -189,16 +207,16 @@ describe("LefBaseStack", () => {
       const stack = new TestStack(app, "TestStack");
       const tags: TagArray = [{ Key1: "Value1", Key2: "Value2" }];
       stack.resourceTags = tags;
-      
+
       // Act
       stack.tagResources();
-      
+
       // Assert
       // Update the expectation to match the actual number of calls (3)
       expect(TaggingUtils.applyTagsToResource).toHaveBeenCalled();
       expect(TaggingUtils.applyTagsToResource).toHaveBeenCalledWith(
         expect.any(Object), // The bucket resource
-        tags
+        tags,
       );
     });
 
@@ -207,10 +225,10 @@ describe("LefBaseStack", () => {
       const app = new cdk.App();
       const stack = new TestStack(app, "TestStack");
       stack.resourceTags = [];
-      
+
       // Act
       stack.tagResources();
-      
+
       // Assert
       expect(TaggingUtils.applyTagsToResource).not.toHaveBeenCalled();
     });
@@ -221,10 +239,10 @@ describe("LefBaseStack", () => {
       const stack = new TestStack(app, "TestStack");
       // @ts-ignore - Intentionally setting to undefined for test
       stack.resourceTags = undefined;
-      
+
       // Act
       stack.tagResources();
-      
+
       // Assert
       expect(TaggingUtils.applyTagsToResource).not.toHaveBeenCalled();
     });
@@ -233,25 +251,25 @@ describe("LefBaseStack", () => {
       // Arrange
       const app = new cdk.App();
       const stack = new TestStack(app, "TestStack");
-      
+
       // Add another bucket to have multiple resources
       new s3.Bucket(stack, "AnotherTestBucket", {
         removalPolicy: cdk.RemovalPolicy.DESTROY,
         autoDeleteObjects: true,
       });
-      
+
       const tags: TagArray = [{ Key1: "Value1", Key2: "Value2" }];
       stack.resourceTags = tags;
-      
+
       // Act
       stack.tagResources();
-      
+
       // Assert
       // Update the expectation to match the actual number of calls (6)
       expect(TaggingUtils.applyTagsToResource).toHaveBeenCalled();
       expect(TaggingUtils.applyTagsToResource).toHaveBeenCalledWith(
         expect.any(Object), // A bucket resource
-        tags
+        tags,
       );
     });
   });

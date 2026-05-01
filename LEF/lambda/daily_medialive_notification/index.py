@@ -114,6 +114,3 @@ def lambda_handler(event, context):
             'body': json.dumps(error_message)
         }
 
-# Print the entire function for debugging purposes
-print("Lambda function code:")
-print(open(__file__).read())

@@ -20,8 +20,72 @@ MediaLive Anywhere channels support a number of additional input types.
 
 - Multicast
 - SDI
+- SMPTE 2110
 
-  **Note: Multicast and SDI inputs do not make sense for MediaLive to support as these inputs cannot be delivered in the AWS Cloud.**
+  **Note: Multicast, SDI, and SMPTE 2110 inputs do not make sense for MediaLive to support as these inputs cannot be delivered in the AWS Cloud.**
+
+### MediaLive Anywhere Input Configuration Examples
+
+#### Multicast Input
+
+```typescript
+inputs: [
+  {
+    inputName: "Multicast-Primary",
+    type: "MULTICAST",
+    multicastSettings: {
+      sources: [
+        {
+          url: "udp://239.1.1.1:5000",
+          sourceIp: "10.0.0.1",
+        },
+      ],
+    },
+  },
+];
+```
+
+#### SDI Input (via Input Device)
+
+```typescript
+inputs: [
+  {
+    inputName: "SDI-Primary",
+    type: "INPUT_DEVICE",
+    deviceId: "device-12345abcd6789efgh",
+  },
+];
+```
+
+#### SMPTE 2110 Input
+
+```typescript
+inputs: [
+  {
+    inputName: "SMPTE2110-Primary",
+    type: "SMPTE_2110",
+    smpte2110ReceiverGroupSettings: {
+      receiverGroupId: "rg-primary",
+      receivers: [
+        {
+          receiverId: "video-primary",
+          multicastIp: "239.1.1.10",
+          port: 5000,
+          interfaceId: "eth0",
+          streamType: "VIDEO",
+        },
+        {
+          receiverId: "audio-primary",
+          multicastIp: "239.1.1.11",
+          port: 5001,
+          interfaceId: "eth0",
+          streamType: "AUDIO",
+        },
+      ],
+    },
+  },
+];
+```
 
 The [default Event Stack configuration file](../../config/default/eventConfiguration.ts) is configured to deploy a Standard MediaLive Channel. MediaLive Anywhere does not support the deployment of standard channels.
 
@@ -46,6 +110,31 @@ export const EVENT_CONFIG: IEventConfig = {
       },
 ```
 
+## SMPTE 2110 Support
+
+MediaLive Anywhere channels also support SMPTE 2110 receiver group settings for professional broadcast workflows. SMPTE 2110 enables IP-based transport of video, audio, and ancillary data streams.
+
+For detailed SMPTE 2110 configuration instructions, see:
+
+- [SMPTE 2110 Support Documentation](../../docs/SMPTE2110-SUPPORT.md)
+- [SMPTE 2110 Configuration Example](smpte2110-eventConfiguration.ts)
+
+### SMPTE 2110 Prerequisites
+
+- MediaLive Anywhere cluster with proper network configuration
+- SMPTE 2110 multicast streams available on the network
+- PTP (Precision Time Protocol) configured for timing synchronization
+- Proper multicast routing configuration
+
 ## Deploying an Event Stack using MediaLive Anywhere
 
 The process for deploying a Live Event Framework Event Stack is the same regardless of the encoder type (see [README](../../README.md#deployment)).
+
+For SMPTE 2110 deployments, use the SMPTE 2110 configuration file:
+
+```bash
+npx cdk deploy LefEventStack \
+  --context eventStackName=SMPTE2110Event1 \
+  --context eventGroupStackName=LefGroup1 \
+  --context eventConfigFile=../../tools/medialive-anywhere/smpte2110-eventConfiguration.ts
+```

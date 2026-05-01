@@ -18,7 +18,7 @@ export const singlePipelineRtmpPullInput: IRtmpPullInput = {
   type: "RTMP_PULL",
   urls: ["rtmp://server1.example.com/live/stream1"],
   username: "user1",
-  password: "password1",
+  password: "password1", // pragma: allowlist secret
 };
 
 export const standardChannelRtmpPullInput: IRtmpPullInput = {
@@ -29,5 +29,5 @@ export const standardChannelRtmpPullInput: IRtmpPullInput = {
     "rtmp://server2.example.com/live/stream1",
   ],
   username: "user1",
-  password: "password1",
+  password: "password1", // pragma: allowlist secret
 };

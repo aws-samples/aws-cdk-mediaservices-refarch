@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/awslabs/automated-security-helper/refs/heads/main/automated_security_helper/schemas/AshConfig.json
+project_name: lef
+global_settings:
+  ignore_paths:
+    - path: "test/integration/e2e/integ.deploy-all.ts.snapshot"
+      reason: "CDK integ-test generated CloudFormation snapshots"
+    - path: "test/integration/e2e/integ.multiple-events.ts.snapshot"
+      reason: "CDK integ-test generated CloudFormation snapshots"
+    - path: "test/integration/e2e/integ.step-by-step.ts.snapshot"
+      reason: "CDK integ-test generated CloudFormation snapshots"

@@ -21,13 +21,13 @@ jest.mock("../lib/event_group/cloudfront", () => {
       return {
         distribution: {
           domainName: "test-distribution.cloudfront.net",
-          distributionId: "TESTDISTRIBUTION"
+          distributionId: "TESTDISTRIBUTION",
         },
         node: {
-          addDependency: jest.fn()
-        }
+          addDependency: jest.fn(),
+        },
       };
-    })
+    }),
   };
 });
 
@@ -40,16 +40,10 @@ describe("CloudFront with MediaTailor configurations", () => {
     jest.clearAllMocks();
   });
 
-  test("creates CloudFront distribution with single MediaTailor configuration", () => {
+  test("creates CloudFront distribution with basic configuration", () => {
     // Arrange
     const props: CloudFrontProps = {
       foundationStackName: "TestFoundation",
-      mediaTailorConfigs: [
-        {
-          name: "primary",
-          hostname: "example-mediatailor.mediatailor.us-west-2.amazonaws.com",
-        },
-      ],
       mediaPackageHostname: "example-origin.mediapackagev2.com",
       mediaPackageChannelGroupName: "TestChannelGroup",
       s3LoggingEnabled: true,
@@ -60,26 +54,16 @@ describe("CloudFront with MediaTailor configurations", () => {
 
     // Act
     cloudfront = new CloudFront(stack, "TestCloudFront", props);
-    
+
     // Assert
     expect(CloudFront).toHaveBeenCalledWith(stack, "TestCloudFront", props);
     expect(cloudfront.distribution).toBeDefined();
   });
 
-  test("creates CloudFront distribution with multiple MediaTailor configurations", () => {
+  test("creates CloudFront distribution with standard properties", () => {
     // Arrange
     const props: CloudFrontProps = {
       foundationStackName: "TestFoundation",
-      mediaTailorConfigs: [
-        {
-          name: "primary",
-          hostname: "example-mediatailor-1.mediatailor.us-west-2.amazonaws.com",
-        },
-        {
-          name: "secondary",
-          hostname: "example-mediatailor-2.mediatailor.us-west-2.amazonaws.com",
-        },
-      ],
       mediaPackageHostname: "example-origin.mediapackagev2.com",
       mediaPackageChannelGroupName: "TestChannelGroup",
       s3LoggingEnabled: true,
@@ -90,7 +74,7 @@ describe("CloudFront with MediaTailor configurations", () => {
 
     // Act
     cloudfront = new CloudFront(stack, "TestCloudFront", props);
-    
+
     // Assert
     expect(CloudFront).toHaveBeenCalledWith(stack, "TestCloudFront", props);
     expect(cloudfront.distribution).toBeDefined();
@@ -100,24 +84,19 @@ describe("CloudFront with MediaTailor configurations", () => {
     // Arrange
     const props: CloudFrontProps = {
       foundationStackName: "TestFoundation",
-      mediaTailorConfigs: [
-        {
-          name: "primary",
-          hostname: "example-mediatailor.mediatailor.us-west-2.amazonaws.com",
-        },
-      ],
       mediaPackageHostname: "example-origin.mediapackagev2.com",
       mediaPackageChannelGroupName: "TestChannelGroup",
       s3LoggingEnabled: true,
       logFilePrefix: "TestPrefix",
       nominalSegmentLength: 4,
       enableIpv6: true,
-      tokenizationFunctionArn: "arn:aws:cloudfront::123456789012:function/test-function",
+      tokenizationFunctionArn:
+        "arn:aws:cloudfront::123456789012:function/test-function",
     };
 
     // Act
     cloudfront = new CloudFront(stack, "TestCloudFront", props);
-    
+
     // Assert
     expect(CloudFront).toHaveBeenCalledWith(stack, "TestCloudFront", props);
     expect(cloudfront.distribution).toBeDefined();

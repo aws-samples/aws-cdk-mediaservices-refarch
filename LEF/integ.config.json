@@ -1,0 +1,5 @@
+{
+  "maxWorkers": 1,
+  "parallelRegions": ["us-east-1"],
+  "directory": "test/integration/e2e"
+}

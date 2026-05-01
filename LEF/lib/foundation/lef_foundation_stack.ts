@@ -22,11 +22,17 @@ const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 export class LefFoundationStack extends LefBaseStack {
+  // Public properties for direct access by other stacks (used in bin/lef.ts)
+  public readonly snsTopicArn: string;
+  public readonly mediaLiveRoleArn: string;
+  public readonly nominalSegmentLength: number;
+
   constructor(
     scope: Construct,
     id: string,
     props: cdk.StackProps,
     configFilePath: string,
+    userEmail: string,
   ) {
     super(scope, id, props);
 
@@ -37,14 +43,16 @@ export class LefFoundationStack extends LefBaseStack {
     this.validateConfig(config);
 
     // Create standard tags for foundation stack
-    this.resourceTags = this.createStandardTags(scope, "LefFoundationStack", Aws.STACK_NAME);
+    this.resourceTags = this.createStandardTags(
+      scope,
+      "LefFoundationStack",
+      Aws.STACK_NAME,
+    );
 
-    // Define parameter to capture email address to subscribe to SNS topic
-    const userEmail = new CfnParameter(this, "userEmail", {
-      type: "String",
-      description: "Email address to subscribe to SNS topic",
-      allowedPattern: emailRegex.source, // Use the regular expression pattern for email validation
-    }).valueAsString;
+    // Validate email format
+    if (!emailRegex.test(userEmail)) {
+      throw new Error(`Invalid email format: ${userEmail}`);
+    }
 
     // Deploy foundational resources for CloudFront
     // Enabling S3 logging to default to create an S3 Bucket for logging.
@@ -54,6 +62,12 @@ export class LefFoundationStack extends LefBaseStack {
       config: config.cloudFront,
       tags: this.resourceTags,
     });
+
+    // Set public properties for direct access
+    // These are used when stacks are deployed together via bin/lef.ts
+    this.snsTopicArn = cloudfront.snsTopicArn;
+    this.mediaLiveRoleArn = cloudfront.mediaLiveRoleArn;
+    this.nominalSegmentLength = config.cloudFront.nominalSegmentLength;
   }
 
   loadConfig(configFilePath: string): IFoundationConfig {

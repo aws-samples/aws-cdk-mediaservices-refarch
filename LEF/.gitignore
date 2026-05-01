@@ -13,3 +13,14 @@ test/temp-test-data
 cdk.out
 
 prompts
+
+# Development scripts (not for public distribution)
+.dev/
+.github/
+.kiro
+
+# ASH output
+.ash
+
+# PCSR security review artifacts (internal only)
+.pcsr/

@@ -20,7 +20,7 @@ export const singlePipelineUrlPullInput: IUrlPullInput = {
     {
       url: "https://server1.example.com/live/stream1.m3u8",
       username: "user1",
-      password: "param1",
+      password: "param1", // pragma: allowlist secret
     },
   ],
 };
@@ -32,12 +32,12 @@ export const standardChannelUrlPullInput: IUrlPullInput = {
     {
       url: "https://server1.example.com/live/stream1.m3u8",
       username: "user1",
-      password: "param1",
+      password: "param1", // pragma: allowlist secret
     },
     {
       url: "https://server2.example.com/live/stream1.m3u8",
       username: "user2",
-      password: "param2",
+      password: "param2", // pragma: allowlist secret
     },
   ],
 };

@@ -84,7 +84,7 @@ export const mediaLiveAssertions = {
       ...settings,
     });
   },
-  
+
   /**
    * Assert multiple MediaLive inputs
    * @param template CloudFormation template
@@ -129,6 +129,7 @@ export function createEventStack(app: App, testDesciptor: string): Stack {
       },
     },
     configFilename,
+    "MockEventGroupStack", // Mock event group stack name for tests
   );
 
   writeTemplateToFile(templateFilename, lefStack);

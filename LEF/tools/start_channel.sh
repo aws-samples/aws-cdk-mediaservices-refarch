@@ -13,11 +13,23 @@
 #  and limitations under the License.
 #######################################################################################################################
 
+# Check if jq is installed
+if ! command -v jq &> /dev/null
+then
+    echo "jq is not installed. Please install jq to proceed."
+    exit 1
+fi
+
 # Check if a CDK exports file name was provided as a command-line argument
 if [ -n "$1" ]; then
     CDK_EXPORTS_FILE="$1"
 else
-    CDK_EXPORTS_FILE="cdk-exports-event.json"
+    # Try cdk-exports-event.json first, then cdk-exports-all.json as fallback
+    if [ -f "cdk-exports-event.json" ] || [ -f "../cdk-exports-event.json" ]; then
+        CDK_EXPORTS_FILE="cdk-exports-event.json"
+    else
+        CDK_EXPORTS_FILE="cdk-exports-all.json"
+    fi
 fi
 
 # Check if the CDK exports file exists in the current directory
@@ -31,10 +43,46 @@ else
     exit 1
 fi
 
-# Extract values from the CDK exports file
-export MediaLiveChannelId=$(grep 'MediaLiveChannelArn' < "$EXPORTS_FILE_PATH" | awk -F'"' '{print $4}' | grep -oE "[^:]+$")
+# Extract stackname from CDK_EXPORTS_FILE
+# If multiple stacks exist (deploy-all), find the Event stack
+all_stacks=$(jq -r 'keys[]' "$EXPORTS_FILE_PATH")
+stackname=""
 
-echo "Starting MediaLive Channel:" $MediaLiveChannelId
+# Check if there are multiple stacks
+stack_count=$(echo "$all_stacks" | wc -l | tr -d ' ')
+
+if [ "$stack_count" -gt 1 ]; then
+    # Multiple stacks - find the Event stack (has MediaLive Channel ARN)
+    for stack in $all_stacks; do
+        if jq -e ".$stack | keys[] | select(test(\"MediaLiveChannel.*Arn\"))" "$EXPORTS_FILE_PATH" >/dev/null 2>&1; then
+            stackname="$stack"
+            break
+        fi
+    done
+    
+    if [ -z "$stackname" ]; then
+        echo "Error: Could not identify Event stack in exports file with multiple stacks."
+        echo "Available stacks: $all_stacks"
+        exit 1
+    fi
+else
+    # Single stack
+    stackname="$all_stacks"
+fi
+
+# Extract MediaLive Channel ID from the identified stack
+MediaLiveChannelArnKey=$(jq -r ".$stackname | keys[] | select(test(\"MediaLiveChannel.*Arn\"))" "$EXPORTS_FILE_PATH")
+MediaLiveChannelArn=$(jq -r ".$stackname.\"$MediaLiveChannelArnKey\"" "$EXPORTS_FILE_PATH")
+
+if [ "$MediaLiveChannelArn" == "null" ] || [ -z "$MediaLiveChannelArn" ]; then
+    echo "Error: MediaLiveChannelArn not found in stack $stackname"
+    exit 1
+fi
+
+# Extract channel ID from ARN
+export MediaLiveChannelId=$(echo "$MediaLiveChannelArn" | grep -oE "[^:]+$")
+
+echo "Starting MediaLive Channel: $MediaLiveChannelId"
 
 # Check if AWS_PROFILE is defined
 if [ -n "$AWS_PROFILE" ]; then

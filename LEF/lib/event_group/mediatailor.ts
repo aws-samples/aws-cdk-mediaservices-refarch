@@ -23,7 +23,8 @@ export interface MediaTailorProps {
   configurationName: string;
   configurationNameSuffix?: string;
   configuration: IEventGroupMediaTailorConfig;
-  originHostname: string;
+  originDomainName: string;
+  cdnDomainName?: string;
   tags?: Record<string, string>[];
 }
 
@@ -44,9 +45,12 @@ interface ConfigurationAliasesValue {
 
 export class MediaTailor extends Construct {
   public readonly configEMT: mediatailor.CfnPlaybackConfiguration;
-  private HLS_ENDPOINT = "HlsConfiguration.ManifestEndpointPrefix";
-  private DASH_ENDPOINT = "DashConfiguration.ManifestEndpointPrefix";
-  private SESSION_ENDPOINT = "SessionInitializationEndpointPrefix";
+  private static readonly HLS_ENDPOINT =
+    "HlsConfiguration.ManifestEndpointPrefix" as const;
+  private static readonly DASH_ENDPOINT =
+    "DashConfiguration.ManifestEndpointPrefix" as const;
+  private static readonly SESSION_ENDPOINT =
+    "SessionInitializationEndpointPrefix" as const;
   public readonly hlsEndpoint: string;
   public readonly dashEndpoint: string;
   public readonly sessionEndpoint: string;
@@ -58,17 +62,25 @@ export class MediaTailor extends Construct {
     super(scope, id);
 
     const configuration = props.configuration;
-    
+    let adSegmentUrlPrefix = configuration.adSegmentUrlPrefix;
+    let contentSegmentUrlPrefix = configuration.contentSegmentUrlPrefix;
+
     // Create the full configuration name using the base name and the configuration name if provided
-    this.configurationName = props.configurationNameSuffix && configuration.name
-      ? `${props.configurationName}-${configuration.name}`
-      : props.configurationName;
+    this.configurationName =
+      props.configurationNameSuffix && configuration.name
+        ? `${props.configurationName}-${configuration.name}`
+        : props.configurationName;
 
     // Initialize as empty object
-    let configurationAliasesValue: ConfigurationAliasesValue = {} as ConfigurationAliasesValue;
+    let configurationAliasesValue: ConfigurationAliasesValue =
+      {} as ConfigurationAliasesValue;
 
     // Set relative content segment prefix alias if parameter configured for content segment prefix
-    if (configuration && configuration.contentSegmentUrlPrefix && configuration.contentSegmentUrlPrefix === "[player_params.content_segment_prefix]" ) {
+    if (
+      configuration.contentSegmentUrlPrefix &&
+      configuration.contentSegmentUrlPrefix ===
+        "[player_params.content_segment_prefix]"
+    ) {
       configurationAliasesValue["player_params.content_segment_prefix"] = {
         "hls-cmaf": "../../../../..",
         "dash-cmaf": "../../../../../../../../..",
@@ -76,25 +88,56 @@ export class MediaTailor extends Construct {
     }
 
     // Set relative content segment prefix alias if parameter configured for content segment prefix
-    if (configuration && configuration.adSegmentUrlPrefix && configuration.adSegmentUrlPrefix === "[player_params.ad_segment_prefix]" ) {
+    if (
+      adSegmentUrlPrefix &&
+      adSegmentUrlPrefix === "[player_params.ad_segment_prefix]"
+    ) {
       configurationAliasesValue["player_params.ad_segment_prefix"] = {
         "hls-cmaf": "../../../../../..",
         "dash-cmaf": "../../../../../../../../..",
       };
     }
 
+    // Implement custom substitutions to simplify configuring absolute adSegment and contentSegment prefix.
+    if (
+      props.cdnDomainName &&
+      configuration &&
+      configuration.contentSegmentUrlPrefix &&
+      configuration.contentSegmentUrlPrefix === "[INSERT_CLOUDFRONT_DOMAIN]"
+    ) {
+      // Some users may prefer MediaTailor explicitly reference the CloudFront distribution in the
+      // variant manifests.
+      contentSegmentUrlPrefix = Fn.join("", ["https://", props.cdnDomainName]);
+    }
+
+    if (
+      props.cdnDomainName &&
+      configuration &&
+      configuration.adSegmentUrlPrefix &&
+      configuration.adSegmentUrlPrefix === "[INSERT_CLOUDFRONT_DOMAIN]"
+    ) {
+      // HLS Interstitial sessions require an absolute adSegmentPrefix. This is because if a
+      // relative prefix is used it will be relative to the page hosting the player, not the stream URL
+      adSegmentUrlPrefix = Fn.join("", ["https://", props.cdnDomainName]);
+    }
+
     // Set custom transcode profile (if defined in event group configuration)
-    if (configuration && configuration.transcodeProfiles) {
+    if (configuration.transcodeProfiles) {
       const transcodeProfiles = configuration.transcodeProfiles;
 
       // Only add transcode profile if at least one value is non-empty
-      if ((transcodeProfiles.hlsCmaf && transcodeProfiles.hlsCmaf !== "") || 
-          (transcodeProfiles.dashCmaf && transcodeProfiles.dashCmaf !== "")) {
-        
+      if (
+        (transcodeProfiles.hlsCmaf && transcodeProfiles.hlsCmaf !== "") ||
+        (transcodeProfiles.dashCmaf && transcodeProfiles.dashCmaf !== "")
+      ) {
         // Add additional "player_params.transcode_profile" key to configurationAliasesValue
         configurationAliasesValue["player_params.transcode_profile"] = {
-          "hls-cmaf": transcodeProfiles.hlsCmaf ? transcodeProfiles.hlsCmaf : "",
-          "dash-cmaf": transcodeProfiles.dashCmaf ? transcodeProfiles.dashCmaf : "",
+          "hls-cmaf": transcodeProfiles.hlsCmaf
+            ? transcodeProfiles.hlsCmaf
+            : "",
+          "dash-cmaf": transcodeProfiles.dashCmaf
+            ? transcodeProfiles.dashCmaf
+            : "",
         };
       }
     }
@@ -134,35 +177,45 @@ export class MediaTailor extends Construct {
       {
         adDecisionServerUrl: configuration.adDecisionServerUrl,
         name: this.configurationName,
-        videoContentSourceUrl: "https://" + props.originHostname,
+        videoContentSourceUrl: "https://" + props.cdnDomainName,
         // the properties below are optional
         availSuppression: availSuppressionSettings,
         bumper: bumperSettings,
-        configurationAliases: Object.keys(configurationAliasesValue).length > 0 ? configurationAliasesValue : undefined,
+        configurationAliases:
+          Object.keys(configurationAliasesValue).length > 0
+            ? configurationAliasesValue
+            : undefined,
         cdnConfiguration: {
-          adSegmentUrlPrefix: configuration.adSegmentUrlPrefix,
-          contentSegmentUrlPrefix: configuration.contentSegmentUrlPrefix,
+          adSegmentUrlPrefix: adSegmentUrlPrefix,
+          contentSegmentUrlPrefix: contentSegmentUrlPrefix,
         },
         dashConfiguration: {
           mpdLocation: "DISABLED",
           originManifestType: "MULTI_PERIOD",
         },
-        insertionMode: configuration.insertionMode && 
-          ['STITCHED_ONLY', 'PLAYER_SELECT'].includes(configuration.insertionMode) 
-          ? configuration.insertionMode 
-          : 'STITCHED_ONLY',
+        insertionMode:
+          configuration.insertionMode &&
+          ["STITCHED_ONLY", "PLAYER_SELECT"].includes(
+            configuration.insertionMode,
+          )
+            ? configuration.insertionMode
+            : "STITCHED_ONLY",
         livePreRollConfiguration: {
           adDecisionServerUrl: configuration.preRolladDecisionServerUrl,
           maxDurationSeconds: configuration.preRollDuration,
         },
         logConfiguration: {
-          percentEnabled: configuration.logPercentageEnabled !== undefined ? 
-            Math.min(Math.max(configuration.logPercentageEnabled, 0), 100) : 10,
+          percentEnabled:
+            configuration.logPercentageEnabled !== undefined
+              ? Math.min(Math.max(configuration.logPercentageEnabled, 0), 100)
+              : 10,
         },
         manifestProcessingRules: {
           adMarkerPassthrough: {
             // adMarkerPassthrough defaults to false if not specified in configuration
-            enabled: configuration.adMarkerPassthrough ? configuration.adMarkerPassthrough : false ,
+            enabled: configuration.adMarkerPassthrough
+              ? configuration.adMarkerPassthrough
+              : false,
           },
         },
         personalizationThresholdSeconds: configuration.personalizationThreshold,
@@ -177,17 +230,17 @@ export class MediaTailor extends Construct {
     //👇 Exporting endpoint from EMT
     this.dashEndpoint = Fn.getAtt(
       this.configEMT.logicalId,
-      this.DASH_ENDPOINT,
+      MediaTailor.DASH_ENDPOINT,
     ).toString();
     this.hlsEndpoint = Fn.getAtt(
       this.configEMT.logicalId,
-      this.HLS_ENDPOINT,
+      MediaTailor.HLS_ENDPOINT,
     ).toString();
     this.sessionEndpoint = Fn.getAtt(
       this.configEMT.logicalId,
-      this.SESSION_ENDPOINT,
+      MediaTailor.SESSION_ENDPOINT,
     ).toString();
-    
+
     // Override the MediaTailor configuration subdomain to simplify CloudFront configuration.
     // All MediaTailor subdomains in a region point to the same destination. By using the same
     // subdomain for all MediaTailor configurations, no additional MediaTailor behaviours need

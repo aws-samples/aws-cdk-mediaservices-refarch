@@ -12,6 +12,7 @@
  */
 
 import {
+  Annotations,
   Aws,
   aws_cloudfront as cloudfront,
   aws_cloudfront_origins as origins,
@@ -20,10 +21,14 @@ import {
   Duration,
   Fn,
 } from "aws-cdk-lib";
-import { MEDIATAILOR_MANIFESTS_HOSTNAME, MEDIATAILOR_SEGMENTS_HOSTNAME } from './mediatailor';
+import {
+  MEDIATAILOR_MANIFESTS_HOSTNAME,
+  MEDIATAILOR_SEGMENTS_HOSTNAME,
+} from "./mediatailor";
 import { Construct } from "constructs";
 import { NagSuppressions } from "cdk-nag";
 import { FunctionAssociation } from "aws-cdk-lib/aws-cloudfront";
+import { getRegionCode } from "../utils/region-mapping";
 import { TaggingUtils } from "../utils/tagging";
 
 const CONNECTION_ATTEMPTS = 2;
@@ -40,6 +45,7 @@ export interface CloudFrontProps {
   keyGroupIds?: string[];
   enableOriginShield?: boolean;
   originShieldRegion?: string;
+  webAclArn?: string;
   tags?: Record<string, string>[];
 }
 
@@ -72,7 +78,7 @@ export class CloudFront extends Construct {
         "MediaPackageOriginAccessControl",
         {
           originAccessControlConfig: {
-            name: Fn.join("-", [Aws.STACK_NAME, "MediaPackage", Aws.REGION]),
+            name: `${Aws.STACK_NAME}-MediaPackage-${getRegionCode(this)}`,
             originAccessControlOriginType: "mediapackagev2",
             signingBehavior: "always",
             signingProtocol: "sigv4",
@@ -89,6 +95,15 @@ export class CloudFront extends Construct {
 
     // Segment length / 2 <= Read Timeout <= Segment Length
     const readTimeoutValue = Math.ceil(nominalSegmentLength / 2); // set half segment duration and round up
+
+    // MediaTailor Request Timeout - greater of 5s or half segment length plus 1
+    // MediaTailor internally uses a 3-second timeout for Ad Decision Server (ADS) requests.
+    // CloudFront timeout must be > 3 seconds to prevent manifest requests from timing out
+    // before ADS requests complete, plus additional time for MediaTailor processing.
+    const mediaTailorRequestTimeoutValue = Math.max(
+      5,
+      Math.ceil(nominalSegmentLength / 2) + 1,
+    );
 
     // Keep-alive Timeout > Segment Length
     const keepaliveTimeoutValue = nominalSegmentLength + 1;
@@ -124,7 +139,7 @@ export class CloudFront extends Construct {
         protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
         connectionAttempts: CONNECTION_ATTEMPTS,
         connectionTimeout: Duration.seconds(connectionTimeoutValue),
-        readTimeout: Duration.seconds(readTimeoutValue),
+        readTimeout: Duration.seconds(mediaTailorRequestTimeoutValue),
         keepaliveTimeout: Duration.seconds(keepaliveTimeoutValue),
       },
     );
@@ -143,6 +158,20 @@ export class CloudFront extends Construct {
         readTimeout: Duration.seconds(readTimeoutValue),
         keepaliveTimeout: Duration.seconds(keepaliveTimeoutValue),
       },
+    );
+
+    // Create origin for fallback S3 bucket
+    const fallbackOrigin = origins.S3BucketOrigin.withOriginAccessControl(
+      foundation.fallbackBucket,
+      {
+        originId: "FallbackOrigin",
+        originAccessControl: foundation.fallbackOac,
+      },
+    );
+
+    // Acknowledge warning about imported bucket policy - policy is managed in foundation stack
+    Annotations.of(this).acknowledgeWarning(
+      "@aws-cdk/aws-cloudfront-origins:updateImportedBucketPolicyOac",
     );
 
     // Setup association for Secure Media Delivery at the Edge CloudFront
@@ -186,7 +215,7 @@ export class CloudFront extends Construct {
 
     // Create CloudFront behaviors for each MediaTailor configuration
     const additionalBehaviors: Record<string, cloudfront.BehaviorOptions> = {};
-    
+
     // Add behaviors for MediaTailor - now we only need one set of behaviors since all configs use the same subdomain
     // Session behavior
     additionalBehaviors[`/v1/session/*`] = {
@@ -198,7 +227,7 @@ export class CloudFront extends Construct {
       responseHeadersPolicy: foundation.postResponseHeadersPolicy,
       trustedKeyGroups: keyGroupIdList,
     };
-    
+
     // Tracking behavior
     additionalBehaviors[pathPrefix + `/v1/tracking/*`] = {
       origin: mediaTailorOrigin,
@@ -208,7 +237,7 @@ export class CloudFront extends Construct {
       responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
       trustedKeyGroups: keyGroupIdList,
     };
-    
+
     // WebVTT behavior
     additionalBehaviors[pathPrefix + `/v1/webvtt/${Aws.ACCOUNT_ID}/*`] = {
       origin: mediaTailorOrigin,
@@ -233,7 +262,7 @@ export class CloudFront extends Construct {
       functionAssociations: functionAssociations,
       trustedKeyGroups: keyGroupIdList,
     };
-    
+
     // DASH manifest behavior
     additionalBehaviors[pathPrefix + `/v1/dash/*.mpd`] = {
       origin: mediaTailorOrigin,
@@ -246,7 +275,7 @@ export class CloudFront extends Construct {
       functionAssociations: functionAssociations,
       trustedKeyGroups: keyGroupIdList,
     };
-    
+
     // Segment behavior
     additionalBehaviors[pathPrefix + `/v1/*segment/*`] = {
       origin: mediaTailorOrigin,
@@ -259,21 +288,23 @@ export class CloudFront extends Construct {
       functionAssociations: functionAssociations,
       trustedKeyGroups: keyGroupIdList,
     };
-    
+
     // I-media behavior
     additionalBehaviors[pathPrefix + `/v1/i-media/*`] = {
       origin: mediaTailorOrigin,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+      cachePolicy: foundation.mediaPackageManifestCachePolicy,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
       cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
       responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
       functionAssociations: functionAssociations,
       trustedKeyGroups: keyGroupIdList,
     };
-    
+
     // Add MediaPackage behaviors
-    additionalBehaviors[pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*.m3u8"] = {
+    additionalBehaviors[
+      pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*.m3u8"
+    ] = {
       origin: mediaPackageOrigin,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       cachePolicy: foundation.mediaPackageManifestCachePolicy,
@@ -283,8 +314,10 @@ export class CloudFront extends Construct {
       functionAssociations: functionAssociations,
       trustedKeyGroups: keyGroupIdList,
     };
-    
-    additionalBehaviors[pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*.mpd"] = {
+
+    additionalBehaviors[
+      pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*.mpd"
+    ] = {
       origin: mediaPackageOrigin,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       cachePolicy: foundation.mediaPackageManifestCachePolicy,
@@ -294,10 +327,13 @@ export class CloudFront extends Construct {
       functionAssociations: functionAssociations,
       trustedKeyGroups: keyGroupIdList,
     };
-    
-    additionalBehaviors[pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*"] = {
+
+    additionalBehaviors[
+      pathPrefix + "/out/v1/" + mediaPackageChannelGroupName + "/*"
+    ] = {
       origin: mediaPackageOrigin,
-      cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
+      cachePolicy:
+        cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
       cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -306,7 +342,22 @@ export class CloudFront extends Construct {
       trustedKeyGroups: keyGroupIdList,
     };
 
+    // Add MediaTailor Ads behavior
+    additionalBehaviors[pathPrefix + "/tm/*"] = {
+      origin: mediaTailorAdsOrigin,
+      cachePolicy:
+        cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+      cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      responseHeadersPolicy: foundation.defaultResponseHeadersPolicy,
+      trustedKeyGroups: keyGroupIdList,
+    };
+
     //3.1. Distribution for Live stream delivery
+    const cloudFrontTags = TaggingUtils.createResourceTags(props.tags, {
+      LefChannelGroup: mediaPackageChannelGroupName,
+    });
     const distribution = new cloudfront.Distribution(this, "Distribution", {
       comment: Aws.STACK_NAME + this.DESCRIPTIONDISTRIBUTION,
       sslSupportMethod: cloudfront.SSLMethod.SNI,
@@ -320,10 +371,10 @@ export class CloudFront extends Construct {
       defaultRootObject: "",
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_1_2016,
       errorResponses: this.getErrorResponseConfiguration(errorPageMinTtl),
+      webAclId: props.webAclArn,
       defaultBehavior: {
-        origin: mediaTailorAdsOrigin,
-        cachePolicy:
-          cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
+        origin: fallbackOrigin,
+        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -333,7 +384,7 @@ export class CloudFront extends Construct {
       additionalBehaviors: additionalBehaviors,
     });
     this.distribution = distribution;
-    TaggingUtils.applyTagsToResource(this.distribution, props.tags);
+    TaggingUtils.applyTagsToResource(this.distribution, cloudFrontTags);
 
     // Associate mediaPackageOriginAccessControl with the MediaPackage origin in the CloudFront
     // Distribution.
@@ -361,12 +412,15 @@ export class CloudFront extends Construct {
       },
     ]);
 
-    NagSuppressions.addResourceSuppressions(distribution, [
-      {
-        id: "AwsSolutions-CFR2",
-        reason: "WAF is not required for sample project.",
-      },
-    ]);
+    // Only suppress WAF warning if WAF is not configured
+    if (!props.webAclArn) {
+      NagSuppressions.addResourceSuppressions(distribution, [
+        {
+          id: "AwsSolutions-CFR2",
+          reason: "WAF is not required for sample project.",
+        },
+      ]);
+    }
 
     NagSuppressions.addResourceSuppressions(distribution, [
       {
@@ -498,6 +552,24 @@ export class CloudFront extends Construct {
         postResponseHeadersPolicyId,
       );
 
+    // Load Foundation Stack S3 Fallback Bucket
+    const fallbackBucketName = Fn.importValue(
+      foundationStackName + "-CloudFrontFallbackBucket",
+    );
+    const fallbackBucket = s3.Bucket.fromBucketName(
+      this,
+      "CloudFrontFallbackBucket",
+      fallbackBucketName,
+    );
+
+    // Import fallback bucket OAC from foundation stack
+    const fallbackOac =
+      cloudfront.S3OriginAccessControl.fromOriginAccessControlId(
+        this,
+        "FallbackBucketOAC",
+        Fn.importValue(props.foundationStackName + "-FallbackBucketOAC"),
+      );
+
     return {
       mediaTailorManifestOriginRequestPolicy:
         mediaTailorManifestOriginRequestPolicy,
@@ -507,6 +579,8 @@ export class CloudFront extends Construct {
       defaultResponseHeadersPolicy: defaultResponseHeadersPolicy,
       postResponseHeadersPolicy: postResponseHeadersPolicy,
       s3LogsBucket: s3LogsBucket,
+      fallbackBucket: fallbackBucket,
+      fallbackOac: fallbackOac,
     };
   }
 }

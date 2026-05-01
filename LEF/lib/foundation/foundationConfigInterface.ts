@@ -19,6 +19,7 @@ export interface ICloudFrontConfig {
   logging: {
     logRetentionPeriod: number;
   };
+  nominalSegmentLength: number;
   allowedMediaPackageManifestQueryStrings: string[];
   allowedMediaTailorManifestQueryStrings: "ALL" | string[];
 }

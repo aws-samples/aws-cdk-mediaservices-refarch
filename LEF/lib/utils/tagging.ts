@@ -21,18 +21,18 @@ export type TagArray = Record<string, string>[];
 
 /**
  * Utility class for applying and converting tags across different AWS resource types
- * 
+ *
  * AWS services have different requirements for how tags are formatted:
  * - Some resources use the CDK Tags API (cdk.Tags.of(resource).add(key, value))
  * - Some resources expect tags as an array of {key, value} objects (CfnTag[])
  * - Others expect tags as a simple key-value map object
- * 
+ *
  * This utility class provides methods to handle all these formats consistently.
  */
 export class TaggingUtils {
   /**
    * Applies tags to a CDK resource using the CDK Tags API
-   * 
+   *
    * @param resource The CDK resource to apply tags to
    * @param tags Array of tag objects to apply
    * @example
@@ -42,8 +42,8 @@ export class TaggingUtils {
    */
   public static applyTagsToResource(resource: cdk.IResource, tags?: TagArray) {
     if (!tags || tags.length === 0) return;
-    
-    tags.forEach(tagObj => {
+
+    tags.forEach((tagObj) => {
       Object.entries(tagObj).forEach(([key, value]) => {
         cdk.Tags.of(resource).add(key, value);
       });
@@ -52,10 +52,10 @@ export class TaggingUtils {
 
   /**
    * Converts tags from array format to CloudFormation tag format (CfnTag[])
-   * 
+   *
    * This is useful for resources that accept a tags property directly in their constructor,
    * such as mediapackagev2.CfnChannelGroup or mediatailor.CfnPlaybackConfiguration
-   * 
+   *
    * @param tags Array of tag objects
    * @returns Array of tags in CloudFormation format ({key, value} objects)
    * @example
@@ -67,27 +67,27 @@ export class TaggingUtils {
    */
   public static convertToCfnTags(tags?: TagArray): cdk.CfnTag[] {
     const cfnTags: cdk.CfnTag[] = [];
-    
+
     if (!tags || tags.length === 0) return cfnTags;
-    
-    tags.forEach(tagObj => {
+
+    tags.forEach((tagObj) => {
       Object.entries(tagObj).forEach(([key, value]) => {
         cfnTags.push({
           key: key,
-          value: value
+          value: value,
         });
       });
     });
-    
+
     return cfnTags;
   }
-  
+
   /**
    * Converts tags from array format to a flat key-value object
-   * 
+   *
    * This is useful for resources that expect tags as a simple map,
    * such as MediaLive resources which use the 'tags' property as a direct key-value object
-   * 
+   *
    * @param tags Array of tag objects
    * @returns Tags as a simple key-value object
    * @example
@@ -99,15 +99,35 @@ export class TaggingUtils {
    */
   public static convertToMapTags(tags?: TagArray): Record<string, string> {
     const mapTags: Record<string, string> = {};
-    
+
     if (!tags || tags.length === 0) return mapTags;
-    
-    tags.forEach(tagObj => {
+
+    tags.forEach((tagObj) => {
       Object.entries(tagObj).forEach(([key, value]) => {
         mapTags[key] = value;
       });
     });
-    
+
     return mapTags;
+  }
+
+  /**
+   * Creates resource-specific tags by merging base tags with additional resource tags
+   *
+   * @param baseTags Base tags to include
+   * @param additionalTags Additional resource-specific tags
+   * @returns Merged tag array
+   */
+  public static createResourceTags(
+    baseTags?: TagArray,
+    additionalTags?: Record<string, string>,
+  ): TagArray {
+    const result: TagArray = baseTags ? [...baseTags] : [];
+
+    if (additionalTags) {
+      result.push(additionalTags);
+    }
+
+    return result;
   }
 }

@@ -5,6 +5,7 @@ export const FOUNDATION_CONFIG: IFoundationConfig = {
     logging: {
       logRetentionPeriod: 30, // days
     },
+    nominalSegmentLength: 4,
     allowedMediaPackageManifestQueryStrings: [
       "aws.manifestfilter",
       "aws.manifestsettings",

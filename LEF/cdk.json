@@ -15,7 +15,7 @@
     ]
   },
   "context": {
-    "LiveEventFrameworkVersion": "1-0-4",
+    "LiveEventFrameworkVersion": "1-1-0",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
     "@aws-cdk/core:target-partitions": ["aws", "aws-cn"],
@@ -56,6 +56,7 @@
     "@aws-cdk/aws-appsync:useArnForSourceApiAssociationIdentifier": true,
     "@aws-cdk/aws-rds:preventRenderingDeprecatedCredentials": true,
     "@aws-cdk/aws-codepipeline-actions:useNewDefaultBranchForCodeCommitSource": true,
-    "@aws-cdk/aws-cloudwatch-actions:changeLambdaPermissionLogicalIdForLambdaAction": true
+    "@aws-cdk/aws-cloudwatch-actions:changeLambdaPermissionLogicalIdForLambdaAction": true,
+    "@aws-cdk/aws-lambda:useCdkManagedLogGroup": false
   }
 }
