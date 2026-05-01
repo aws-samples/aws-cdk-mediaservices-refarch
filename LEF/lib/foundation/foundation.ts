@@ -572,6 +572,9 @@ export class Foundation extends Construct {
           "AmazonSSMReadOnlyAccess is required by MediaLive to read SSM parameters. " +
           "This mirrors the MediaLiveAccessRole created by the AWS Console. " +
           "The role trust policy restricts assumption to medialive.amazonaws.com only.",
+        appliesTo: [
+          "Policy::arn:<AWS::Partition>:iam::aws:policy/AmazonSSMReadOnlyAccess",
+        ],
       },
       {
         id: "AwsSolutions-IAM5",
