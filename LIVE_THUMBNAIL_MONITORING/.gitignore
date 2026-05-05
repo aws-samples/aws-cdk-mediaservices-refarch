@@ -10,3 +10,4 @@ cdk.out
 
 dist
 yarn-error.log
+cdk.context.json

@@ -1,7 +1,7 @@
 import { App, Aspects } from "aws-cdk-lib";
 import { AwsSolutionsChecks } from "cdk-nag";
-import { NetworkStack } from "./stacks/networking";
-import { MediaLiveStack } from "./stacks/media-services";
+import { NetworkStack } from "../lib/stacks/networking";
+import { MediaLiveStack } from "../lib//stacks/media-services";
 
 export const STACK_PREFIX_NAME = "MediaServicesRefArch";
 

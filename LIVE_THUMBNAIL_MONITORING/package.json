@@ -2,7 +2,7 @@
   "name": "live-thumbnail-monitoring-workflow",
   "version": "0.1.0",
   "engines": {
-    "node": ">=14.0.0 <=18.17.1"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "prebuild": "rimraf dist",
@@ -12,26 +12,27 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@types/pino": "^7.0.5",
     "@types/aws-lambda": "^8.10.76",
+    "@types/node": "^22.19.17",
+    "@types/pino": "^7.0.5",
     "@types/prettier": "2.6.0",
     "@typescript-eslint/eslint-plugin": "^5.40.1",
     "@typescript-eslint/parser": "^5.40.1",
-    "aws-cdk": "2.87.0",
-    "aws-cdk-lib": "2.87.0",
+    "aws-cdk": "2.1118.0",
+    "aws-cdk-lib": "^2.248.0",
     "cdk-nag": "2.21.50",
     "constructs": "^10.0.0",
-    "jest": "^27.5.1",
+    "jest": "^30.2.0",
     "rimraf": "^4.4.0",
     "shx": "^0.3.4",
-    "ts-jest": "^27.1.4",
+    "ts-jest": "^29.4.9",
     "ts-node": "10.4.0",
-    "typescript": "4.4.4"
+    "typescript": "~6.0.2"
   },
   "dependencies": {
     "aws-lambda": "1.0.6",
     "aws-sdk": "2.1414.0",
-    "axios": "^1.8.2",
+    "axios": "^1.13.5",
     "pino": "^8.14.1",
     "source-map-support": "^0.5.21",
     "ts-is-present": "^1.2.2"
