@@ -4,7 +4,7 @@ export const EVENT_CONFIG: IEventConfig = {
   event: {
     mediaLive: {
       encodingProfileLocation:
-        "../../encoding-profiles/hd-avc-50fps-sample/medialive-mediapackage-v1.json",
+        "../../encoding-profiles/low-latency-hd-avc-50fps-sample/medialive-mediapackage-v1.json",
       channelClass: "STANDARD",
       segmentLengthInSeconds: 4,
       inputSpecification: {
@@ -39,6 +39,10 @@ export const EVENT_CONFIG: IEventConfig = {
     // },
     mediaPackage: {
       inputType: "CMAF",
+      inputSwitchConfiguration: {
+        mqcsInputSwitching: true,
+        preferredInput: 1,
+      },
       endpoints: {
         cmafEndpoint: {
           containerType: "CMAF",
@@ -49,23 +53,24 @@ export const EVENT_CONFIG: IEventConfig = {
             {
               manifestName: "index",
               childManifestName: "variant",
-              manifestWindowSeconds: 60,
-              programDateTimeIntervalSeconds: 60,
+              manifestWindowSeconds: 300,
+              programDateTimeIntervalSeconds: 1,
               scteHls: {
                 adMarkerHls: "DATERANGE",
               },
+              // Example: Filter to only include renditions up to 720p
+              // Useful for creating mobile-optimized manifests
               // filterConfiguration: {
               //   manifestFilter: "video_height:1-720",
-              //   start: "YYYY-MM-DDThh:mm:ss+00:00",
-              //   end: "YYYY-MM-DDThh:mm:ss+00:00",
-              //   timeDelaySeconds: 7200
+              //   // Optional: Add time delay for DVR-like functionality
+              //   // timeDelaySeconds: 7200,  // 2 hours
               // }
             },
           ],
           dashManifests: [
             {
               manifestName: "dash",
-              manifestWindowSeconds: 60,
+              manifestWindowSeconds: 300,
               minUpdatePeriodSeconds: 5,
               minBufferTimeSeconds: 8,
               scteDash: {
@@ -73,11 +78,10 @@ export const EVENT_CONFIG: IEventConfig = {
               },
               segmentTemplateFormat: "NUMBER_WITH_TIMELINE",
               suggestedPresentationDelaySeconds: 12,
+              // Example: Filter for low-bandwidth scenarios
               // filterConfiguration: {
-              //   manifestFilter: "video_height:1-720",
-              //   start: "YYYY-MM-DDThh:mm:ss+00:00",
-              //   end: "YYYY-MM-DDThh:mm:ss+00:00",
-              //   timeDelaySeconds: 7200
+              //   manifestFilter: "video_bitrate:1-3000000,video_codec:h264",
+              //   // timeDelaySeconds: 7200,
               // },
               utcTiming: {
                 timingMode: "UTC_DIRECT",
@@ -88,8 +92,8 @@ export const EVENT_CONFIG: IEventConfig = {
             {
               manifestName: "low-latency-index",
               childManifestName: "low-latency-variant",
-              manifestWindowSeconds: 60,
-              programDateTimeIntervalSeconds: 60,
+              manifestWindowSeconds: 300,
+              programDateTimeIntervalSeconds: 1,
               scteHls: {
                 adMarkerHls: "DATERANGE",
               },
@@ -104,8 +108,7 @@ export const EVENT_CONFIG: IEventConfig = {
           segment: {
             segmentName: "segment",
             includeIframeOnlyStreams: false,
-            startoverWindowSeconds: 1209600,
-            segmentDurationSeconds: 5,
+            segmentDurationSeconds: 4,
             scte: {
               scteFilter: [
                 "SPLICE_INSERT",

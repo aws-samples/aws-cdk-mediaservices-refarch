@@ -25,18 +25,20 @@ describe("MediaLive Feature Activations", () => {
     // Create a MediaLive instance with feature activations enabled
     new MediaLive(stack, "TestMediaLive", {
       channelName: "TestChannel",
-      mediaLiveAccessRoleArn: "arn:aws:iam::123456789012:role/MediaLiveAccessRole",
+      mediaLiveAccessRoleArn:
+        "arn:aws:iam::123456789012:role/MediaLiveAccessRole",
       destinationConfig: {
         type: MediaLiveOutputGroupType.HLS,
         channelClass: "STANDARD",
         endpoints: {
           primary: "https://example.com/endpoint1",
-          secondary: "https://example.com/endpoint2"
-        }
+          secondary: "https://example.com/endpoint2",
+        },
       },
       tags: [],
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD",
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -77,18 +79,20 @@ describe("MediaLive Feature Activations", () => {
     // Create a MediaLive instance without feature activations
     new MediaLive(stack, "TestMediaLive", {
       channelName: "TestChannel",
-      mediaLiveAccessRoleArn: "arn:aws:iam::123456789012:role/MediaLiveAccessRole",
+      mediaLiveAccessRoleArn:
+        "arn:aws:iam::123456789012:role/MediaLiveAccessRole",
       destinationConfig: {
         type: MediaLiveOutputGroupType.HLS,
         channelClass: "STANDARD",
         endpoints: {
           primary: "https://example.com/endpoint1",
-          secondary: "https://example.com/endpoint2"
-        }
+          secondary: "https://example.com/endpoint2",
+        },
       },
       tags: [],
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD",
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -112,7 +116,7 @@ describe("MediaLive Feature Activations", () => {
     // Check that the feature activations are not set
     const resources = template.findResources("AWS::MediaLive::Channel");
     const channelResource = Object.values(resources)[0];
-    
+
     // Verify FeatureActivations is not present
     expect(channelResource.Properties.FeatureActivations).toBeUndefined();
   });

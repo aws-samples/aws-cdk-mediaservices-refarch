@@ -1,6 +1,6 @@
 {
   "name": "lef",
-  "version": "1.0.4",
+  "version": "1.10.0",
   "bin": {
     "lef": "bin/lef.js"
   },
@@ -8,28 +8,32 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "generate-diagrams": "cd tools && python3 generate-diagrams.py",
+    "integ-test": "integ-runner",
+    "integ-test:update": "integ-runner --update-on-failed"
   },
   "devDependencies": {
-    "@aws-cdk/integ-tests-alpha": "^2.248.0-alpha.0",
+    "@aws-cdk/integ-runner": "^2.197.15",
+    "@aws-cdk/integ-tests-alpha": "^2.250.0-alpha.0",
     "@types/jest": "30.0.0",
     "@types/js-yaml": "4.0.9",
-    "@types/node": "^25.6.0",
-    "aws-cdk": "^2.1118.0",
+    "@types/node": "25.6.0",
+    "aws-cdk": "2.1118.2",
     "deepmerge-ts": "7.1.5",
-    "jest": "30.0.5",
-    "js-yaml": "^4.1.1",
-    "prettier": "3.6.2",
-    "ts-jest": "^29.4.9",
+    "jest": "30.3.0",
+    "js-yaml": "4.1.1",
+    "prettier": "3.8.3",
+    "ts-jest": "29.4.9",
     "ts-node": "10.9.2",
-    "typescript": "~6.0.2",
+    "typescript": "6.0.3",
     "yaml": "2.8.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.248.0",
-    "cdk-nag": "2.36.44",
-    "constructs": "^10.6.0",
-    "glob": "11.1.0",
+    "aws-cdk-lib": "2.250.0",
+    "cdk-nag": "2.37.55",
+    "constructs": "10.6.0",
+    "glob": "13.0.6",
     "source-map-support": "0.5.21"
   }
 }

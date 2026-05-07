@@ -14,7 +14,7 @@
 import { IEventConfig } from "../event/eventConfigInterface";
 import { IEventGroupConfig } from "../event_group/eventGroupConfigInterface";
 import { IFoundationConfig } from "../foundation/foundationConfigInterface";
-import * as path from 'path';
+import * as path from "path";
 
 export type ConfigType = IEventConfig | IEventGroupConfig | IFoundationConfig;
 
@@ -42,8 +42,9 @@ export function loadConfig<T>(configFilePath: string, configKey: string): T {
 
     // Check if the loaded config has mediaLive configuration
     if (loadedConfig.event?.mediaLive?.encodingProfileLocation) {
-      const encodingProfilePath = loadedConfig.event.mediaLive.encodingProfileLocation;
-      
+      const encodingProfilePath =
+        loadedConfig.event.mediaLive.encodingProfileLocation;
+
       // CDK commands to deploy/synth need to be executed from the project root directory
       // The actual cdk command run is in 'node_modules/.bin'.
       // Many of the resources referenced in this project are relative to the
@@ -52,11 +53,23 @@ export function loadConfig<T>(configFilePath: string, configKey: string): T {
       // Check if the path is relative
       if (!path.isAbsolute(encodingProfilePath)) {
         // Convert relative path to absolute path
-        loadedConfig.event.mediaLive.encodingProfileLocation = path.resolve(
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        const resolvedPath = path.resolve(
+          // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
           process.cwd(),
-          'node_modules/.bin',
-          encodingProfilePath
+          "node_modules/.bin",
+          encodingProfilePath, // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         );
+
+        // Validate resolved path is within project directory
+        const projectRoot = process.cwd();
+        if (!resolvedPath.startsWith(projectRoot)) {
+          throw new ConfigurationError(
+            `Invalid encoding profile path: resolved path '${resolvedPath}' is outside project directory`,
+          );
+        }
+
+        loadedConfig.event.mediaLive.encodingProfileLocation = resolvedPath;
       }
     }
 

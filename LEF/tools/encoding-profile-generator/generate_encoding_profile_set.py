@@ -47,7 +47,7 @@ SUPPORTED_CODECS = AUDIO_CODECS + VIDEO_CODECS + CAPTION_CODECS
 
 OUTPUT_TYPES = [
     'mediatailor-hls-cmaf',
-    'mediatailor-dash',
+    'mediatailor-dash-cmaf',
     'medialive-hls-ts',
     'medialive-cmaf-ingest',
     'medialive-mediapackage'
@@ -112,7 +112,7 @@ def main(argv):
         output_file = f"{output_type}-v{profile_version}.json"
 
         print("Generating '%s'" % output_type)
-        if output_type in ['mediatailor-hls-cmaf', 'mediatailor-dash']:
+        if output_type in ['mediatailor-hls-cmaf', 'mediatailor-dash', 'mediatailor-dash-cmaf']:
 
             ctpOutput = createCustomTranscodeProfile( output_type, config )
             write_content_to_file(output_file_path + '/' + profile_set_name + '/' + output_file, ctpOutput)
@@ -192,18 +192,6 @@ def generateMediaLiveHlsTsProfile( config ):
 def generateMediaLiveCmafIngestProfile( config ):
 
     outputsConfiguration = config['outputs']
-
-    # MediaLive CMAF Ingest Output Groups do not currently support FRAME_CAPTURE
-    # outputs.
-    # These outputs will automatically be removed from the profile.
-    unique_codecs = set( output['codec'] for output in outputsConfiguration )
-    if 'FRAME_CAPTURE' in unique_codecs:
-        print("Skipping FRAME_CAPTURE rendition in CMAF encoding profile.")
-        print("MediaLive CMAF Ingest Output Group does not currently support FRAME_CAPTURE renditions.")
-
-        # Remove any frame capture outputs
-        outputsConfiguration = [ output for output in outputsConfiguration if output['codec'] != 'FRAME_CAPTURE' ]
-
     audioDescriptions = getMediaLiveAudioDescriptions( outputsConfiguration, 'CMAF-INGEST')
     captionDescriptions = getMediaLiveCaptionDescriptions(outputsConfiguration, 'CMAF-INGEST')
     globalConfiguration = getMediaLiveGlobalConfiguration()
@@ -351,6 +339,37 @@ def getMediaLiveCmafIngestOutputGroups( outputs, commonCfg ):
 
     return outputGroups
 
+def validateVideoConfig(output, commonConfig):
+    """
+    Validate video encoding configuration parameters.
+    Raises ValueError for invalid configurations.
+    Prints warnings for potentially problematic configurations.
+    """
+    # Validate rate control mode
+    rateControlMode = output.get('rateControlMode', commonConfig.get('rateControlMode', 'QVBR'))
+    if rateControlMode not in ['CBR', 'QVBR', 'VBR']:
+        raise ValueError(f"Invalid rateControlMode '{rateControlMode}' for {output.get('name', 'unknown')}. Must be CBR, QVBR, or VBR.")
+    
+    # Validate GOP B-frames range (0-7 is typical MediaLive range)
+    gopNumBFrames = output.get('gopNumBFrames', commonConfig.get('gopNumBFrames', 3))
+    if not isinstance(gopNumBFrames, int) or not 0 <= gopNumBFrames <= 7:
+        raise ValueError(f"gopNumBFrames must be integer 0-7 for {output.get('name', 'unknown')}, got: {gopNumBFrames}")
+    
+    # Validate number of reference frames (1-6 is typical range)
+    numRefFrames = output.get('numRefFrames', commonConfig.get('numRefFrames', 3))
+    if not isinstance(numRefFrames, int) or not 1 <= numRefFrames <= 6:
+        raise ValueError(f"numRefFrames must be integer 1-6 for {output.get('name', 'unknown')}, got: {numRefFrames}")
+    
+    # Validate sharpness range
+    sharpness = output.get('sharpness', commonConfig.get('sharpness', 100))
+    if not isinstance(sharpness, int) or not 0 <= sharpness <= 100:
+        raise ValueError(f"sharpness must be integer 0-100 for {output.get('name', 'unknown')}, got: {sharpness}")
+    
+    # Validate GOP size is positive
+    gopSize = output.get('gopSize', commonConfig.get('gopSize'))
+    if gopSize is not None and (not isinstance(gopSize, (int, float)) or gopSize <= 0):
+        raise ValueError(f"gopSize must be positive number for {output.get('name', 'unknown')}, got: {gopSize}")
+
 def getMediaLiveVideoDescriptions( outputs, commonConfig ):
 
     videoDescriptions = []
@@ -359,6 +378,9 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
     for output in outputs:
         if output['codec'] not in VIDEO_CODECS:
             continue
+
+        # Validate configuration before processing
+        validateVideoConfig(output, commonConfig)
 
         # Check for a gopSize override
         gopSize = commonConfig['gopSize']
@@ -374,14 +396,8 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
         else:
             raise Exception('Unable to find a specified codecProfile.')
 
-        # Check for a framerate override
-        framerate = ""
-        if 'framerate' in output:
-            framerate = output['framerate']
-        elif 'framerate' in commonConfig:
-            framerate = commonConfig['framerate']
-        else:
-            raise Exception('Unable to find a specified framerate.')
+        # Get framerate settings (supports both old and new format)
+        framerateNumerator, framerateDenominator = getFramerateSettings(output, commonConfig)
 
         # Check for a video lookahead rate control override
         videoLookAheadRateControl = ""
@@ -400,105 +416,156 @@ def getMediaLiveVideoDescriptions( outputs, commonConfig ):
         if 'bufSize' in output:
             bufSize = output['bufSize']
 
+        # Check for rate control mode override
+        rateControlMode = output.get('rateControlMode', commonConfig.get('rateControlMode', 'QVBR'))
+
+        # Check for GOP B-frames override
+        gopNumBFrames = output.get('gopNumBFrames', commonConfig.get('gopNumBFrames', 3))
+
+        # Check for number of reference frames override
+        numRefFrames = output.get('numRefFrames', commonConfig.get('numRefFrames', 3))
+
+        # Check for GOP B reference override
+        gopBReference = output.get('gopBReference', commonConfig.get('gopBReference', 'ENABLED'))
+
+        # Check for subgop length override
+        subgopLength = output.get('subgopLength', commonConfig.get('subgopLength', 'DYNAMIC'))
+
+        # Check for sharpness override
+        sharpness = output.get('sharpness', commonConfig.get('sharpness', 100))
+
+        # Check for color metadata override
+        colorMetadata = output.get('colorMetadata', commonConfig.get('colorMetadata', 'INSERT'))
+
+        # Check for timecode burnin override
+        timecodeBurnin = output.get('timecodeBurnin', commonConfig.get('timecodeBurnin', True))
+
         videoDescription = {}
         if output['codec'] == 'H_264':
+            h264Settings = {
+                "afdSignaling": "NONE",
+                "colorMetadata": colorMetadata,
+                "adaptiveQuantization": "AUTO",
+                "entropyEncoding": "CABAC",
+                "flickerAq": "ENABLED",
+                "framerateControl": "SPECIFIED",
+                "framerateNumerator": framerateNumerator,
+                "framerateDenominator": framerateDenominator,
+                "gopBReference": gopBReference,
+                "gopClosedCadence": 1,
+                "gopNumBFrames": gopNumBFrames,
+                "gopSize": gopSize,
+                "gopSizeUnits": commonConfig['gopSizeUnits'],
+                "subgopLength": subgopLength,
+                "scanType": "PROGRESSIVE",
+                "level": "H264_LEVEL_AUTO",
+                "lookAheadRateControl": videoLookAheadRateControl,
+                "numRefFrames": numRefFrames,
+                "parControl": "SPECIFIED",
+                "parDenominator": 1,
+                "parNumerator": 1,
+                "profile": videoCodecProfile,
+                "rateControlMode": rateControlMode,
+                "syntax": "DEFAULT",
+                "sceneChangeDetect": "ENABLED",
+                "spatialAq": "ENABLED",
+                "temporalAq": "ENABLED",
+                "timecodeInsertion": "DISABLED"
+            }
+
+            # Add maxBitrate or bitrate based on rate control mode
+            if rateControlMode == 'CBR':
+                h264Settings['bitrate'] = output['maxBitrate']
+                if not bufSize:
+                    recommended_bufsize = int(output['maxBitrate'] * 0.666)
+                    print(f"WARNING: CBR mode for {output['name']} without bufSize - recommend bufSize = {recommended_bufsize}")
+            else:
+                h264Settings['maxBitrate'] = output['maxBitrate']
+
+            # Set the buffer size if it has been defined
+            if bufSize:
+                h264Settings['bufSize'] = bufSize
+
+            # Add timecode burnin if enabled
+            if timecodeBurnin:
+                h264Settings['timecodeBurninSettings'] = {
+                    "fontSize": getTimecodeBurninFontSize( output['height'] ),
+                    "position": "TOP_LEFT",
+                    "prefix": ""
+                }
+
             videoDescription = {
                 "codecSettings": {
-                    "h264Settings": {
-                        "afdSignaling": "NONE",
-                        "colorMetadata": "INSERT",
-                        "adaptiveQuantization": "AUTO",
-                        "entropyEncoding": "CABAC",
-                        "flickerAq": "ENABLED",
-                        "framerateControl": "SPECIFIED",
-                        "framerateNumerator": framerate,
-                        "framerateDenominator": 1,
-                        "gopBReference": "ENABLED",
-                        "gopClosedCadence": 1,
-                        "gopNumBFrames": 3,
-                        "gopSize": gopSize,
-                        "gopSizeUnits": commonConfig['gopSizeUnits'],
-                        "subgopLength": "DYNAMIC",
-                        "scanType": "PROGRESSIVE",
-                        "level": "H264_LEVEL_AUTO",
-                        "lookAheadRateControl": videoLookAheadRateControl,
-                        "maxBitrate": output['maxBitrate'],
-                        "numRefFrames": 3,
-                        "parControl": "SPECIFIED",
-                        "parDenominator": 1,
-                        "parNumerator": 1,
-                        "profile": videoCodecProfile,
-                        "rateControlMode": "QVBR",
-                        "syntax": "DEFAULT",
-                        "sceneChangeDetect": "ENABLED",
-                        "spatialAq": "ENABLED",
-                        "temporalAq": "ENABLED",
-                        "timecodeBurninSettings": {
-                            "fontSize": getTimecodeBurninFontSize( output['height'] ),
-                            "position": "TOP_LEFT",
-                            "prefix": ""
-                        },
-                        "timecodeInsertion": "DISABLED"
-                    }
+                    "h264Settings": h264Settings
                 },
                 "height": output['height'],
                 "name": f"{output['name']}",
                 "respondToAfd": "NONE",
-                "sharpness": 100,
+                "sharpness": sharpness,
                 "scalingBehavior": "DEFAULT",
                 "width": output['width']
             }
-
-            # Set the buffer size if it has been defined
-            if bufSize:
-                videoDescription['codecSettings']['h264Settings']['bufSize'] = output['bufSize']
 
         elif output['codec'] == 'H_265':
+            h265Settings = {
+                "adaptiveQuantization": "AUTO",
+                "afdSignaling": "NONE",
+                "alternativeTransferFunction": "OMIT",
+                "colorMetadata": colorMetadata,
+                "flickerAq": "ENABLED",
+                "framerateDenominator": framerateDenominator,
+                "framerateNumerator": framerateNumerator,
+                "gopClosedCadence": 1,
+                "gopNumBFrames": gopNumBFrames,
+                "gopSize": gopSize,
+                "gopSizeUnits": commonConfig['gopSizeUnits'],
+                "level": "H265_LEVEL_AUTO",
+                "lookAheadRateControl": videoLookAheadRateControl,
+                "mvOverPictureBoundaries": "ENABLED",
+                "mvTemporalPredictor": "ENABLED",
+                "parDenominator": 1,
+                "parNumerator": 1,
+                "profile": videoCodecProfile,
+                "rateControlMode": rateControlMode,
+                "scanType": "PROGRESSIVE",
+                "sceneChangeDetect": "ENABLED",
+                "tier": videoCodecTier,
+                "tilePadding": "NONE",
+                "timecodeInsertion": "DISABLED",
+                "treeblockSize": "AUTO"
+            }
+
+            # Add maxBitrate or bitrate based on rate control mode
+            if rateControlMode == 'CBR':
+                h265Settings['bitrate'] = output['maxBitrate']
+                if not bufSize:
+                    recommended_bufsize = int(output['maxBitrate'] * 0.666)
+                    print(f"WARNING: CBR mode for {output['name']} without bufSize - recommend bufSize = {recommended_bufsize}")
+            else:
+                h265Settings['maxBitrate'] = output['maxBitrate']
+
+            # Set the buffer size if it has been defined
+            if bufSize:
+                h265Settings['bufSize'] = bufSize
+
+            # Add timecode burnin if enabled
+            if timecodeBurnin:
+                h265Settings['timecodeBurninSettings'] = {
+                    "fontSize": getTimecodeBurninFontSize( output['height'] ),
+                    "position": "TOP_LEFT"
+                }
+
             videoDescription = {
                 "codecSettings": {
-                    "h265Settings": {
-                        "adaptiveQuantization": "AUTO",
-                        "afdSignaling": "NONE",
-                        "alternativeTransferFunction": "OMIT",
-                        "colorMetadata": "INSERT",
-                        "flickerAq": "ENABLED",
-                        "framerateDenominator": 1,
-                        "framerateNumerator": framerate,
-                        "gopClosedCadence": 1,
-                        "gopSize": gopSize,
-                        "gopSizeUnits": "FRAMES",
-                        "level": "H265_LEVEL_AUTO",
-                        "lookAheadRateControl": videoLookAheadRateControl,
-                        "maxBitrate": output['maxBitrate'],
-                        "mvOverPictureBoundaries": "ENABLED",
-                        "mvTemporalPredictor": "ENABLED",
-                        "parDenominator": 1,
-                        "parNumerator": 1,
-                        "profile": videoCodecProfile,
-                        "rateControlMode": "QVBR",
-                        "scanType": "PROGRESSIVE",
-                        "sceneChangeDetect": "ENABLED",
-                        "tier": videoCodecTier,
-                        "tilePadding": "NONE",
-                        "timecodeBurninSettings": {
-                            "fontSize": getTimecodeBurninFontSize( output['height'] ),
-                            "position": "TOP_LEFT"
-                        },
-                        "timecodeInsertion": "DISABLED",
-                        "treeblockSize": "AUTO"
-                    }
+                    "h265Settings": h265Settings
                 },
                 "height": output['height'],
                 "name": f"{output['name']}",
                 "respondToAfd": "NONE",
-                "sharpness": 100,
+                "sharpness": sharpness,
                 "scalingBehavior": "DEFAULT",
                 "width": output['width']
             }
-
-            # Set the buffer size if it has been defined
-            if bufSize:
-                videoDescription['codecSettings']['h265Settings']['bufSize'] = output['bufSize']
 
         elif output['codec'] == 'FRAME_CAPTURE':
             videoDescription = {
@@ -724,6 +791,16 @@ def createCustomTranscodeProfile( profileType, config):
                 "AudioDuration": "MATCH_VIDEO_DURATION"
             }
         }
+    elif profileType == "mediatailor-dash-cmaf":
+        videoContainerSettings = {
+            "Container": "CMFC"
+        }
+        audioContainerSettings = {
+            "Container": "CMFC",
+            "CmfcSettings": {
+                "AudioDuration": "MATCH_VIDEO_DURATION"
+            }
+        }
     else:
         videoContainerSettings = {
             "Container": "MPD",
@@ -907,6 +984,8 @@ def createCustomTranscodeProfile( profileType, config):
     outputGroup = OrderedDict()
     if profileType == "mediatailor-hls-cmaf":
         outputGroup = getCmafOutputGroup( outputGroup, outputs, config )
+    elif profileType == "mediatailor-dash-cmaf":
+        outputGroup = getDashCmafOutputGroup( outputGroup, outputs, config )
     else:
         outputGroup = getDashOutputGroup(outputGroup, outputs, config)
 
@@ -948,6 +1027,35 @@ def getDashOutputGroup( outputGroup, outputs, config ):
     if imageBasedTrickPlayMode and imageBasedTrickPlaySettings:
         outputGroup["OutputGroupSettings"][ "DashIsoGroupSettings"]["ImageBasedTrickPlay"] = imageBasedTrickPlayMode
         outputGroup["OutputGroupSettings"][ "DashIsoGroupSettings"]["ImageBasedTrickPlaySettings"] = imageBasedTrickPlaySettings
+
+    return outputGroup
+
+def getDashCmafOutputGroup( outputGroup, outputs, config ):
+
+    commonCfg = config["common"]
+
+    outputGroup["Name"] = "CMAF"
+    outputGroup["Outputs"] = outputs
+    outputGroup["OutputGroupSettings"] = {
+        "Type": "CMAF_GROUP_SETTINGS",
+        "CmafGroupSettings": {
+            "WriteHlsManifest": "DISABLED",
+            "WriteDashManifest": "ENABLED",
+            "SegmentLength": commonCfg["segmentLength"],
+            "SegmentLengthControl": "GOP_MULTIPLE",
+            "MinFinalSegmentLength": 1,
+            "Destination": "s3://bucket/main/",
+            "FragmentLength": commonCfg["fragmentLength"],
+            "SegmentControl": "SEGMENTED_FILES",
+            "DashManifestStyle": "COMPACT"
+        }
+    }
+
+    # Configure Trickplay Track
+    ( imageBasedTrickPlayMode, imageBasedTrickPlaySettings ) = getTrickmodeSettings()
+    if imageBasedTrickPlayMode and imageBasedTrickPlaySettings:
+        outputGroup["OutputGroupSettings"][ "CmafGroupSettings"]["ImageBasedTrickPlay"] = imageBasedTrickPlayMode
+        outputGroup["OutputGroupSettings"][ "CmafGroupSettings"]["ImageBasedTrickPlaySettings"] = imageBasedTrickPlaySettings
 
     return outputGroup
 
@@ -1000,14 +1108,37 @@ def getTrickmodeSettings():
     
     return (imageBasedTrickPlayMode, imageBasedTrickPlaySettings)
 
+def getFramerateSettings(outputCfg, commonCfg):
+    """
+    Get framerate numerator and denominator from config.
+    Supports both new format (explicit numerator/denominator) and old format (integer framerate).
+    
+    Returns: (numerator, denominator) tuple
+    """
+    # Check for explicit numerator/denominator first (new format)
+    if 'framerateNumerator' in outputCfg:
+        numerator = outputCfg['framerateNumerator']
+        denominator = outputCfg.get('framerateDenominator', 1)
+    elif 'framerateNumerator' in commonCfg:
+        numerator = commonCfg['framerateNumerator']
+        denominator = commonCfg.get('framerateDenominator', 1)
+    # Fall back to old format (integer framerate)
+    elif 'framerate' in outputCfg:
+        numerator = int(outputCfg['framerate'] * 1000)
+        denominator = 1000
+    elif 'framerate' in commonCfg:
+        numerator = int(commonCfg['framerate'] * 1000)
+        denominator = 1000
+    else:
+        raise Exception('No framerate specified in config (use framerate or framerateNumerator/framerateDenominator)')
+    
+    return numerator, denominator
+
 def getH264VideoDescription( outputCfg, commonCfg ):
 
     gopSize = outputCfg['gopSize'] if 'gopSize' in outputCfg else commonCfg['gopSize']
     codecProfile = outputCfg['codecProfile'] if 'codecProfile' in outputCfg else commonCfg['videoCodecProfile']
-    framerate = outputCfg['framerate'] if 'framerate' in outputCfg else commonCfg['framerate']
-    
-    # Apply timescale multiplier
-    timescaleMultiplier = 1000
+    framerateNumerator, framerateDenominator = getFramerateSettings(outputCfg, commonCfg)
 
     return {
         "Width": outputCfg['width'],
@@ -1017,22 +1148,26 @@ def getH264VideoDescription( outputCfg, commonCfg ):
             "H264Settings": {
                 "ParNumerator": 1,
                 "NumberReferenceFrames": 3,
-                "FramerateDenominator": 1 * timescaleMultiplier,
+                "FramerateDenominator": framerateDenominator,
                 "GopClosedCadence": 1,
                 "GopSize": gopSize,
+                # Setting NumberBFramesBetweenReferenceFrames to 2 is recommended by MediaTailor/MediaConvert teams
+                # to minimize audio buildup during ad stitching. Using 0 B-frames results in more extra audio being
+                # created due to timestamp offset calculations, which causes buffering issues after many ads.
+                # Value of 2 matches typical live stream configurations and provides less audio overage.
                 "GopBReference": "ENABLED",
                 "MaxBitrate": outputCfg['maxBitrate'],
                 "ParDenominator": 1,
                 "FramerateControl": "SPECIFIED",
                 "RateControlMode": "QVBR",
                 "CodecProfile": codecProfile,
-                "FramerateNumerator": framerate * timescaleMultiplier,
+                "FramerateNumerator": framerateNumerator,
                 "MinIInterval": 0,
                 "AdaptiveQuantization": "AUTO",
                 "CodecLevel": "AUTO",
                 "GopSizeUnits": commonCfg['gopSizeUnits'],
                 "ParControl": "SPECIFIED",
-                "NumberBFramesBetweenReferenceFrames": 3,
+                "NumberBFramesBetweenReferenceFrames": 2,
                 "DynamicSubGop": "ADAPTIVE"
             }
         },
@@ -1043,7 +1178,7 @@ def getH265VideoDescription( outputCfg, commonCfg ):
 
     gopSize = outputCfg['gopSize'] if 'gopSize' in outputCfg else commonCfg['gopSize']
     codecProfile = outputCfg['codecProfile'] if 'codecProfile' in outputCfg else commonCfg['videoCodecProfile']
-    framerate = outputCfg['framerate'] if 'framerate' in outputCfg else commonCfg['framerate']
+    framerateNumerator, framerateDenominator = getFramerateSettings(outputCfg, commonCfg)
 
     # Check for a videoCodecProfileTier override
     videoCodecTier = getVideoCodecProfileTier( outputCfg, commonCfg )
@@ -1057,15 +1192,21 @@ def getH265VideoDescription( outputCfg, commonCfg ):
         "CodecSettings": {
             "Codec": "H_265",
             "H265Settings": {
-                "FramerateDenominator": 1 * timescaleMultiplier,
+                "FramerateDenominator": framerateDenominator,
                 "FramerateControl": "SPECIFIED",
-                "FramerateNumerator": framerate * timescaleMultiplier,
+                "FramerateNumerator": framerateNumerator,
                 "GopSize": gopSize,
                 "MaxBitrate": outputCfg['maxBitrate'],
                 "RateControlMode": "QVBR",
                 "CodecProfile": codecProfile + '_' + videoCodecTier,
                 "SceneChangeDetect": "TRANSITION_DETECTION",
-                "GopSizeUnits": commonCfg['gopSizeUnits']
+                "GopSizeUnits": commonCfg['gopSizeUnits'],
+                # Setting NumberBFramesBetweenReferenceFrames to 2 is recommended by MediaTailor/MediaConvert teams
+                # to minimize audio buildup during ad stitching. Using 0 B-frames results in more extra audio being
+                # created due to timestamp offset calculations, which causes buffering issues after many ads.
+                # Value of 2 matches typical live stream configurations and provides less audio overage.
+                "NumberBFramesBetweenReferenceFrames": 2,
+                "GopBReference": "ENABLED"
             }
         }
     }
@@ -1245,12 +1386,6 @@ def getMediaLiveMediaPackageOutputGroups( outputs ):
     # Set outputs for output group
     for output in outputs:
         if output['codec'] in VIDEO_CODECS:
-            if output['codec'] == 'FRAME_CAPTURE':
-                # MediaPackage output groups don't support frame capture
-                print("Skipping FRAME_CAPTURE rendition in MediaPackage encoding profile.")
-                print("MediaLive MediaPackage Output Group does not support FRAME_CAPTURE renditions.")
-                continue
-            
             outputList.append({
                 "captionDescriptionNames": [],
                 "outputName": f"{output['name']}",
@@ -1302,18 +1437,6 @@ def getMediaLiveMediaPackageOutputGroups( outputs ):
 def generateMediaLiveMediaPackageProfile( config ):
 
     outputsConfiguration = config['outputs']
-
-    # MediaLive MediaPackage Output Groups do not currently support FRAME_CAPTURE
-    # outputs.
-    # These outputs will automatically be removed from the profile.
-    unique_codecs = set( output['codec'] for output in outputsConfiguration )
-    if 'FRAME_CAPTURE' in unique_codecs:
-        print("Skipping FRAME_CAPTURE rendition in MediaPackage encoding profile.")
-        print("MediaLive MediaPackage Output Group does not currently support FRAME_CAPTURE renditions.")
-
-        # Remove any frame capture outputs
-        outputsConfiguration = [ output for output in outputsConfiguration if output['codec'] != 'FRAME_CAPTURE' ]
-
     audioDescriptions = getMediaLiveAudioDescriptions( outputsConfiguration, 'MEDIAPACKAGE' )
     captionDescriptions = getMediaLiveCaptionDescriptions(outputsConfiguration, 'MEDIAPACKAGE')
     globalConfiguration = getMediaLiveGlobalConfiguration()

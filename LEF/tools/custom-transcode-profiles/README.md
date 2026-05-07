@@ -17,7 +17,6 @@ To setup a custom transcode profile in an AWS account:
    ```
 
    When the 'transcodeProfiles' configuration is enabled on an event group the Live Event Framework:
-
    - Creates an additional configuration alias on the MediaTailor configuration called 'player_params.transcode_profile'
    - Creates two configuration aliases values for the transcode_profile player parameter and sets these to the corresponding custom profiles from the event group configuration
    - Sets the 'Transcode profile name' on the MediaTailor configuration to '[player_params.transcode_profile]'

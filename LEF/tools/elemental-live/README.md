@@ -34,8 +34,8 @@ The script requires confirmation of the account ID and region where the user wil
 ```shell
 Created IAM User Details:
   User ARN:		arn:aws:iam::012345678910:user/ElementalLive1
-  AccessKeyId:		AKIAIOSFODNN7EXAMPLE
-  SecretAccessKey:	wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  AccessKeyId:		<your-access-key-id>
+  SecretAccessKey:	<your-secret-access-key>
 ```
 
 #### Configuring Live Event Framework Event Stack for Elemental Live Input

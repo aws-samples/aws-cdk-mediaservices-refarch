@@ -87,7 +87,7 @@ def main():
 
     # Request permission to create role
     while True:
-        user_input = input(f"\nWould you like to proceed and create the '{role_name}' the role now? (y/N): ").lower()
+        user_input = input(f"\nWould you like to proceed and create the '{role_name}' role now? (y/N): ").lower()
         if user_input == 'y':
             logger.info("Proceeding user creation...")
             break

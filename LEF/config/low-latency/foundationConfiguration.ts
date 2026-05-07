@@ -5,6 +5,7 @@ export const FOUNDATION_CONFIG: IFoundationConfig = {
     logging: {
       logRetentionPeriod: 30, // days
     },
+    nominalSegmentLength: 1,
     allowedMediaPackageManifestQueryStrings: [
       "aws.manifestfilter",
       "aws.manifestsettings",
@@ -33,8 +34,9 @@ export const FOUNDATION_CONFIG: IFoundationConfig = {
       // ########################################################################################
       // 'reportingMode',
       "aws.sessionId",
-      "aws.streamId",
+      // "aws.streamId",
       "aws.logMode",
+      "aws.insertionMode",
       // 'playerParams.transcode_profile',
       "playerParams.content_segment_prefix",
       "playerParams.ad_segment_prefix",

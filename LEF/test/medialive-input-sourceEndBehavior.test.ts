@@ -64,7 +64,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -87,8 +88,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -100,13 +101,15 @@ describe("MediaLive Input sourceEndBehavior", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(1);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that the input attachment uses the input's sourceEndBehavior
-    expect(channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior).toBe("LOOP");
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior,
+    ).toBe("LOOP");
   });
 
   test("should fall back to config sourceEndBehavior when input doesn't provide it", () => {
@@ -115,7 +118,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -138,8 +142,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -151,13 +155,15 @@ describe("MediaLive Input sourceEndBehavior", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(1);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that the input attachment falls back to the config's sourceEndBehavior
-    expect(channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior).toBe("LOOP");
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior,
+    ).toBe("LOOP");
   });
 
   test("should use default CONTINUE when neither input nor config provide sourceEndBehavior", () => {
@@ -166,7 +172,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -189,8 +196,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -202,13 +209,15 @@ describe("MediaLive Input sourceEndBehavior", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(1);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that the input attachment uses the default CONTINUE
-    expect(channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior).toBe("CONTINUE");
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior,
+    ).toBe("CONTINUE");
   });
 
   test("should force CONTINUE for input types that don't support LOOP", () => {
@@ -217,7 +226,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -240,8 +250,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -253,13 +263,15 @@ describe("MediaLive Input sourceEndBehavior", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(1);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // Get the call arguments for CfnChannel
     // @ts-ignore - Mock type conversion
     const channelArgs = (medialive.CfnChannel as jest.Mock).mock.calls[0][2];
-    
+
     // Verify that the input attachment forces CONTINUE for RTMP_PUSH
-    expect(channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior).toBe("CONTINUE");
+    expect(
+      channelArgs.inputAttachments[0].inputSettings.sourceEndBehavior,
+    ).toBe("CONTINUE");
   });
 
   test("should handle multiple inputs with different sourceEndBehavior values", () => {
@@ -268,7 +280,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
       channelName: "test-channel",
       mediaLiveAccessRoleArn: "test-role-arn",
       configuration: {
-        encodingProfileLocation: "./test/fixtures/mock-encoder-settings/mock-profile.json",
+        encodingProfileLocation:
+          "./test/fixtures/mock-encoder-settings/mock-profile.json",
         channelClass: "STANDARD" as MediaLiveChannelClass,
         segmentLengthInSeconds: 4,
         inputSpecification: {
@@ -297,8 +310,8 @@ describe("MediaLive Input sourceEndBehavior", () => {
         channelClass: "STANDARD" as MediaLiveChannelClass,
         endpoints: {
           primary: "test-endpoint-1",
-          secondary: "test-endpoint-2"
-        }
+          secondary: "test-endpoint-2",
+        },
       },
       tags: [],
     };
@@ -310,7 +323,7 @@ describe("MediaLive Input sourceEndBehavior", () => {
     // Assert
     expect(medialive.CfnInput).toHaveBeenCalledTimes(2);
     expect(medialive.CfnChannel).toHaveBeenCalledTimes(1);
-    
+
     // We can't easily test the individual input settings in this mock setup
     // as the CfnChannel mock doesn't store each call's arguments separately
     // This would require a more complex mock or integration test

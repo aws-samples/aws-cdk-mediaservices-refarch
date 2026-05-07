@@ -29,16 +29,16 @@ export class TestConfigBuilder {
    * @deprecated Use withInputs instead
    */
   withInput(input: any): TestConfigBuilder {
-    console.warn('withInput is deprecated. Use withInputs instead.');
+    console.warn("withInput is deprecated. Use withInputs instead.");
     // Convert single input to array for backward compatibility
     return this.withInputs([input]);
   }
 
   withInputs(inputs: any[]): TestConfigBuilder {
-    this.config.event.mediaLive.inputs = inputs;    
+    this.config.event.mediaLive.inputs = inputs;
     return this;
   }
-  
+
   /**
    * Add @ts-ignore comments to the test files to bypass type errors
    * This is a temporary solution until the type issues are fixed

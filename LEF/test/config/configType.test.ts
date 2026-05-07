@@ -16,105 +16,105 @@ import { IEventConfig } from "../../lib/event/eventConfigInterface";
 import { IEventGroupConfig } from "../../lib/event_group/eventGroupConfigInterface";
 import { IFoundationConfig } from "../../lib/foundation/foundationConfigInterface";
 
-describe('ConfigType', () => {
-  test('should accept IEventConfig as ConfigType', () => {
+describe("ConfigType", () => {
+  test("should accept IEventConfig as ConfigType", () => {
     // This is a type test, so we're just verifying that TypeScript accepts these assignments
     // Create a minimal valid IEventConfig
     const eventConfig: IEventConfig = {
       event: {
         mediaLive: {
-          encodingProfileLocation: '/path/to/profile.json',
-          channelClass: 'STANDARD',
+          encodingProfileLocation: "/path/to/profile.json",
+          channelClass: "STANDARD",
           inputs: [
             {
-              type: 'URL_PULL',
+              type: "URL_PULL",
               urls: [
                 {
-                  url: 'http://example.com/stream'
-                }
+                  url: "http://example.com/stream",
+                },
               ],
-              sourceEndBehavior: 'CONTINUE',
-            }
+              sourceEndBehavior: "CONTINUE",
+            },
           ],
           segmentLengthInSeconds: 4,
           inputSpecification: {
-            codec: 'AVC',
-            maximumBitrate: 'MAX_10_MBPS',
-            resolution: 'HD'
+            codec: "AVC",
+            maximumBitrate: "MAX_10_MBPS",
+            resolution: "HD",
           },
         },
         mediaPackage: {
-          inputType: 'HLS',
+          inputType: "HLS",
           endpoints: {
             hls: {
-              containerType: 'TS',
-              originEndpointName: 'test-endpoint',
-              resourcePolicyType: 'PUBLIC',
-              startoverWindowSeconds: 300,
+              containerType: "TS",
+              originEndpointName: "test-endpoint",
+              resourcePolicyType: "PUBLIC",
+              startoverWindowSeconds: 1209600,
               segment: {
-                segmentName: 'test-segment',
+                segmentName: "test-segment",
                 includeIframeOnlyStreams: false,
-                startoverWindowSeconds: 300,
                 segmentDurationSeconds: 6,
                 scte: {
-                  scteFilter: []
-                }
-              }
-            }
-          }
-        }
-      }
+                  scteFilter: [],
+                },
+              },
+            },
+          },
+        },
+      },
     };
-    
+
     // TypeScript will error if this assignment is invalid
     const configType: ConfigType = eventConfig;
-    
+
     // Simple assertion to make Jest happy
     expect(configType).toBeDefined();
   });
-  
-  test('should accept IEventGroupConfig as ConfigType', () => {
+
+  test("should accept IEventGroupConfig as ConfigType", () => {
     // Create a minimal valid IEventGroupConfig
     const eventGroupConfig: IEventGroupConfig = {
       cloudFront: {
         nominalSegmentLength: 4,
         s3LoggingEnabled: false,
-        enableIpv6: true
+        enableIpv6: true,
       },
       mediaTailor: [
         {
           name: "default",
-          adDecisionServerUrl: 'https://example.com/ads',
-          contentSegmentUrlPrefix: 'https://example.com/content',
-          adSegmentUrlPrefix: 'https://example.com/ad',
+          adDecisionServerUrl: "https://example.com/ads",
+          contentSegmentUrlPrefix: "https://example.com/content",
+          adSegmentUrlPrefix: "https://example.com/ad",
           adMarkerPassthrough: false,
-          slateAdUrl: 'https://example.com/slate'
-        }
-      ]
+          slateAdUrl: "https://example.com/slate",
+        },
+      ],
     };
-    
+
     // TypeScript will error if this assignment is invalid
     const configType: ConfigType = eventGroupConfig;
-    
+
     // Simple assertion to make Jest happy
     expect(configType).toBeDefined();
   });
-  
-  test('should accept IFoundationConfig as ConfigType', () => {
+
+  test("should accept IFoundationConfig as ConfigType", () => {
     // Create a minimal valid IFoundationConfig
     const foundationConfig: IFoundationConfig = {
       cloudFront: {
         logging: {
-          logRetentionPeriod: 30
+          logRetentionPeriod: 30,
         },
+        nominalSegmentLength: 4,
         allowedMediaPackageManifestQueryStrings: [],
-        allowedMediaTailorManifestQueryStrings: "ALL"
-      }
+        allowedMediaTailorManifestQueryStrings: "ALL",
+      },
     };
-    
+
     // TypeScript will error if this assignment is invalid
     const configType: ConfigType = foundationConfig;
-    
+
     // Simple assertion to make Jest happy
     expect(configType).toBeDefined();
   });

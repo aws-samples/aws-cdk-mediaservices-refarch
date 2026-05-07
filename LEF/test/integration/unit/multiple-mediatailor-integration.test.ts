@@ -13,18 +13,18 @@
 
 import { App } from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
-import { LefEventGroupStack } from "../../lib/event_group/lef_event_group_stack";
-import { IEventGroupConfig } from "../../lib/event_group/eventGroupConfigInterface";
+import { LefEventGroupStack } from "../../../lib/event_group/lef_event_group_stack";
+import { IEventGroupConfig } from "../../../lib/event_group/eventGroupConfigInterface";
 
 // Mock the loadConfig function
-jest.mock("../../lib/config/configValidator", () => ({
+jest.mock("../../../lib/config/configValidator", () => ({
   loadConfig: jest.fn(),
   ConfigurationError: class ConfigurationError extends Error {
     constructor(message: string) {
       super(message);
       this.name = "ConfigurationError";
     }
-  }
+  },
 }));
 
 describe("Multiple MediaTailor Integration Tests", () => {
@@ -34,10 +34,12 @@ describe("Multiple MediaTailor Integration Tests", () => {
   beforeEach(() => {
     app = new App({
       context: {
-        "LiveEventFrameworkVersion": "1.0.4"
-      }
+        LiveEventFrameworkVersion: "1.1.0",
+      },
     });
-    mockLoadConfig = jest.requireMock("../../lib/config/configValidator").loadConfig;
+    mockLoadConfig = jest.requireMock(
+      "../../../lib/config/configValidator",
+    ).loadConfig;
     jest.clearAllMocks();
   });
 
@@ -47,7 +49,7 @@ describe("Multiple MediaTailor Integration Tests", () => {
         cloudFront: {
           nominalSegmentLength: 4,
           s3LoggingEnabled: false,
-          enableIpv6: true
+          enableIpv6: true,
         },
         mediaTailor: [
           {
@@ -55,21 +57,27 @@ describe("Multiple MediaTailor Integration Tests", () => {
             adDecisionServerUrl: "https://ads.example.com/primary",
             contentSegmentUrlPrefix: "/",
             adSegmentUrlPrefix: "/",
-            slateAdUrl: "https://slate.example.com/primary.mov"
+            slateAdUrl: "https://slate.example.com/primary.mov",
           },
           {
             name: "secondary",
-            adDecisionServerUrl: "https://ads.example.com/secondary", 
+            adDecisionServerUrl: "https://ads.example.com/secondary",
             contentSegmentUrlPrefix: "/",
             adSegmentUrlPrefix: "/",
-            slateAdUrl: "https://slate.example.com/secondary.mov"
-          }
-        ]
+            slateAdUrl: "https://slate.example.com/secondary.mov",
+          },
+        ],
       };
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "TestEventGroupStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "TestEventGroupStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       // Verify two MediaTailor configurations are created
@@ -83,7 +91,7 @@ describe("Multiple MediaTailor Integration Tests", () => {
           s3LoggingEnabled: true,
           enableIpv6: false,
           enableOriginShield: true,
-          originShieldRegion: "us-east-1"
+          originShieldRegion: "us-east-1",
         },
         mediaTailor: [
           {
@@ -91,21 +99,27 @@ describe("Multiple MediaTailor Integration Tests", () => {
             adDecisionServerUrl: "https://ads.example.com/hls",
             contentSegmentUrlPrefix: "/",
             adSegmentUrlPrefix: "/",
-            slateAdUrl: "https://slate.example.com/hls.mov"
+            slateAdUrl: "https://slate.example.com/hls.mov",
           },
           {
             name: "dash",
             adDecisionServerUrl: "https://ads.example.com/dash",
             contentSegmentUrlPrefix: "/",
             adSegmentUrlPrefix: "/",
-            slateAdUrl: "https://slate.example.com/dash.mov"
-          }
-        ]
+            slateAdUrl: "https://slate.example.com/dash.mov",
+          },
+        ],
       };
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "TestEventGroupStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "TestEventGroupStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       // Verify CloudFront distribution is created
@@ -119,7 +133,7 @@ describe("Multiple MediaTailor Integration Tests", () => {
         cloudFront: {
           nominalSegmentLength: 4,
           s3LoggingEnabled: false,
-          enableIpv6: true
+          enableIpv6: true,
         },
         mediaTailor: [
           {
@@ -127,15 +141,21 @@ describe("Multiple MediaTailor Integration Tests", () => {
             adDecisionServerUrl: "https://ads.example.com",
             contentSegmentUrlPrefix: "/",
             adSegmentUrlPrefix: "/",
-            slateAdUrl: "https://slate.example.com/slate.mov"
-          }
-        ]
+            slateAdUrl: "https://slate.example.com/slate.mov",
+          },
+        ],
       };
 
       mockLoadConfig.mockReturnValue(config);
 
       expect(() => {
-        new LefEventGroupStack(app, "TestEventGroupStack", {}, "test-config");
+        new LefEventGroupStack(
+          app,
+          "TestEventGroupStack",
+          {},
+          "test-config",
+          "MockFoundationStack",
+        );
       }).toThrow();
     });
 
@@ -144,15 +164,21 @@ describe("Multiple MediaTailor Integration Tests", () => {
         cloudFront: {
           nominalSegmentLength: 4,
           s3LoggingEnabled: false,
-          enableIpv6: true
+          enableIpv6: true,
         },
-        mediaTailor: []
+        mediaTailor: [],
       };
 
       mockLoadConfig.mockReturnValue(config);
 
       expect(() => {
-        new LefEventGroupStack(app, "TestEventGroupStack", {}, "test-config");
+        new LefEventGroupStack(
+          app,
+          "TestEventGroupStack",
+          {},
+          "test-config",
+          "MockFoundationStack",
+        );
       }).toThrow();
     });
   });
@@ -165,7 +191,7 @@ describe("Multiple MediaTailor Integration Tests", () => {
           s3LoggingEnabled: true,
           enableIpv6: false,
           enableOriginShield: true,
-          originShieldRegion: "us-east-1"
+          originShieldRegion: "us-east-1",
         },
         mediaTailor: [
           {
@@ -175,14 +201,20 @@ describe("Multiple MediaTailor Integration Tests", () => {
             adSegmentUrlPrefix: "/",
             slateAdUrl: "https://slate.example.com/advanced.mov",
             adMarkerPassthrough: true,
-            personalizationThreshold: 10
-          }
-        ]
+            personalizationThreshold: 10,
+          },
+        ],
       };
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "TestEventGroupStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "TestEventGroupStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 1);
@@ -197,7 +229,13 @@ describe("Multiple MediaTailor Integration Tests", () => {
       });
 
       expect(() => {
-        new LefEventGroupStack(app, "TestEventGroupStack", {}, "invalid-config");
+        new LefEventGroupStack(
+          app,
+          "TestEventGroupStack",
+          {},
+          "invalid-config",
+          "MockFoundationStack",
+        );
       }).toThrow("Configuration file not found");
     });
   });

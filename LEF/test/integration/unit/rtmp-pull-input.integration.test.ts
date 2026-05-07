@@ -13,37 +13,40 @@
 
 import { App } from "aws-cdk-lib";
 import { IntegTest } from "@aws-cdk/integ-tests-alpha";
-import { TestConfigBuilder } from "../utils/test-config-builder";
-import { EVENT_CONFIG } from "../../config/default/eventConfiguration";
+import { TestConfigBuilder } from "../../utils/test-config-builder";
+import { EVENT_CONFIG } from "../../../config/default/eventConfiguration";
 import {
-  singlePipelineUrlPullInput,
-  standardChannelUrlPullInput,
-} from "../fixtures/url-pull-input.fixture";
-import { createEventStack } from "../utils/test-utils";
-import { EVENT_GROUP_STACK_NAME, ANYWHERE_SETTINGS } from "../test.constants";
+  singlePipelineRtmpPullInput,
+  standardChannelRtmpPullInput,
+} from "../../fixtures/rtmp-pull-input.fixture";
+import { createEventStack } from "../../utils/test-utils";
+import {
+  EVENT_GROUP_STACK_NAME,
+  ANYWHERE_SETTINGS,
+} from "../../test.constants";
 
 const ConfigService = {
   defaultConfig: EVENT_CONFIG,
 };
 
-describe("URL Pull Input Integration Tests", () => {
+describe("RTMP Pull Input Integration Tests", () => {
   let app: App;
 
   beforeEach(() => {
     app = new App();
   });
 
-  test("SinglePipeline MediaLive URL Pull Input", () => {
-    const testDescriptor = "UrlPull_SinglePipeline_MediaLive";
+  test("SinglePipeline MediaLive RTMP Pull Input", () => {
+    const testDescriptor = "RtmpPull_SinglePipeline_MediaLive";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInputs([singlePipelineUrlPullInput])
+      .withInputs([singlePipelineRtmpPullInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_UrlPull_SinglePipeline_MediaLive", {
+    new IntegTest(app, "Test_RtmpPull_SinglePipeline_MediaLive", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -57,17 +60,17 @@ describe("URL Pull Input Integration Tests", () => {
     });
   });
 
-  test("Standard MediaLive URL Pull Input", () => {
-    const testDescriptor = "UrlPull_Standard_MediaLive";
+  test("Standard MediaLive RTMP Pull Input", () => {
+    const testDescriptor = "RtmpPull_Standard_MediaLive";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInputs([standardChannelUrlPullInput])
+      .withInputs([standardChannelRtmpPullInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_UrlPull_Standard_MediaLive", {
+    new IntegTest(app, "Test_RtmpPull_Standard_MediaLive", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -81,18 +84,18 @@ describe("URL Pull Input Integration Tests", () => {
     });
   });
 
-  test("SinglePipeline MediaLiveAnywhere URL Pull Input", () => {
-    const testDescriptor = "UrlPull_SinglePipeline_MediaLiveAnywhere";
+  test("SinglePipeline MediaLiveAnywhere RTMP Pull Input", () => {
+    const testDescriptor = "RtmpPull_SinglePipeline_MediaLiveAnywhere";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInputs([singlePipelineUrlPullInput])
+      .withInputs([singlePipelineRtmpPullInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_UrlPull_SinglePipeline_MediaLiveAnywhere", {
+    new IntegTest(app, "Test_RtmpPull_SinglePipeline_MediaLiveAnywhere", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -106,19 +109,19 @@ describe("URL Pull Input Integration Tests", () => {
     });
   });
 
-  test("Standard MediaLiveAnywhere URL Pull Input should fail", () => {
-    const testDescriptor = "UrlPull_Standard_MediaLiveAnywhere";
+  test("Standard MediaLiveAnywhere RTMP Pull Input should fail", () => {
+    const testDescriptor = "RtmpPull_Standard_MediaLiveAnywhere";
 
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInputs([standardChannelUrlPullInput])
+        .withInputs([standardChannelRtmpPullInput])
         .withAnywhereSettings(ANYWHERE_SETTINGS)
         .writeConfig(testDescriptor);
 
       const lefStack = createEventStack(app, testDescriptor);
 
-      new IntegTest(app, "Test_UrlPull_Standard_MediaLiveAnywhere", {
+      new IntegTest(app, "Test_RtmpPull_Standard_MediaLiveAnywhere", {
         testCases: [lefStack],
         cdkCommandOptions: {
           deploy: {

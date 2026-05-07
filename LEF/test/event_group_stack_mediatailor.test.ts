@@ -22,7 +22,7 @@ jest.mock("../lib/config/configValidator", () => ({
       super(message);
       this.name = "ConfigurationError";
     }
-  }
+  },
 }));
 
 // Mock CloudFront class to avoid Fn.join error
@@ -32,20 +32,20 @@ jest.mock("../lib/event_group/cloudfront", () => {
       return {
         distribution: {
           domainName: "test-distribution.cloudfront.net",
-          distributionId: "TESTDISTRIBUTION"
+          distributionId: "TESTDISTRIBUTION",
         },
         node: {
-          addDependency: jest.fn()
-        }
+          addDependency: jest.fn(),
+        },
       };
-    })
+    }),
   };
 });
 
 describe("LefEventGroupStack MediaTailor Configurations", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock MediaTailor class
     jest.mock("../lib/event_group/mediatailor", () => {
       return {
@@ -57,12 +57,16 @@ describe("LefEventGroupStack MediaTailor Configurations", () => {
             sessionEndpoint: "https://example.com/session",
             configHostname: "example.com",
             playbackConfigurationArn: `arn:aws:mediatailor:us-west-2:123456789012:playbackConfiguration/${props.configuration.name}`,
-            configurationName: props.configurationName + (props.configurationNameSuffix ? `-${props.configurationNameSuffix}` : ""),
+            configurationName:
+              props.configurationName +
+              (props.configurationNameSuffix
+                ? `-${props.configurationNameSuffix}`
+                : ""),
             node: {
-              addDependency: jest.fn()
-            }
+              addDependency: jest.fn(),
+            },
           };
-        })
+        }),
       };
     });
   });
@@ -70,32 +74,40 @@ describe("LefEventGroupStack MediaTailor Configurations", () => {
   test("validates MediaTailor configuration name format", () => {
     // Arrange
     const app = new cdk.App();
-    
+
     // Mock the loadConfig function to return invalid configuration with special characters
-    jest.requireMock("../lib/config/configValidator").loadConfig.mockImplementationOnce(() => {
-      return {
-        cloudFront: {
-          nominalSegmentLength: 4,
-          s3LoggingEnabled: true,
-          enableIpv6: true,
-          tokenizationFunctionArn: "",
-        },
-        mediaTailor: [
-          {
-            name: "invalid@name", // Invalid name with special character
-            adDecisionServerUrl: "https://example.com/ads",
-            contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
-            adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
-            adMarkerPassthrough: false,
-            slateAdUrl: "https://example.com/slate.mov",
-          }
-        ],
-      };
-    });
-    
+    jest
+      .requireMock("../lib/config/configValidator")
+      .loadConfig.mockImplementationOnce(() => {
+        return {
+          cloudFront: {
+            nominalSegmentLength: 4,
+            s3LoggingEnabled: true,
+            enableIpv6: true,
+            tokenizationFunctionArn: "",
+          },
+          mediaTailor: [
+            {
+              name: "invalid@name", // Invalid name with special character
+              adDecisionServerUrl: "https://example.com/ads",
+              contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
+              adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
+              adMarkerPassthrough: false,
+              slateAdUrl: "https://example.com/slate.mov",
+            },
+          ],
+        };
+      });
+
     // Act & Assert
     expect(() => {
-      new LefEventGroupStack(app, "TestEventGroupStack", {}, "path/to/config");
+      new LefEventGroupStack(
+        app,
+        "TestEventGroupStack",
+        {},
+        "path/to/config",
+        "MockFoundationStack",
+      );
     }).toThrow(/MediaTailor configuration name.*contains invalid characters/);
   });
 
@@ -103,64 +115,74 @@ describe("LefEventGroupStack MediaTailor Configurations", () => {
     // Arrange
     const app = new cdk.App({
       context: {
-        "LiveEventFrameworkVersion": "1.0.0"
-      }
+        LiveEventFrameworkVersion: "1.0.0",
+      },
     });
-    
+
     // Mock the loadConfig function to return configuration with multiple MediaTailor configs
-    jest.requireMock("../lib/config/configValidator").loadConfig.mockImplementationOnce(() => {
-      return {
-        cloudFront: {
-          nominalSegmentLength: 4,
-          s3LoggingEnabled: true,
-          enableIpv6: true,
-          tokenizationFunctionArn: "",
-        },
-        mediaTailor: [
-          {
-            name: "hls",
-            adDecisionServerUrl: "https://example.com/ads",
-            contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
-            adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
-            adMarkerPassthrough: false,
-            slateAdUrl: "https://example.com/slate.mov",
-            transcodeProfiles: {
-              hlsCmaf: "hls-profile",
-              dashCmaf: ""
-            }
+    jest
+      .requireMock("../lib/config/configValidator")
+      .loadConfig.mockImplementationOnce(() => {
+        return {
+          cloudFront: {
+            nominalSegmentLength: 4,
+            s3LoggingEnabled: true,
+            enableIpv6: true,
+            tokenizationFunctionArn: "",
           },
-          {
-            name: "dash",
-            adDecisionServerUrl: "https://example.com/ads2",
-            contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
-            adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
-            adMarkerPassthrough: false,
-            slateAdUrl: "https://example.com/slate2.mov",
-            transcodeProfiles: {
-              hlsCmaf: "",
-              dashCmaf: "dash-profile"
-            }
-          }
-        ],
-      };
-    });
-    
+          mediaTailor: [
+            {
+              name: "hls",
+              adDecisionServerUrl: "https://example.com/ads",
+              contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
+              adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
+              adMarkerPassthrough: false,
+              slateAdUrl: "https://example.com/slate.mov",
+              transcodeProfiles: {
+                hlsCmaf: "hls-profile",
+                dashCmaf: "",
+              },
+            },
+            {
+              name: "dash",
+              adDecisionServerUrl: "https://example.com/ads2",
+              contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
+              adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
+              adMarkerPassthrough: false,
+              slateAdUrl: "https://example.com/slate2.mov",
+              transcodeProfiles: {
+                hlsCmaf: "",
+                dashCmaf: "dash-profile",
+              },
+            },
+          ],
+        };
+      });
+
     // Act
-    new LefEventGroupStack(app, "TestEventGroupStack", {}, "path/to/config");
-    
+    new LefEventGroupStack(
+      app,
+      "TestEventGroupStack",
+      {},
+      "path/to/config",
+      "MockFoundationStack",
+    );
+
     // Assert
     // Verify that CloudFront is called
-    expect(require("../lib/event_group/cloudfront").CloudFront).toHaveBeenCalledTimes(1);
+    expect(
+      require("../lib/event_group/cloudfront").CloudFront,
+    ).toHaveBeenCalledTimes(1);
   });
 
   test("creates stack with MediaTailor configurations with bumpers and avail suppression", () => {
     // Arrange
     const app = new cdk.App({
       context: {
-        "LiveEventFrameworkVersion": "1.0.0"
-      }
+        LiveEventFrameworkVersion: "1.0.0",
+      },
     });
-    
+
     // Reset MediaTailor mock to track calls
     const MediaTailorMock = jest.fn().mockImplementation((scope, id, props) => {
       return {
@@ -170,64 +192,82 @@ describe("LefEventGroupStack MediaTailor Configurations", () => {
         sessionEndpoint: "https://example.com/session",
         configHostname: "example.com",
         playbackConfigurationArn: `arn:aws:mediatailor:us-west-2:123456789012:playbackConfiguration/${props.configuration.name}`,
-        configurationName: props.configurationName + (props.configurationNameSuffix ? `-${props.configurationNameSuffix}` : ""),
+        configurationName:
+          props.configurationName +
+          (props.configurationNameSuffix
+            ? `-${props.configurationNameSuffix}`
+            : ""),
         node: {
-          addDependency: jest.fn()
-        }
-      };
-    });
-    
-    jest.doMock("../lib/event_group/mediatailor", () => ({
-      MediaTailor: MediaTailorMock
-    }), { virtual: true });
-    
-    // Mock the loadConfig function to return configuration with bumpers and avail suppression
-    jest.requireMock("../lib/config/configValidator").loadConfig.mockImplementationOnce(() => {
-      return {
-        cloudFront: {
-          nominalSegmentLength: 4,
-          s3LoggingEnabled: true,
-          enableIpv6: true,
-          tokenizationFunctionArn: "",
+          addDependency: jest.fn(),
         },
-        mediaTailor: [
-          {
-            name: "primary",
-            adDecisionServerUrl: "https://example.com/ads",
-            contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
-            adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
-            adMarkerPassthrough: true,
-            slateAdUrl: "https://example.com/slate.mov",
-            bumper: {
-              startUrl: "https://example.com/bumper-start.mov",
-              endUrl: "https://example.com/bumper-end.mov",
-            },
-            availSuppression: {
-              mode: "BEHIND_LIVE_EDGE",
-              value: "00:00:30",
-              fillPolicy: "PARTIAL_AVAIL"
-            },
-            preRolladDecisionServerUrl: "https://example.com/preroll",
-            preRollDuration: 15,
-            personalizationThreshold: 5
-          },
-          {
-            name: "secondary",
-            adDecisionServerUrl: "https://example.com/ads2",
-            contentSegmentUrlPrefix: "/",
-            adSegmentUrlPrefix: "/",
-            adMarkerPassthrough: false,
-            slateAdUrl: "https://example.com/slate2.mov"
-          }
-        ],
       };
     });
-    
+
+    jest.doMock(
+      "../lib/event_group/mediatailor",
+      () => ({
+        MediaTailor: MediaTailorMock,
+      }),
+      { virtual: true },
+    );
+
+    // Mock the loadConfig function to return configuration with bumpers and avail suppression
+    jest
+      .requireMock("../lib/config/configValidator")
+      .loadConfig.mockImplementationOnce(() => {
+        return {
+          cloudFront: {
+            nominalSegmentLength: 4,
+            s3LoggingEnabled: true,
+            enableIpv6: true,
+            tokenizationFunctionArn: "",
+          },
+          mediaTailor: [
+            {
+              name: "primary",
+              adDecisionServerUrl: "https://example.com/ads",
+              contentSegmentUrlPrefix: "[player_params.content_segment_prefix]",
+              adSegmentUrlPrefix: "[player_params.ad_segment_prefix]",
+              adMarkerPassthrough: true,
+              slateAdUrl: "https://example.com/slate.mov",
+              bumper: {
+                startUrl: "https://example.com/bumper-start.mov",
+                endUrl: "https://example.com/bumper-end.mov",
+              },
+              availSuppression: {
+                mode: "BEHIND_LIVE_EDGE",
+                value: "00:00:30",
+                fillPolicy: "PARTIAL_AVAIL",
+              },
+              preRolladDecisionServerUrl: "https://example.com/preroll",
+              preRollDuration: 15,
+              personalizationThreshold: 5,
+            },
+            {
+              name: "secondary",
+              adDecisionServerUrl: "https://example.com/ads2",
+              contentSegmentUrlPrefix: "/",
+              adSegmentUrlPrefix: "/",
+              adMarkerPassthrough: false,
+              slateAdUrl: "https://example.com/slate2.mov",
+            },
+          ],
+        };
+      });
+
     // Act
-    new LefEventGroupStack(app, "TestEventGroupStack", {}, "path/to/config");
-    
+    new LefEventGroupStack(
+      app,
+      "TestEventGroupStack",
+      {},
+      "path/to/config",
+      "MockFoundationStack",
+    );
+
     // Assert
     // Verify that CloudFront is called
-    expect(require("../lib/event_group/cloudfront").CloudFront).toHaveBeenCalledTimes(1);
+    expect(
+      require("../lib/event_group/cloudfront").CloudFront,
+    ).toHaveBeenCalledTimes(1);
   });
 });

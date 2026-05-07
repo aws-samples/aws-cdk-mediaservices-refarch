@@ -22,7 +22,7 @@ export type SourceEndBehavior = "LOOP" | "CONTINUE";
 export interface IBaseInput {
   /** Optional name identifier for the input */
   inputName?: string;
-  
+
   /**
    * Source end behavior.
    * @remarks Only applies to MP4_FILE, TS_FILE, RTMP_PULL, URL_PULL inputs.
@@ -246,6 +246,121 @@ export interface IFileInput extends IBaseInput {
 }
 
 /**
+ * Interface for SMPTE 2110 receiver group settings
+ * @interface ISmpte2110ReceiverGroupSettings
+ * @property {string} receiverGroupId - Unique identifier for the receiver group
+ * @property {ISmpte2110Receiver[]} receivers - Array of SMPTE 2110 receivers
+ */
+export interface ISmpte2110ReceiverGroupSettings {
+  /** Unique identifier for the receiver group */
+  receiverGroupId: string;
+  /** Array of SMPTE 2110 receivers in the group */
+  receivers: ISmpte2110Receiver[];
+}
+
+/**
+ * Interface for individual SMPTE 2110 receiver configuration
+ * @interface ISmpte2110Receiver
+ * @property {string} receiverId - Unique identifier for the receiver
+ * @property {string} multicastIp - Multicast IP address for the SMPTE 2110 stream
+ * @property {number} port - Port number for the SMPTE 2110 stream
+ * @property {string} [interfaceId] - Optional network interface identifier
+ * @property {"VIDEO" | "AUDIO" | "ANC"} streamType - Type of SMPTE 2110 stream
+ */
+export interface ISmpte2110Receiver {
+  /** Unique identifier for the receiver */
+  receiverId: string;
+  /** Multicast IP address for the SMPTE 2110 stream */
+  multicastIp: string;
+  /** Port number for the SMPTE 2110 stream */
+  port: number;
+  /** Optional network interface identifier */
+  interfaceId?: string;
+  /** Type of SMPTE 2110 stream */
+  streamType: "VIDEO" | "AUDIO" | "ANC";
+}
+
+/**
+ * Interface for SMPTE 2110 input configuration (MediaLive Anywhere only)
+ * @interface ISmpte2110Input
+ * @extends IBaseInput
+ * @property {string} type - Must be "SMPTE_2110"
+ * @property {ISmpte2110ReceiverGroupSettings} smpte2110ReceiverGroupSettings - SMPTE 2110 receiver group configuration
+ * @example
+ * {
+ *   "inputName": "Primary-SMPTE2110",
+ *   "type": "SMPTE_2110",
+ *   "smpte2110ReceiverGroupSettings": {
+ *     "receiverGroupId": "rg-001",
+ *     "receivers": [
+ *       {
+ *         "receiverId": "video-001",
+ *         "multicastIp": "239.1.1.10",
+ *         "port": 5000,
+ *         "streamType": "VIDEO"
+ *       },
+ *       {
+ *         "receiverId": "audio-001",
+ *         "multicastIp": "239.1.1.11",
+ *         "port": 5001,
+ *         "streamType": "AUDIO"
+ *       }
+ *     ]
+ *   }
+ * }
+ */
+export interface ISmpte2110Input extends IBaseInput {
+  /** Input type identifier */
+  type: "SMPTE_2110";
+  /** SMPTE 2110 receiver group settings */
+  smpte2110ReceiverGroupSettings: ISmpte2110ReceiverGroupSettings;
+}
+
+/**
+ * Interface for SRT Caller input configuration
+ * @interface ISrtCallerInput
+ * @extends IBaseInput
+ * @property {string} type - Must be "SRT_CALLER"
+ * @property {string} srtListenerAddress - Address of the SRT listener (IP or hostname)
+ * @property {number} [srtListenerPort] - Port of the SRT listener (default: 9000)
+ * @property {string} [streamId] - Stream ID for the SRT connection
+ * @property {number} [minimumLatency] - Minimum latency in milliseconds (default: 120)
+ * @property {Object} [decryption] - Decryption settings for encrypted SRT streams
+ * @example
+ * {
+ *   "inputName": "Primary-SRT",
+ *   "type": "SRT_CALLER",
+ *   "srtListenerAddress": "192.168.1.100",
+ *   "srtListenerPort": 9000,
+ *   "streamId": "live-event-1",
+ *   "minimumLatency": 120,
+ *   "decryption": {
+ *     "algorithm": "AES256",
+ *     "passphrase": "arn:aws:secretsmanager:us-east-1:123456789012:secret:srt-passphrase"
+ *   }
+ * }
+ */
+export interface ISrtCallerInput extends IBaseInput {
+  /** Input type identifier */
+  type: "SRT_CALLER";
+  /** Address of the SRT listener (IP or hostname) */
+  srtListenerAddress: string;
+  /** Port of the SRT listener (default: 9000) */
+  srtListenerPort?: number;
+  /** Stream ID for the SRT connection */
+  streamId?: string;
+  /** Minimum latency in milliseconds (default: 120) */
+  minimumLatency?: number;
+  /** Decryption settings for encrypted SRT streams */
+  decryption?: {
+    /** Decryption algorithm */
+    algorithm: "AES128" | "AES192" | "AES256";
+    /** Passphrase ARN for decryption */
+    passphrase: string;
+  };
+}
+
+/**
  * Union type representing all possible MediaLive input configurations
  * This type combines all available input interfaces to define valid input types
  * for AWS Elemental MediaLive channels
@@ -259,4 +374,6 @@ export type MediaLiveInput =
   | IRtmpPullInput
   | IMediaConnectInput
   | IUrlPullInput
-  | IFileInput;
+  | IFileInput
+  | ISmpte2110Input
+  | ISrtCallerInput;

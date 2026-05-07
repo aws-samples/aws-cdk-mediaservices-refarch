@@ -14,6 +14,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { LefBaseStack } from "../lef_base_stack";
+import { LefFoundationStack } from "../foundation/lef_foundation_stack";
 import { IEventGroupConfig } from "./eventGroupConfigInterface";
 import {
   Aws,
@@ -28,14 +29,30 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { MediaTailor } from "./mediatailor";
 import { CloudFront, CloudFrontProps } from "./cloudfront";
+import { getRegionCode } from "../utils/region-mapping";
+import { MediaPackageLogging } from "./mediapackage-logging";
 import { TaggingUtils } from "../utils/tagging";
+import {
+  MediaTailorManager,
+  MediaTailorConfigResult,
+} from "../utils/mediatailor-manager";
 
 export class LefEventGroupStack extends LefBaseStack {
+  // Public properties for direct access by other stacks (used in bin/lef.ts)
+  public readonly cloudFrontDomainName: string;
+  public readonly mediaTailorHlsPlaybackPrefix: string;
+  public readonly mediaTailorDashPlaybackPrefix: string;
+  public readonly mediaTailorSessionPrefix: string;
+  public readonly nominalDeliverySegmentSize: string;
+
   constructor(
     scope: Construct,
     id: string,
     props: cdk.StackProps,
     configFilePath: string,
+    foundationStackOrName: LefFoundationStack | string,
+    skipSubscriptionCheck: boolean = false,
+    wafWebAclArn?: string,
   ) {
     super(scope, id, props);
 
@@ -46,30 +63,46 @@ export class LefEventGroupStack extends LefBaseStack {
     this.validateConfig(config);
 
     /*
-     * Define Stack Parameters
+     * Get foundation stack references
+     * Support both direct stack reference (bin/lef.ts) and string (individual deployment)
      */
-    const foundationStackNameParam = new CfnParameter(
-      this,
-      "foundationStackName",
-      {
-        type: "String",
-        description:
-          "Name of the Foundation Stack Event Group will be based upon.",
-        allowedPattern: ".+",
-        constraintDescription: "Foundation Stack Name cannot be empty",
-      },
-    ).valueAsString;
-    const mediaLiveAccessRoleArn = Fn.importValue(
-      foundationStackNameParam + "-MediaLiveAccessRoleArn",
-    );
+    let mediaLiveAccessRoleArn: string;
+    let snsTopic: string;
+    let foundationStackName: string;
+    let foundationNominalSegmentLength: string;
 
-    const snsTopic = Fn.importValue(foundationStackNameParam + "-SnsTopicArn");
+    if (typeof foundationStackOrName === "string") {
+      // String: use Fn.importValue (individual deployment via bin/event-group.ts)
+      foundationStackName = foundationStackOrName;
+      mediaLiveAccessRoleArn = Fn.importValue(
+        foundationStackName + "-MediaLiveAccessRoleArn",
+      );
+      snsTopic = Fn.importValue(foundationStackName + "-SnsTopicArn");
+      foundationNominalSegmentLength = Fn.importValue(
+        foundationStackName + "-NominalSegmentLength",
+      );
+    } else {
+      // Direct reference (complete deployment via bin/lef.ts)
+      foundationStackName = foundationStackOrName.stackName as string;
+      mediaLiveAccessRoleArn = foundationStackOrName.mediaLiveRoleArn;
+      snsTopic = foundationStackOrName.snsTopicArn;
+      foundationNominalSegmentLength =
+        foundationStackOrName.nominalSegmentLength.toString();
+    }
+
+    // Verify SNS subscription (unless skipped for deploy-all mode)
+    let subscriptionCheck: triggers.TriggerFunction | undefined;
+    if (!skipSubscriptionCheck) {
+      // FIRST: Verify SNS topic has a confirmed subscription before creating any other resources
+      // This will fail the deployment immediately if subscription is not confirmed
+      subscriptionCheck = this.verifySnsTopicSubscriptionState(snsTopic);
+    }
 
     // Create standard tags for event group stack
     this.resourceTags = this.createStandardTags(
-      scope, 
-      "LefEventGroupStack", 
-      foundationStackNameParam,
+      scope,
+      "LefEventGroupStack",
+      foundationStackName,
       Aws.STACK_NAME,
     );
 
@@ -80,57 +113,48 @@ export class LefEventGroupStack extends LefBaseStack {
     const eventGroupName = Aws.STACK_NAME;
 
     // Create MediaPackage V2 Channel Group
+    const channelGroupTags = TaggingUtils.createResourceTags(
+      this.resourceTags,
+      { LefChannelGroup: eventGroupName },
+    );
     const channelGroup = new mediapackagev2.CfnChannelGroup(
       this,
       "MediaPackageChannelGroup",
       {
         channelGroupName: eventGroupName,
         description: "Channel Group for " + Aws.STACK_NAME,
-        tags: TaggingUtils.convertToCfnTags(this.resourceTags),
+        tags: TaggingUtils.convertToCfnTags(channelGroupTags),
       },
     );
 
-    // Need to perform check to confirm SNS Email Subscription is active before proceeding
-    // to create the key resources in the stack
-    const verifySnsTopicTrigger =
-      this.verifySnsTopicSubscriptionState(snsTopic);
+    // Ensure channel group is created only after subscription is verified (if check exists)
+    if (subscriptionCheck) {
+      channelGroup.node.addDependency(subscriptionCheck);
+    }
 
-    // Create MediaTailor Configurations
-    const mediaTailorConfigs = eventGroupConfig.mediaTailor.map((config, index) => {
-      let mediaTailorConfigResourceId = 'MediaTailorConfiguration'
-      if ( config.name && config.name != "") {
-        mediaTailorConfigResourceId = `${mediaTailorConfigResourceId}-${config.name}`
+    // Use WAF Web ACL ARN if provided (from WAF stack or config)
+    let webAclArn: string | undefined;
+    if (eventGroupConfig.cloudFront.waf?.enabled) {
+      // Priority: 1) Passed from WAF stack, 2) From config file
+      webAclArn = wafWebAclArn || eventGroupConfig.cloudFront.waf.webAclArn;
+
+      if (webAclArn) {
+        // Output WAF Web ACL ARN being used
+        new CfnOutput(this, "WafWebAclArn", {
+          value: webAclArn,
+          description: "WAF Web ACL ARN for CloudFront distribution",
+        });
+      } else {
+        throw new Error(
+          "WAF is enabled but no Web ACL ARN provided.  Update configuration to " +
+            "either provide webAclArn or enable a rule to trigger a new Web ACL creation.",
+        );
       }
-      const mediaTailor = new MediaTailor(this, mediaTailorConfigResourceId, {
-        configurationName: eventGroupName,
-        configurationNameSuffix: config.name,
-        configuration: config,
-        originHostname: channelGroup.attrEgressDomain,
-        tags: this.resourceTags,
-      });
-      
-      // Need to perform check to confirm SNS Email Subscription is active before proceeding
-      mediaTailor.node.addDependency(verifySnsTopicTrigger);
-      
-      return {
-        instance: mediaTailor,
-        name: eventGroupName,
-        nameSuffix: config.name,
-        hostname: mediaTailor.configHostname
-      };
-    });
-
-    // Create a list of all the MediaTailor ARNs in the group
-    const mediaTailorArnList = mediaTailorConfigs.map((config) => config.instance.playbackConfigurationArn);
-    new CfnOutput(this, "MediaTailorPlaybackConfigurationArnList", {
-      value: mediaTailorArnList.join("|"),
-      exportName: Aws.STACK_NAME + "-MediaTailor-Playback-Configuration-Arn-List",
-      description: "List of all MediaTailor Playback Configuration ARNs in the group",
-    });
+    }
 
     // Define props to create CloudFront Distribution
     const cloudFrontProps: CloudFrontProps = {
-      foundationStackName: foundationStackNameParam,
+      foundationStackName: foundationStackName,
       mediaPackageHostname: channelGroup.attrEgressDomain,
       mediaPackageChannelGroupName: eventGroupName,
       s3LoggingEnabled: eventGroupConfig.cloudFront.s3LoggingEnabled,
@@ -139,6 +163,7 @@ export class LefEventGroupStack extends LefBaseStack {
       enableIpv6: eventGroupConfig.cloudFront.enableIpv6,
       enableOriginShield: eventGroupConfig.cloudFront.enableOriginShield,
       originShieldRegion: eventGroupConfig.cloudFront.originShieldRegion,
+      webAclArn: webAclArn,
       tags: this.resourceTags,
     };
 
@@ -153,21 +178,52 @@ export class LefEventGroupStack extends LefBaseStack {
     if (trustedKeyGroups && trustedKeyGroups.length > 0) {
       cloudFrontProps.keyGroupIds = trustedKeyGroups;
     }
-      
+
     // Create CloudFront Distribution
     const cloudfront = new CloudFront(
       this,
       "CloudFrontDistribution",
       cloudFrontProps,
     );
-    
-    cloudfront.node.addDependency(verifySnsTopicTrigger);
+    // Ensure cloudfront resources are created only after subscription is verified (if check exists)
+    if (subscriptionCheck) {
+      cloudfront.node.addDependency(subscriptionCheck);
+    }
 
-    /*
-     * Define MediaTailor Configuration Prefixes for the primary configuration
-     */
+    // Create MediaTailor Configurations
+    const mediaTailorTags = TaggingUtils.createResourceTags(this.resourceTags, {
+      LefChannelGroup: eventGroupName,
+    });
+
+    const mediaTailorConfigs = MediaTailorManager.createConfigurations(
+      this,
+      eventGroupConfig.mediaTailor,
+      eventGroupName,
+      "MediaTailorConfiguration",
+      channelGroup.attrEgressDomain,
+      cloudfront.distribution.domainName,
+      mediaTailorTags,
+    );
+
+    // Ensure mediatailor configs are created only after subscription is verified (if check exists)
+    if (subscriptionCheck) {
+      // Add dependency on SNS verification for all MediaTailor configurations
+      mediaTailorConfigs.forEach((config) => {
+        config.instance.node.addDependency(subscriptionCheck);
+      });
+    }
+
+    // Create MediaTailor outputs using utility
+    MediaTailorManager.createOutputs(
+      this,
+      mediaTailorConfigs,
+      cloudfront.distribution.domainName,
+      "",
+      Aws.STACK_NAME,
+    );
+
+    // Keep legacy outputs for backward compatibility
     const primaryMediaTailor = mediaTailorConfigs[0].instance;
-
     const emtPath = Fn.select(
       1,
       Fn.split("/v1/session/", primaryMediaTailor.sessionEndpoint),
@@ -184,9 +240,9 @@ export class LefEventGroupStack extends LefBaseStack {
       "https://" + cloudfront.distribution.domainName + `/v1/` + emtSessionPath;
 
     new CfnOutput(this, "FoundationStackName", {
-      value: foundationStackNameParam,
+      value: foundationStackName,
       exportName: Aws.STACK_NAME + "-Foundation-Stack-Name",
-      description: "Name of the Foundation Stack used bye Event Group.",
+      description: "Name of the Foundation Stack used by Event Group.",
     });
 
     new CfnOutput(this, "SnsTopic", {
@@ -201,73 +257,16 @@ export class LefEventGroupStack extends LefBaseStack {
       description: "MediaLive Access Role for MediaLive to use for events.",
     });
 
-    // Output information for each MediaTailor configuration
-    if ( mediaTailorConfigs.length > 1 ) {
-      mediaTailorConfigs.forEach((config, index) => {
-        new CfnOutput(this, `MediaTailorPlaybackConfigurationArn-${config.nameSuffix}`, {
-          value: config.instance.playbackConfigurationArn,
-          exportName: Aws.STACK_NAME + `-MediaTailor-${config.nameSuffix}-Playback-Configuration-Arn`,
-          description: `MediaTailor ${config.nameSuffix} Playback Configuration ARN`,
-        });
-        
-        const configEmtPath = Fn.select(
-          1,
-          Fn.split("/v1/session/", config.instance.sessionEndpoint),
-        );
-        const configEmtSessionPath = Fn.select(
-          1,
-          Fn.split("/v1/", config.instance.sessionEndpoint),
-        );
-        
-        new CfnOutput(this, `MediaTailorHlsPlaybackPrefix-${config.nameSuffix}`, {
-          value: "https://" + cloudfront.distribution.domainName + `/v1/master/` + configEmtPath,
-          exportName: Aws.STACK_NAME + `-MediaTailor-${config.nameSuffix}-Hls-Playback-Prefix`,
-          description: `Prefix for playing HLS back streams with SSAI using ${config.nameSuffix} configuration`,
-        });
-        
-        new CfnOutput(this, `MediaTailorDashPlaybackPrefix-${config.nameSuffix}`, {
-          value: "https://" + cloudfront.distribution.domainName + `/v1/dash/` + configEmtPath,
-          exportName: Aws.STACK_NAME + `-MediaTailor-${config.nameSuffix}-Dash-Playback-Prefix`,
-          description: `Prefix for playing DASH back streams with SSAI using ${config.nameSuffix} configuration`,
-        });
-        
-        new CfnOutput(this, `MediaTailorSessionPrefix-${config.nameSuffix}`, {
-          value: "https://" + cloudfront.distribution.domainName + `/v1/` + configEmtSessionPath,
-          exportName: Aws.STACK_NAME + `-MediaTailor-${config.nameSuffix}-Session-Prefix`,
-          description: `Prefix for creating MediaTailor sessions using ${config.nameSuffix} configuration`,
-        });
-      });
-    }
-
     new CfnOutput(this, "CloudFrontDistributionId", {
       value: cloudfront.distribution.distributionId,
       exportName: Aws.STACK_NAME + "-CloudFront-Distribution-ID",
       description: "CloudFront Distribution ID",
     });
 
-    // Keep the original outputs for backward compatibility
-    new CfnOutput(this, "MediaTailorHlsPlaybackPrefix", {
-      value: mediaTailorHlsPlaybackPrefix,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Hls-Playback-Prefix",
-      description: "Prefix for playing HLS back streams with SSAI (primary configuration)",
-    });
-
-    new CfnOutput(this, "MediaTailorDashPlaybackPrefix", {
-      value: mediaTailorDashPlaybackPrefix,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Dash-Playback-Prefix",
-      description: "Prefix for playing DASH back streams with SSAI (primary configuration)",
-    });
-
-    new CfnOutput(this, "MediaTailorSessionPrefix", {
-      value: mediaTailorSessionPrefix,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Session-Prefix",
-      description: "Prefix for creating MediaTailor sessions (primary configuration)",
-    });
-    
-    new CfnOutput(this, "MediaTailorPlaybackConfigurationArn", {
-      value: primaryMediaTailor.playbackConfigurationArn,
-      exportName: Aws.STACK_NAME + "-MediaTailor-Playback-Configuration-Arn",
-      description: "MediaTailor Playback Configuration ARN (primary configuration)",
+    new CfnOutput(this, "CloudFrontDomainName", {
+      value: cloudfront.distribution.domainName,
+      exportName: Aws.STACK_NAME + "-CloudFront-Domain-Name",
+      description: "CloudFront Distribution Domain Name",
     });
 
     new CfnOutput(this, "CloudFrontNominalSegmentLength", {
@@ -275,6 +274,119 @@ export class LefEventGroupStack extends LefBaseStack {
       exportName: Aws.STACK_NAME + "-Nominal-Delivery-Segment-Size",
       description:
         "Nominal segment size used for configuration of CloudFront timeouts",
+    });
+
+    // Create MediaPackage logging if enabled
+    if (eventGroupConfig.mediaPackageLogging?.enabled) {
+      const loggingTags = TaggingUtils.createResourceTags(this.resourceTags, {
+        LefChannelGroup: eventGroupName,
+      });
+
+      const mediaPackageLogging = new MediaPackageLogging(
+        this,
+        "MediaPackageLogging",
+        {
+          channelGroupArn: channelGroup.attrArn,
+          channelGroupName: eventGroupName,
+          configuration: eventGroupConfig.mediaPackageLogging,
+          tags: loggingTags,
+        },
+      );
+
+      // Add dependency to ensure channel group is created first
+      mediaPackageLogging.node.addDependency(channelGroup);
+
+      // Export logging resource ARNs if logging is enabled
+      if (mediaPackageLogging.logGroupArns.length > 0) {
+        new CfnOutput(this, "MediaPackageLogGroups", {
+          value: mediaPackageLogging.logGroupArns.join("|"),
+          exportName: Aws.STACK_NAME + "-MediaPackage-Log-Groups",
+          description: "MediaPackage CloudWatch Log Group ARNs",
+        });
+      }
+
+      if (mediaPackageLogging.s3Buckets.length > 0) {
+        new CfnOutput(this, "MediaPackageLogBuckets", {
+          value: mediaPackageLogging.s3Buckets
+            .map((bucket) => bucket.bucketArn)
+            .join("|"),
+          exportName: Aws.STACK_NAME + "-MediaPackage-Log-Buckets",
+          description: "MediaPackage S3 Log Bucket ARNs",
+        });
+      }
+    }
+
+    // Set public properties for direct access by other stacks (used in bin/lef.ts)
+    this.cloudFrontDomainName = cloudfront.distribution.domainName;
+    this.mediaTailorHlsPlaybackPrefix = mediaTailorHlsPlaybackPrefix;
+    this.mediaTailorDashPlaybackPrefix = mediaTailorDashPlaybackPrefix;
+    this.mediaTailorSessionPrefix = mediaTailorSessionPrefix;
+    this.nominalDeliverySegmentSize =
+      eventGroupConfig.cloudFront.nominalSegmentLength.toString();
+
+    // Add deletion protection check
+    this.addDeletionProtectionCheck("CloudFront-Domain-Name");
+  }
+
+  addDeletionProtectionCheck(exportSuffix: string) {
+    const role = new iam.Role(this, "DeletionCheckRole", {
+      assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+      roleName: `${Aws.STACK_NAME}-${getRegionCode(this)}-DeletionCheckRole`,
+    });
+    TaggingUtils.applyTagsToResource(role, this.resourceTags);
+
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["cloudformation:ListImports"],
+        resources: ["*"],
+      }),
+    );
+
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ],
+        resources: [`arn:aws:logs:${Aws.REGION}:${Aws.ACCOUNT_ID}:log-group:*`],
+      }),
+    );
+
+    const fn = new lambda.Function(this, "DeletionCheck", {
+      functionName: `${Aws.STACK_NAME}-${getRegionCode(this)}-DeletionCheck`,
+      runtime: lambda.Runtime.PYTHON_3_14,
+      handler: "index.lambda_handler",
+      code: lambda.Code.fromAsset(
+        __dirname + "/../../lambda/check_stack_dependencies",
+      ),
+      role: role,
+      environment: {
+        STACK_NAME: Aws.STACK_NAME,
+        EXPORT_SUFFIX: exportSuffix,
+      },
+      reservedConcurrentExecutions: 1,
+    });
+    TaggingUtils.applyTagsToResource(fn, this.resourceTags);
+
+    fn.grantInvoke(new iam.ServicePrincipal("cloudformation.amazonaws.com"));
+
+    // Apply NAG suppression to the role's default policy
+    const defaultPolicy = role.node.findChild("DefaultPolicy") as iam.Policy;
+    if (defaultPolicy) {
+      NagSuppressions.addResourceSuppressions(defaultPolicy, [
+        {
+          id: "AwsSolutions-IAM5",
+          reason:
+            "ListImports requires wildcard. Log group wildcard needed for unpredictable names.",
+        },
+      ]);
+    }
+
+    new cdk.CustomResource(this, "DeletionProtection", {
+      serviceToken: fn.functionArn,
     });
   }
 
@@ -286,7 +398,7 @@ export class LefEventGroupStack extends LefBaseStack {
       "CheckValidSnsSubscriptionExistsRole",
       {
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-        roleName: Aws.STACK_NAME + "-CheckValidSnsSubscriptionExistsRole",
+        roleName: `${Aws.STACK_NAME}-${getRegionCode(this)}-CheckValidSnsSubscriptionExistsRole`,
         description:
           "Role for the CheckValidSnsSubscriptionExists Lambda function",
       },
@@ -308,20 +420,35 @@ export class LefEventGroupStack extends LefBaseStack {
         "logs:CreateLogStream",
         "logs:PutLogEvents",
       ],
-      resources: [`arn:aws:logs:${Aws.REGION}:${Aws.ACCOUNT_ID}:log-group`],
+      resources: [`arn:aws:logs:${Aws.REGION}:${Aws.ACCOUNT_ID}:log-group:*`],
     });
 
     // Attach the custom policy statements to the IAM role
     lambdaRole.addToPolicy(snsPolicy);
     lambdaRole.addToPolicy(cloudWatchPolicy);
 
+    // Apply NAG suppression to the role's default policy
+    const defaultPolicy = lambdaRole.node.findChild(
+      "DefaultPolicy",
+    ) as iam.Policy;
+    if (defaultPolicy) {
+      NagSuppressions.addResourceSuppressions(defaultPolicy, [
+        {
+          id: "AwsSolutions-IAM5",
+          reason:
+            "Resource is limited to log-groups in the account/region but a wildcard needs to " +
+            "be specified at the end of the resources due to the full resource name being unpredictable.",
+        },
+      ]);
+    }
+
     // Run trigger to verify SnsTopic has a confirmed subscription
     const trigger = new triggers.TriggerFunction(
       this,
       "CheckValidSnsSubscriptioExists",
       {
-        functionName: Aws.STACK_NAME + "-CheckValidSnsSubscriptionExists",
-        runtime: lambda.Runtime.PYTHON_3_13,
+        functionName: `${Aws.STACK_NAME}-${getRegionCode(this)}-CheckValidSnsSubscriptionExists`,
+        runtime: lambda.Runtime.PYTHON_3_14,
         handler: "index.lambda_handler",
         code: lambda.Code.fromAsset(
           __dirname + "/../../lambda/check_valid_sns_subscription_exists",
@@ -330,18 +457,10 @@ export class LefEventGroupStack extends LefBaseStack {
         environment: {
           SNS_TOPIC_ARN: snsTopic,
         },
+        reservedConcurrentExecutions: 1,
       },
     );
     TaggingUtils.applyTagsToResource(trigger, this.resourceTags);
-
-    NagSuppressions.addResourceSuppressions(lambdaRole, [
-      {
-        id: "AwsSolutions-IAM5",
-        reason:
-          "Resource is limited to log-groups in the account/region but a wildcard needs to " +
-          "be specified at the end of the resources due to the full resource name being unpredictable.",
-      },
-    ]);
 
     return trigger;
   }
@@ -377,40 +496,40 @@ export class LefEventGroupStack extends LefBaseStack {
         );
       }
     }
-    
+
     // Verify that at least one MediaTailor configuration exists
     if (!config.mediaTailor || config.mediaTailor.length === 0) {
       throw new Error(
-        "At least one MediaTailor configuration must be provided"
+        "At least one MediaTailor configuration must be provided",
       );
     }
-    
+
     // Verify MediaTailor configuration names
-    const configNames = config.mediaTailor.map(config => config.name || '');
-    
+    const configNames = config.mediaTailor.map((config) => config.name || "");
+
     // Count undefined/empty names - only one is allowed
-    const unnamedCount = configNames.filter(name => !name).length;
+    const unnamedCount = configNames.filter((name) => !name).length;
     if (unnamedCount > 1) {
       throw new Error(
-        "Only one MediaTailor configuration can have an undefined or empty name"
+        "Only one MediaTailor configuration can have an undefined or empty name",
       );
     }
-    
+
     // For configurations with names, verify they are unique and valid
-    const namedConfigs = configNames.filter(name => name !== '');
+    const namedConfigs = configNames.filter((name) => name !== "");
     const uniqueNames = new Set(namedConfigs);
     if (uniqueNames.size !== namedConfigs.length) {
       throw new Error(
-        "All named MediaTailor configurations must have unique names"
+        "All named MediaTailor configurations must have unique names",
       );
     }
-    
+
     // Verify that all MediaTailor configuration names are valid when present
     const nameRegex = /^[a-zA-Z0-9-_]+$/;
     for (const name of namedConfigs) {
       if (!nameRegex.test(name)) {
         throw new Error(
-          `MediaTailor configuration name '${name}' contains invalid characters. Use only alphanumeric characters, hyphens, and underscores.`
+          `MediaTailor configuration name '${name}' contains invalid characters. Use only alphanumeric characters, hyphens, and underscores.`,
         );
       }
     }

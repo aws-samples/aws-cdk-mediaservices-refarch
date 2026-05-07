@@ -14,7 +14,11 @@
 import { App } from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
 import { LefEventGroupStack } from "../lib/event_group/lef_event_group_stack";
-import { MediaTailorTestConfigs, MediaTailorConfigBuilder, EventGroupConfigBuilder } from "./utils/mediatailor-config-builder";
+import {
+  MediaTailorTestConfigs,
+  MediaTailorConfigBuilder,
+  EventGroupConfigBuilder,
+} from "./utils/mediatailor-config-builder";
 
 // Mock the loadConfig function
 jest.mock("../lib/config/configValidator", () => ({
@@ -24,7 +28,7 @@ jest.mock("../lib/config/configValidator", () => ({
       super(message);
       this.name = "ConfigurationError";
     }
-  }
+  },
 }));
 
 describe("MediaTailor Configuration Scenarios", () => {
@@ -34,10 +38,12 @@ describe("MediaTailor Configuration Scenarios", () => {
   beforeEach(() => {
     app = new App({
       context: {
-        "LiveEventFrameworkVersion": "1.0.4"
-      }
+        LiveEventFrameworkVersion: "1.1.0",
+      },
     });
-    mockLoadConfig = jest.requireMock("../lib/config/configValidator").loadConfig;
+    mockLoadConfig = jest.requireMock(
+      "../lib/config/configValidator",
+    ).loadConfig;
     jest.clearAllMocks();
   });
 
@@ -46,7 +52,13 @@ describe("MediaTailor Configuration Scenarios", () => {
       const config = MediaTailorTestConfigs.singleConfiguration();
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "SingleConfigStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "SingleConfigStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 1);
@@ -56,7 +68,13 @@ describe("MediaTailor Configuration Scenarios", () => {
       const config = MediaTailorTestConfigs.dualConfiguration();
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "DualConfigStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "DualConfigStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 2);
@@ -66,7 +84,13 @@ describe("MediaTailor Configuration Scenarios", () => {
       const config = MediaTailorTestConfigs.hlsOnlyConfiguration();
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "HlsOnlyStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "HlsOnlyStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 1);
@@ -76,7 +100,13 @@ describe("MediaTailor Configuration Scenarios", () => {
       const config = MediaTailorTestConfigs.dashOnlyConfiguration();
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "DashOnlyStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "DashOnlyStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 1);
@@ -85,10 +115,17 @@ describe("MediaTailor Configuration Scenarios", () => {
 
   describe("Advanced Feature Scenarios", () => {
     it("should handle multiple configurations with different profiles", () => {
-      const config = MediaTailorTestConfigs.multipleConfigurationsWithDifferentProfiles();
+      const config =
+        MediaTailorTestConfigs.multipleConfigurationsWithDifferentProfiles();
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "MultiProfileStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "MultiProfileStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 3);
@@ -110,7 +147,13 @@ describe("MediaTailor Configuration Scenarios", () => {
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "SportsStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "SportsStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 1);
@@ -121,7 +164,10 @@ describe("MediaTailor Configuration Scenarios", () => {
         .withAdDecisionServerUrl("https://news-ads.example.com")
         .withAdMarkerPassthrough(true)
         .withPreRoll("https://news-preroll.example.com", 15)
-        .withBumpers("https://news-bumper-start.example.com", "https://news-bumper-end.example.com")
+        .withBumpers(
+          "https://news-bumper-start.example.com",
+          "https://news-bumper-end.example.com",
+        )
         .build();
 
       const config = new EventGroupConfigBuilder()
@@ -131,7 +177,13 @@ describe("MediaTailor Configuration Scenarios", () => {
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "NewsStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "NewsStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 1);
@@ -156,7 +208,13 @@ describe("MediaTailor Configuration Scenarios", () => {
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "FailoverStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "FailoverStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 2);
@@ -176,7 +234,13 @@ describe("MediaTailor Configuration Scenarios", () => {
 
       mockLoadConfig.mockReturnValue(config);
 
-      const stack = new LefEventGroupStack(app, "MaxConfigStack", {}, "test-config");
+      const stack = new LefEventGroupStack(
+        app,
+        "MaxConfigStack",
+        {},
+        "test-config",
+        "MockFoundationStack",
+      );
       const template = Template.fromStack(stack);
 
       template.resourceCountIs("AWS::MediaTailor::PlaybackConfiguration", 5);

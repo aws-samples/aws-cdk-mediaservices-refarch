@@ -13,38 +13,41 @@
 
 import { App } from "aws-cdk-lib";
 import { IntegTest } from "@aws-cdk/integ-tests-alpha";
-import { TestConfigBuilder } from "../utils/test-config-builder";
-import { EVENT_CONFIG } from "../../config/default/eventConfiguration";
+import { TestConfigBuilder } from "../../utils/test-config-builder";
+import { EVENT_CONFIG } from "../../../config/default/eventConfiguration";
 import {
-  singlePipelineMulticastInput,
-  standardChannelMulticastInput,
-} from "../fixtures/multicast-input.fixture";
-import { createEventStack } from "../utils/test-utils";
-import { EVENT_GROUP_STACK_NAME, ANYWHERE_SETTINGS } from "../test.constants";
+  singlePipelineInputDeviceInput,
+  standardChannelInputDeviceInput,
+} from "../../fixtures/input-device-input.fixture";
+import { createEventStack } from "../../utils/test-utils";
+import {
+  EVENT_GROUP_STACK_NAME,
+  ANYWHERE_SETTINGS,
+} from "../../test.constants";
 
 const ConfigService = {
   defaultConfig: EVENT_CONFIG,
 };
 
-describe("Multicast Input Integration Tests", () => {
+describe("Input Device Input Integration Tests", () => {
   let app: App;
 
   beforeEach(() => {
     app = new App();
   });
 
-  test("SinglePipeline MediaLive Multicast Input", () => {
-    const testDescriptor = "Multicast_SinglePipeline_MediaLive";
+  test("SinglePipeline MediaLive Input Device Input should fail", () => {
+    const testDescriptor = "InputDevice_SinglePipeline_MediaLive";
 
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("SINGLE_PIPELINE")
-        .withInputs([singlePipelineMulticastInput])
+        .withInputs([singlePipelineInputDeviceInput])
         .writeConfig(testDescriptor);
 
       const lefStack = createEventStack(app, testDescriptor);
 
-      new IntegTest(app, "Test_Multicast_SinglePipeline_MediaLive", {
+      new IntegTest(app, "Test_InputDevice_SinglePipeline_MediaLive", {
         testCases: [lefStack],
         cdkCommandOptions: {
           deploy: {
@@ -57,22 +60,22 @@ describe("Multicast Input Integration Tests", () => {
         },
       });
     }).toThrow(
-      "Invalid MediaLive Configuration. 'MULTICAST' inputs are only available on MediaLive Anywhere.",
+      "Invalid MediaLive Configuration. 'INPUT_DEVICE' inputs are only available on MediaLive Anywhere.",
     );
   });
 
-  test("Standard MediaLive Multicast Input", () => {
-    const testDescriptor = "Multicast_Standard_MediaLive";
+  test("Standard MediaLive Input Device Input should fail", () => {
+    const testDescriptor = "InputDevice_Standard_MediaLive";
 
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInputs([standardChannelMulticastInput])
+        .withInputs([standardChannelInputDeviceInput])
         .writeConfig(testDescriptor);
 
       const lefStack = createEventStack(app, testDescriptor);
 
-      new IntegTest(app, "Test_Multicast_Standard_MediaLive", {
+      new IntegTest(app, "Test_InputDevice_Standard_MediaLive", {
         testCases: [lefStack],
         cdkCommandOptions: {
           deploy: {
@@ -85,22 +88,22 @@ describe("Multicast Input Integration Tests", () => {
         },
       });
     }).toThrow(
-      "Invalid MediaLive Configuration. 'MULTICAST' inputs are only available on MediaLive Anywhere.",
+      "Invalid MediaLive Configuration. 'INPUT_DEVICE' inputs are only available on MediaLive Anywhere.",
     );
   });
 
-  test("SinglePipeline MediaLiveAnywhere Multicast Input", () => {
-    const testDescriptor = "Multicast_SinglePipeline_MediaLiveAnywhere";
+  test("SinglePipeline MediaLiveAnywhere Input Device Input", () => {
+    const testDescriptor = "InputDevice_SinglePipeline_MediaLiveAnywhere";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInputs([singlePipelineMulticastInput])
+      .withInputs([singlePipelineInputDeviceInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_Multicast_SinglePipeline_MediaLiveAnywhere", {
+    new IntegTest(app, "Test_InputDevice_SinglePipeline_MediaLiveAnywhere", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -114,19 +117,19 @@ describe("Multicast Input Integration Tests", () => {
     });
   });
 
-  test("Standard MediaLiveAnywhere Multicast Input should fail", () => {
-    const testDescriptor = "Multicast_Standard_MediaLiveAnywhere";
+  test("Standard MediaLiveAnywhere Input Device Input should fail", () => {
+    const testDescriptor = "InputDevice_Standard_MediaLiveAnywhere";
 
     expect(() => {
       const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
         .withChannelClass("STANDARD")
-        .withInputs([standardChannelMulticastInput])
+        .withInputs([standardChannelInputDeviceInput])
         .withAnywhereSettings(ANYWHERE_SETTINGS)
         .writeConfig(testDescriptor);
 
       const lefStack = createEventStack(app, testDescriptor);
 
-      new IntegTest(app, "Test_Multicast_Standard_MediaLiveAnywhere", {
+      new IntegTest(app, "Test_InputDevice_Standard_MediaLiveAnywhere", {
         testCases: [lefStack],
         cdkCommandOptions: {
           deploy: {

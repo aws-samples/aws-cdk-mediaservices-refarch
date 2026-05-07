@@ -20,6 +20,7 @@ import {
   standardChannelInputDeviceInput,
 } from "../fixtures/input-device-input.fixture";
 import { TestConfigBuilder } from "../utils/test-config-builder";
+import { ANYWHERE_SETTINGS } from "../test.constants";
 
 const ConfigService = {
   defaultConfig: EVENT_CONFIG,
@@ -46,6 +47,7 @@ describe("LEF Event Stack", () => {
         testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
           .withChannelClass(channelClass)
           .withInputs([singlePipelineInputDeviceInput])
+          .withAnywhereSettings(ANYWHERE_SETTINGS)
           .writeConfig(testDescriptor2);
 
         // Build stack
@@ -77,45 +79,25 @@ describe("LEF Event Stack", () => {
       });
     });
 
-    describe("Standard MediaLive Channel", () => {
+    describe("Standard MediaLive Channel should fail", () => {
       const encoderType = "MediaLive";
       const channelClass = "STANDARD";
       const testDescriptor2 = `${testDescriptor1}_${encoderType}_${channelClass}_InputDeviceInput`;
-      let testConfig;
 
-      beforeEach(() => {
-        // Create default configuration and modify with test parameters
-        testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
-          .withChannelClass(channelClass)
-          .withInputs([standardChannelInputDeviceInput])
-          .writeConfig(testDescriptor2);
+      it("should throw error when trying to use standard channel with MediaLive Anywhere", () => {
+        expect(() => {
+          // Create default configuration and modify with test parameters
+          const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
+            .withChannelClass(channelClass)
+            .withInputs([standardChannelInputDeviceInput])
+            .withAnywhereSettings(ANYWHERE_SETTINGS)
+            .writeConfig(testDescriptor2);
 
-        // Build stack
-        const lefStack = createEventStack(app, testDescriptor2);
-        template = Template.fromStack(lefStack);
-      });
-
-      it("should create media live input and media live channel resources", () => {
-        template.resourceCountIs("AWS::MediaLive::Input", 1);
-        template.resourceCountIs("AWS::MediaLive::Channel", 1);
-      });
-
-      it("should create a standard channel", () => {
-        template.hasResourceProperties("AWS::MediaLive::Channel", {
-          ChannelClass: "STANDARD",
-        });
-      });
-
-      it("should create an input device input with correct settings", () => {
-        template.hasResourceProperties("AWS::MediaLive::Input", {
-          Name: Match.anyValue(),
-          Type: "INPUT_DEVICE",
-          InputDevices: [
-            {
-              Id: standardChannelInputDeviceInput.deviceId,
-            },
-          ],
-        });
+          // Build stack
+          const lefStack = createEventStack(app, testDescriptor2);
+        }).toThrow(
+          "Invalid MediaLive Configuration. MediaLive Anywhere does not support STANDARD channels.",
+        );
       });
     });
   });

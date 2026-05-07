@@ -22,7 +22,6 @@ import { TagArray, TaggingUtils } from "./utils/tagging";
  * Base stack class for LEF stacks with common functionality
  */
 export abstract class LefBaseStack extends cdk.Stack {
-
   /**
    * Collection of tags to be applied to resources in this stack
    * Each derived stack should populate this with appropriate tags
@@ -53,7 +52,7 @@ export abstract class LefBaseStack extends cdk.Stack {
 
   /**
    * Creates standard resource tags for a stack based on its type and relationships
-   * 
+   *
    * @param scope The construct scope (used to access context values)
    * @param stackType The type of stack (e.g., "LefFoundationStack", "LefEventGroupStack", "LefEventStack")
    * @param foundationStackName The name of the foundation stack (optional, for event group and event stacks)
@@ -69,31 +68,32 @@ export abstract class LefBaseStack extends cdk.Stack {
   ): TagArray {
     const tags: Record<string, string> = {
       StackType: stackType,
-      LiveEventFrameworkVersion: scope.node.tryGetContext("LiveEventFrameworkVersion") || "unknown"
+      LiveEventFrameworkVersion:
+        scope.node.tryGetContext("LiveEventFrameworkVersion") || "unknown",
     };
 
     // Add stack relationships if provided
     if (foundationStackName) {
       tags.FoundationStackName = foundationStackName;
     }
-    
+
     if (eventGroupStackName) {
       tags.EventGroupStackName = eventGroupStackName;
     }
-    
+
     // Always add the current stack name
     // Use the actual stack name from context if available, otherwise fall back to ID or token
     const contextStackName = scope.node.tryGetContext("stackName");
     const stackId = contextStackName || this.node.id || Aws.STACK_NAME;
-    tags[`${stackType.replace('Lef', '')}Name`] = stackId;
+    tags[`${stackType.replace("Lef", "")}Name`] = stackId;
 
     return [tags];
   }
-  
+
   /**
    * Applies the resource tags to all resources in the stack
    * This method should be called after all resources have been created
-   * 
+   *
    * @example
    * // In a derived stack constructor:
    * this.resourceTags = this.createStandardTags(this, "LefFoundationStack");
@@ -102,9 +102,9 @@ export abstract class LefBaseStack extends cdk.Stack {
    */
   public tagResources(): void {
     if (!this.resourceTags || this.resourceTags.length === 0) return;
-    
+
     // Apply tags to all resources in the stack
-    this.node.findAll().forEach(child => {
+    this.node.findAll().forEach((child) => {
       if (child instanceof cdk.Resource) {
         TaggingUtils.applyTagsToResource(child, this.resourceTags);
       }

@@ -13,37 +13,41 @@
 
 import { App } from "aws-cdk-lib";
 import { IntegTest } from "@aws-cdk/integ-tests-alpha";
-import { TestConfigBuilder } from "../utils/test-config-builder";
-import { EVENT_CONFIG } from "../../config/default/eventConfiguration";
+import { TestConfigBuilder } from "../../utils/test-config-builder";
+import { EVENT_CONFIG } from "../../../config/default/eventConfiguration";
 import {
-  singlePipelineMediaConnectInput,
-  standardChannelMediaConnectInput,
-} from "../fixtures/mediaconnect-input.fixture";
-import { createEventStack } from "../utils/test-utils";
-import { EVENT_GROUP_STACK_NAME, ANYWHERE_SETTINGS } from "../test.constants";
+  singlePipelineRtpPushInput,
+  standardRtpPushInput,
+  mediaLiveAnywhereInput,
+} from "../../fixtures/rtp-push-input.fixture";
+import { createEventStack } from "../../utils/test-utils";
+import {
+  EVENT_GROUP_STACK_NAME,
+  ANYWHERE_SETTINGS,
+} from "../../test.constants";
 
 const ConfigService = {
   defaultConfig: EVENT_CONFIG,
 };
 
-describe("MediaConnect Input Integration Tests", () => {
+describe("RTP Push Input Integration Tests", () => {
   let app: App;
 
   beforeEach(() => {
     app = new App();
   });
 
-  test("SinglePipeline MediaLive MediaConnect Input", () => {
-    const testDescriptor = "MediaConnect_SinglePipeline_MediaLive";
+  test("SinglePipeline MediaLive RTP Push Input", () => {
+    const testDescriptor = "RtpPush_SinglePipeline_MediaLive";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInputs([singlePipelineMediaConnectInput])
+      .withInputs([singlePipelineRtpPushInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_MediaConnect_SinglePipeline_MediaLive", {
+    new IntegTest(app, "Test_RtpPush_SinglePipeline_MediaLive", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -57,17 +61,17 @@ describe("MediaConnect Input Integration Tests", () => {
     });
   });
 
-  test("Standard MediaLive MediaConnect Input", () => {
-    const testDescriptor = "MediaConnect_Standard_MediaLive";
+  test("Standard MediaLive RTP Push Input", () => {
+    const testDescriptor = "RtpPush_Standard_MediaLive";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("STANDARD")
-      .withInputs([standardChannelMediaConnectInput])
+      .withInputs([standardRtpPushInput])
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_MediaConnect_Standard_MediaLive", {
+    new IntegTest(app, "Test_RtpPush_Standard_MediaLive", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -81,18 +85,18 @@ describe("MediaConnect Input Integration Tests", () => {
     });
   });
 
-  test("SinglePipeline MediaLiveAnywhere MediaConnect Input", () => {
-    const testDescriptor = "MediaConnect_SinglePipeline_MediaLiveAnywhere";
+  test("SinglePipeline MediaLiveAnywhere RTP Push Input", () => {
+    const testDescriptor = "RtpPush_SinglePipeline_MediaLiveAnywhere";
 
     const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
       .withChannelClass("SINGLE_PIPELINE")
-      .withInputs([singlePipelineMediaConnectInput])
+      .withInputs([mediaLiveAnywhereInput])
       .withAnywhereSettings(ANYWHERE_SETTINGS)
       .writeConfig(testDescriptor);
 
     const lefStack = createEventStack(app, testDescriptor);
 
-    new IntegTest(app, "Test_MediaConnect_SinglePipeline_MediaLiveAnywhere", {
+    new IntegTest(app, "Test_RtpPush_SinglePipeline_MediaLiveAnywhere", {
       testCases: [lefStack],
       cdkCommandOptions: {
         deploy: {
@@ -106,30 +110,17 @@ describe("MediaConnect Input Integration Tests", () => {
     });
   });
 
-  test("Standard MediaLiveAnywhere MediaConnect Input should fail", () => {
-    const testDescriptor = "MediaConnect_Standard_MediaLiveAnywhere";
+  test("Standard MediaLiveAnywhere RTP Push Input should fail", () => {
+    const testDescriptor = "RtpPush_Standard_MediaLiveAnywhere";
+
+    const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
+      .withChannelClass("STANDARD")
+      .withInputs([mediaLiveAnywhereInput])
+      .withAnywhereSettings(ANYWHERE_SETTINGS)
+      .writeConfig(testDescriptor);
 
     expect(() => {
-      const testConfig = new TestConfigBuilder(ConfigService.defaultConfig)
-        .withChannelClass("STANDARD")
-        .withInputs([standardChannelMediaConnectInput])
-        .withAnywhereSettings(ANYWHERE_SETTINGS)
-        .writeConfig(testDescriptor);
-
-      const lefStack = createEventStack(app, testDescriptor);
-
-      new IntegTest(app, "Test_MediaConnect_Standard_MediaLiveAnywhere", {
-        testCases: [lefStack],
-        cdkCommandOptions: {
-          deploy: {
-            args: {
-              parameters: {
-                eventGroupStackName: EVENT_GROUP_STACK_NAME,
-              },
-            },
-          },
-        },
-      });
+      createEventStack(app, testDescriptor);
     }).toThrow(
       "Invalid MediaLive Configuration. MediaLive Anywhere does not support STANDARD channels.",
     );

@@ -24,8 +24,8 @@ describe("TaggingUtils", () => {
       const tags: TagArray = [
         {
           Key1: "Value1",
-          Key2: "Value2"
-        }
+          Key2: "Value2",
+        },
       ];
 
       // Act
@@ -34,7 +34,7 @@ describe("TaggingUtils", () => {
       // Assert
       expect(result).toEqual([
         { key: "Key1", value: "Value1" },
-        { key: "Key2", value: "Value2" }
+        { key: "Key2", value: "Value2" },
       ]);
     });
 
@@ -48,10 +48,7 @@ describe("TaggingUtils", () => {
 
     test("handles multiple tag objects in array", () => {
       // Arrange
-      const tags: TagArray = [
-        { Key1: "Value1" },
-        { Key2: "Value2" }
-      ];
+      const tags: TagArray = [{ Key1: "Value1" }, { Key2: "Value2" }];
 
       // Act
       const result = TaggingUtils.convertToCfnTags(tags);
@@ -59,7 +56,7 @@ describe("TaggingUtils", () => {
       // Assert
       expect(result).toEqual([
         { key: "Key1", value: "Value1" },
-        { key: "Key2", value: "Value2" }
+        { key: "Key2", value: "Value2" },
       ]);
     });
   });
@@ -70,8 +67,8 @@ describe("TaggingUtils", () => {
       const tags: TagArray = [
         {
           Key1: "Value1",
-          Key2: "Value2"
-        }
+          Key2: "Value2",
+        },
       ];
 
       // Act
@@ -80,7 +77,7 @@ describe("TaggingUtils", () => {
       // Assert
       expect(result).toEqual({
         Key1: "Value1",
-        Key2: "Value2"
+        Key2: "Value2",
       });
     });
 
@@ -94,10 +91,7 @@ describe("TaggingUtils", () => {
 
     test("handles multiple tag objects in array", () => {
       // Arrange
-      const tags: TagArray = [
-        { Key1: "Value1" },
-        { Key2: "Value2" }
-      ];
+      const tags: TagArray = [{ Key1: "Value1" }, { Key2: "Value2" }];
 
       // Act
       const result = TaggingUtils.convertToMapTags(tags);
@@ -105,23 +99,20 @@ describe("TaggingUtils", () => {
       // Assert
       expect(result).toEqual({
         Key1: "Value1",
-        Key2: "Value2"
+        Key2: "Value2",
       });
     });
 
     test("last value wins for duplicate keys", () => {
       // Arrange
-      const tags: TagArray = [
-        { Key1: "Value1" },
-        { Key1: "Value2" }
-      ];
+      const tags: TagArray = [{ Key1: "Value1" }, { Key1: "Value2" }];
 
       // Act
       const result = TaggingUtils.convertToMapTags(tags);
 
       // Assert
       expect(result).toEqual({
-        Key1: "Value2"
+        Key1: "Value2",
       });
     });
   });
@@ -135,12 +126,12 @@ describe("TaggingUtils", () => {
         removalPolicy: cdk.RemovalPolicy.DESTROY,
         autoDeleteObjects: true,
       });
-      
+
       const tags: TagArray = [
         {
           Key1: "Value1",
-          Key2: "Value2"
-        }
+          Key2: "Value2",
+        },
       ];
 
       // Act
@@ -152,11 +143,11 @@ describe("TaggingUtils", () => {
       const bucketResources = template.findResources("AWS::S3::Bucket");
       const bucketId = Object.keys(bucketResources)[0];
       const bucketTags = bucketResources[bucketId].Properties.Tags;
-      
+
       // Find our specific tags in the array
       const key1Tag = bucketTags.find((tag: any) => tag.Key === "Key1");
       const key2Tag = bucketTags.find((tag: any) => tag.Key === "Key2");
-      
+
       expect(key1Tag).toEqual({ Key: "Key1", Value: "Value1" });
       expect(key2Tag).toEqual({ Key: "Key2", Value: "Value2" });
     });
