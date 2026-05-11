@@ -23,6 +23,7 @@ This project will provide you with deployment samples for the following AWS serv
 * AWS Elemental Channel Assembly (ECA) 
 * AWS Elemental Secure Packager and Encoder Key Exchange  (SPEKE) 
 * Amazon Interactive Video Service (IVS) 
+* AWS Elemental Inference (EI)
 
 Some examples will also demonstrate the integration of MediaServices with other AWS services through detailed use cases.
   
@@ -52,6 +53,7 @@ Before you start with this project make sure you are familiar with the following
 | [Monitoring your Live Workflow (LIVE_CW_MONITOR)](LIVE_CW_MONITOR/README.md) | Professional |  Example of using CloudWatch dashboards to monitor your live workflow with CloudWatch metrics produced by MediaLive & MediaPackage. |
 | [Monitoring your MediaLive input and output with thumbnails (LIVE_THUMBNAIL_MONITORING)](LIVE_THUMBNAIL_MONITORING/README.md) | Professional |  Example of using MediaLive source thumbnails and output frame capture to build a HTML template for monitoring your live stream. |
 | [Infrastructure for granting EMX Entitlements to another account and stop secrets being shared via another medium (EMX_SECRET_SHARING)](EMX_SECRET_SHARING/README.md) | Advanced |  Example architecture on how you could share secrets automatically between accounts, without having to use another medium. |
+| [Elemental Inference — Smart Crop & Event Clipping (ELEMENTAL_INFERENCE)](ELEMENTAL_INFERENCE/README.md) | Advanced | MediaLive with Elemental Inference AI for landscape-to-vertical smart crop and event clipping metadata, packaged via MediaPackageV2 with a REST API for feed metadata. |
 
 ## Coming Soon
 | Example | Type | Description |
