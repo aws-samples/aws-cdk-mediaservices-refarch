@@ -18,7 +18,6 @@ This project will provide you with deployment samples for the following AWS serv
 * AWS Elemental MediaLive Statmux (EML-STX) 
 * AWS Elemental MediaConvert (EMC) 
 * AWS Elemental MediaPackage (EMP) 
-* AWS Elemental MediaStore (EMS) 
 * AWS Elemental MediaTailor (EMT) 
 * AWS Elemental Channel Assembly (ECA) 
 * AWS Elemental Secure Packager and Encoder Key Exchange  (SPEKE) 
@@ -39,30 +38,16 @@ Before you start with this project make sure you are familiar with the following
 
 | Example | Type | Description |
 |---------|------|-------------|
-| [live encoding loop (LILO)](LILO/README.md) | Foundational | The live encoding loop example is intended to provide a live channel from a video file. |
 | [Live Event Framework (LEF)](LEF/README.md) | Advanced | Sample Live Event Framework supporting the deployment of multiple concurrent MediaPackage V2 live events (or 24x7 channel) with or without MediaTailor Ad Insertion. |
-| [Live Low Latency OTT workflow using MediaPackage V2 (OTT_LOW_LATENCY)](OTT_LOW_LATENCY/README.md) | Advanced | Creating a highly configurable low latency and standard latency Live OTT stream using MediaLive, MediaPackage V2 and CloudFront. This supercedes the OTT project and should be used for new HLS and CMAF deployments. |
-| [Live OTT workflow (OTT)](OTT/README.md) | Advanced | Creating a highly configurable Live OTT stream using MediaLive, MediaPackage and CloudFront.  |
-| [Live Ad insertion workflow (SSAI)](SSAI/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. |
-| [Live Ad insertion workflow (SSAI_CMAF_AND_DASH)](SSAI_CMAF_AND_DASH/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor with CMAF and DASH. |
+| [Live Low Latency OTT workflow using MediaPackage V2 (OTT_LOW_LATENCY)](OTT_LOW_LATENCY/README.md) | Advanced | Creating a highly configurable low latency and standard latency Live OTT stream using MediaLive, MediaPackage V2 and CloudFront. For HLS and CMAF deployments. |
+| [Live Ad insertion workflow (SSAI) - now deprecated, use Live Event Framework](LEF/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. |
+| [Live Ad insertion workflow (SSAI_CMAF_AND_DASH) - now deprecated, use Live Event Framework](LEF/README.md) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor with CMAF and DASH. |
 | [Sustainable Outputs from MediaLive (SUSTAINABILITY_LIVE)](SUSTAINABILITY_LIVE/README.md) | Professional |  Sustainable code example to cover how to share encodes across multple outputs. |
 | [MediaLive Private Networking Output (PRIVATE_LIVE)](PRIVATE_LIVE/README.md) | Professional |  Sample code for sending an output from MediaLive via a VPC (and a private subnet). This could be to your own Origin solution running in your VPC. |
 | [Monitoring your Live Workflow (LIVE_CW_MONITOR)](LIVE_CW_MONITOR/README.md) | Professional |  Example of using CloudWatch dashboards to monitor your live workflow with CloudWatch metrics produced by MediaLive & MediaPackage. |
 | [Monitoring your MediaLive input and output with thumbnails (LIVE_THUMBNAIL_MONITORING)](LIVE_THUMBNAIL_MONITORING/README.md) | Professional |  Example of using MediaLive source thumbnails and output frame capture to build a HTML template for monitoring your live stream. |
 | [Infrastructure for granting EMX Entitlements to another account and stop secrets being shared via another medium (EMX_SECRET_SHARING)](EMX_SECRET_SHARING/README.md) | Advanced |  Example architecture on how you could share secrets automatically between accounts, without having to use another medium. |
 
-## Coming Soon
-| Example | Type | Description |
-|---------|------|-------------|
-| Social Network Publication (SNP) | Foundational | This example is intended to provide a live channel to publish directly to social network platform using RTMP output. |
-| Static packaging/origination (ORG) | Foundational |  |
-| Feeder (FDR) | Foundational |  |
-| Subscriber local (SBRL) | Foundational |  |
-| Subscriber remote (SBRR) | Foundational |  |
-| Live to archive workflow (L2A) | Advanced |   |
-| Live broadcast workflow (BSCT) | Advanced |   |
-| Live OTT workflow (OTT_SECURE) | Advanced | Creating a highly configurable Live OTT streaming using MediaLive, MediaPackage and CloudFront using Secure Media Delivery at the Edge Solution. |
-| Ad insertion workflow (SSAI_SECURE) | Advanced |  Example to provide Dynamic Ad Insertion using MediaTailor. This example provides an integration with the Secure Media Delivery at the Edge solution for a secure streaming. |
 
 <a name="license"></a>
 ## License
